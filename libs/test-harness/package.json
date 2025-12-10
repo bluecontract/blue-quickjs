@@ -1,5 +1,5 @@
 {
-  "name": "@blue-quickjs/quickjs-wasm",
+  "name": "@blue-quickjs/test-harness",
   "version": "0.0.1",
   "type": "module",
   "main": "./dist/index.js",
@@ -19,7 +19,9 @@
     "!**/*.tsbuildinfo"
   ],
   "nx": {
-    "name": "quickjs-wasm"
+    "name": "test-harness"
   },
-  "dependencies": {}
+  "dependencies": {
+    "tslib": "^2.3.0"
+  }
 }

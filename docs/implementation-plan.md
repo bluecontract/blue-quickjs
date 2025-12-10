@@ -82,15 +82,15 @@ This repo ensures:
 # Current repo snapshot (kickoff)
 
 - Nx 22.2 workspace scaffold exists with pnpm (`nx.json`, `tsconfig.base.json`, `package.json`, `pnpm-workspace.yaml`).
-- `pnpm-workspace.yaml` only includes `libs/*`; `libs/` is empty and no `apps/` projects exist yet.
-- `node_modules/` is present; no lint/format configs or root scripts yet; `README.md` is the default Nx placeholder.
+- Publishable libs are scaffolded (`dv`, `abi-manifest`, `quickjs-wasm-build`, `quickjs-wasm`, `quickjs-runtime`, `test-harness`) plus smoke apps (`smoke-node`, `smoke-web`) with placeholder src/tests and passing build/test targets.
+- Lint/format configs and root scripts are in place; `README.md` still contains the Nx placeholder.
 - Docs folder currently only has this plan; toolchain/docs stubs are missing.
 
 ## Working set (first Codex pass)
 
 - [x] T-000: Finish workspace bootstrap (root scripts, engines policy, verify `pnpm nx graph`/`run-many`).
 - [x] T-001: Add lint/format/.editorconfig/.gitignore and repo lint workflow.
-- [ ] T-002: Scaffold empty libs/apps per proposed layout; wire minimal tests. (`quickjs-wasm` lib scaffolded)
+- [x] T-002: Scaffold empty libs/apps per proposed layout; wire minimal tests. (all libs/apps scaffolded)
 - [ ] T-005: Create doc stubs and link from README.
 - [ ] README: Replace Nx boilerplate with repo overview and doc links.
 
@@ -164,33 +164,33 @@ Repo-wide Prettier config/ignore, ESLint base ignores, `.editorconfig`, and root
 ### T-002: Create initial libs/apps skeletons (empty but buildable)
 
 **Phase:** P0 – Monorepo bootstrap and standards
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-001
 
 **Goal:**
 Create Nx projects for all major libs and smoke apps so later tickets can wire functionality incrementally.
 
 **Current state:**
-`quickjs-wasm` publishable library scaffolded; remaining libs/apps are pending.
+All publishable libs and smoke apps scaffolded with placeholder src/test and working build/test targets (`nx run-many -t build|test` passing).
 
 **Detailed tasks:**
 
-- [ ] Create publishable library projects under `libs/`:
+- [x] Create publishable library projects under `libs/`:
 
-  - [ ] `dv`
-  - [ ] `abi-manifest`
-  - [ ] `quickjs-wasm-build`
-  - [ ] `quickjs-wasm`
-  - [ ] `quickjs-runtime`
-  - [ ] `test-harness`
+  - [x] `dv`
+  - [x] `abi-manifest`
+  - [x] `quickjs-wasm-build`
+  - [x] `quickjs-wasm`
+  - [x] `quickjs-runtime`
+  - [x] `test-harness`
 
-- [ ] Create apps under `apps/`: `smoke-node`, `smoke-web`.
-- [ ] Ensure each project has `project.json` `src/index.ts`, and a trivial test.
+- [x] Create apps under `apps/`: `smoke-node`, `smoke-web`.
+- [x] Ensure each project has `project.json` `src/index.ts`, and a trivial test.
 
 **Acceptance criteria:**
 
-- [ ] `pnpm nx run-many -t build` succeeds.
-- [ ] `pnpm nx run-many -t test` succeeds.
+- [x] `pnpm nx run-many -t build` succeeds.
+- [x] `pnpm nx run-many -t test` succeeds.
 
 ---
 

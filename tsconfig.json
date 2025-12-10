@@ -5,6 +5,27 @@
   "references": [
     {
       "path": "./libs/quickjs-wasm"
+    },
+    {
+      "path": "./libs/dv"
+    },
+    {
+      "path": "./libs/abi-manifest"
+    },
+    {
+      "path": "./libs/quickjs-wasm-build"
+    },
+    {
+      "path": "./libs/quickjs-runtime"
+    },
+    {
+      "path": "./libs/test-harness"
+    },
+    {
+      "path": "./apps/smoke-web"
+    },
+    {
+      "path": "./apps/smoke-node"
     }
   ]
 }

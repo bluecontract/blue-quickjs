@@ -1,6 +1,7 @@
 {
-  "name": "@blue-quickjs/quickjs-wasm",
+  "name": "@blue-quickjs/smoke-node",
   "version": "0.0.1",
+  "private": true,
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -14,12 +15,10 @@
       "default": "./dist/index.js"
     }
   },
-  "files": [
-    "dist",
-    "!**/*.tsbuildinfo"
-  ],
   "nx": {
-    "name": "quickjs-wasm"
+    "name": "smoke-node"
   },
-  "dependencies": {}
+  "dependencies": {
+    "tslib": "^2.3.0"
+  }
 }

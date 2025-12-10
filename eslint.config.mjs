@@ -17,6 +17,8 @@ export default [
       '**/tmp/**',
       '**/node_modules/**',
       'vendor/**',
+      '**/vitest.config.*.timestamp*',
+      '**/vite.config.*.timestamp*',
     ],
   },
   {
