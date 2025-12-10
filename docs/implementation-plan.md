@@ -418,7 +418,7 @@ Enforce no async behavior and no hidden scheduling.
 ### T-014: Disable eval/Function, RegExp, Proxy
 
 **Phase:** P1 – QuickJS harness and deterministic capability profile
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-011
 
 **Goal:**
@@ -428,14 +428,19 @@ Remove high-risk features excluded by Baseline #1 until explicitly supported/met
 
 **Detailed tasks:**
 
-- [ ] Disable/stub `eval` and `Function`.
-- [ ] Disable/stub `RegExp`.
-- [ ] Disable/stub `Proxy`.
-- [ ] Add deterministic failure tests.
+- [x] Disable/stub `eval` and `Function`.
+- [x] Disable/stub `RegExp`.
+- [x] Disable/stub `Proxy`.
+- [x] Add deterministic failure tests.
 
 **Acceptance criteria:**
 
-- [ ] Scripts attempting these features fail deterministically.
+- [x] Scripts attempting these features fail deterministically.
+
+**Current state (P1 T-014):**
+- Deterministic init continues to stub `eval`/`Function` and now replaces `RegExp` and `Proxy` globals with deterministic TypeError stubs.
+- `ctx->regexp_ctor` and `compile_regexp` point at the disabled stub, so both `new RegExp()` and regex literals throw `TypeError: RegExp is disabled in deterministic mode`.
+- Native harness tests cover the RegExp constructor, RegExp literals, and Proxy construction and assert deterministic failures.
 
 ---
 
