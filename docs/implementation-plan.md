@@ -180,12 +180,7 @@ Create Nx projects for all major libs and smoke apps so later tickets can wire f
   - [ ] `test-harness`
 
 - [ ] Create apps under `apps/`: `smoke-node`, `smoke-web`.
-- [ ] Ensure each project has `project.json`, `package.json`, `src/index.ts`, and a trivial test.
-
-**Implementation hints (for Codex):**
-
-- Prefer package-based libs (each lib has its own `package.json`).
-- Choose one consistent TS build strategy repo-wide (`tsc` or `tsup`) and stick to it.
+- [ ] Ensure each project has `project.json` `src/index.ts`, and a trivial test.
 
 **Acceptance criteria:**
 
