@@ -283,21 +283,24 @@ Doc stubs added: `docs/determinism-profile.md`, `docs/gas-schedule.md`, `docs/dv
 ### T-010: Create a minimal native (non-Wasm) harness for the QuickJS fork
 
 **Phase:** P1 – QuickJS harness and deterministic capability profile
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-003, T-002
 
 **Goal:**
 Enable fast iteration on QuickJS changes by compiling and running the fork natively, with deterministic init and stable output capture.
 
+**Current state:**
+`tools/quickjs-native-harness` added as an Nx project. Build compiles `vendor/quickjs` sources plus a small harness binary that evaluates `--eval "<js>"` and prints `RESULT <json>` or `ERROR <message>`. Tests spawn the binary and assert deterministic output. Runtime init currently uses QuickJS defaults; swap to the fork’s deterministic init once available.
+
 **Detailed tasks:**
 
-- [ ] Add C harness under `tools/quickjs-native-harness/` that can:
-  - [ ] create runtime/context using the deterministic init entrypoint,
-  - [ ] evaluate a provided JS source string,
-  - [ ] return stable JSON-like output (DV bytes or a stable text format) and stable error codes.
+- [x] Add C harness under `tools/quickjs-native-harness/` that can:
+  - [x] create runtime/context using the deterministic init entrypoint,
+  - [x] evaluate a provided JS source string,
+  - [x] return stable JSON-like output (DV bytes or a stable text format) and stable error codes.
 
-- [ ] Add Nx targets to build and run harness tests.
-- [ ] Add a minimal smoke test script.
+- [x] Add Nx targets to build and run harness tests.
+- [x] Add a minimal smoke test script.
 
 **Implementation hints (for Codex):**
 
@@ -306,8 +309,8 @@ Enable fast iteration on QuickJS changes by compiling and running the fork nativ
 
 **Acceptance criteria:**
 
-- [ ] `pnpm nx build quickjs-native-harness` produces a runnable binary.
-- [ ] `pnpm nx test quickjs-native-harness` runs at least one deterministic test.
+- [x] `pnpm nx build quickjs-native-harness` produces a runnable binary.
+- [x] `pnpm nx test quickjs-native-harness` runs at least one deterministic test.
 
 ---
 
