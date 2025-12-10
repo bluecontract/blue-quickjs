@@ -56,6 +56,8 @@ assert_output "DataView disabled" "new DataView()" "ERROR TypeError: DataView is
 assert_output "Typed arrays disabled" "new Uint8Array(4)" "ERROR TypeError: Typed arrays are disabled in deterministic mode"
 assert_output "Atomics disabled" "Atomics()" "ERROR TypeError: Atomics is disabled in deterministic mode"
 assert_output "WebAssembly disabled" "WebAssembly()" "ERROR TypeError: WebAssembly is disabled in deterministic mode"
+assert_output "console disabled" "console.log('x')" "ERROR TypeError: console is disabled in deterministic mode"
+assert_output "print disabled" "print('x')" "ERROR TypeError: print is disabled in deterministic mode"
 assert_output "Date missing" "typeof Date" "RESULT \"undefined\""
 assert_output "Timers missing" "typeof setTimeout" "RESULT \"undefined\""
 assert_output "Promise disabled" "Promise.resolve(1)" "ERROR TypeError: Promise is disabled in deterministic mode"

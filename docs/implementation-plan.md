@@ -473,7 +473,7 @@ Prevent float/NaN payload observability and low-level channels.
 ### T-016: Disable console/print; provide deterministic logging path placeholder
 
 **Phase:** P1 – QuickJS harness and deterministic capability profile
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-011
 
 **Goal:**
@@ -483,13 +483,17 @@ Prevent nondeterministic host logging. Logging (if any) must be via deterministi
 
 **Detailed tasks:**
 
-- [ ] Remove/stub `print`/`console` (if present in your embed) or ensure they do nothing deterministically.
-- [ ] Document recommended deterministic logging mechanism: `Host.v1.emit(...)` (implemented later).
-- [ ] Add tests that logging does not escape to host console.
+- [x] Remove/stub `print`/`console` (if present in your embed) or ensure they do nothing deterministically.
+- [x] Document recommended deterministic logging mechanism: `Host.v1.emit(...)` (implemented later).
+- [x] Add tests that logging does not escape to host console.
 
 **Acceptance criteria:**
 
-- [ ] No console output occurs from VM execution in harness tests.
+- [x] No console output occurs from VM execution in harness tests.
+
+**Current state (P1 T-016):**
+- Deterministic init installs a null-prototype `console` with common methods (`log`, `info`, `warn`, `error`, `debug`) all mapped to deterministic `TypeError: console is disabled in deterministic mode`; global `print` is similarly stubbed.
+- Native harness tests assert console/print calls throw deterministically (no host output); future logging should go through `Host.v1.emit(...)` once implemented.
 
 ---
 
