@@ -14,6 +14,9 @@ describe('AppElement', () => {
   it('should have a greeting', () => {
     app.connectedCallback();
 
-    expect(app.querySelector('h1').innerHTML).toContain('Welcome smoke-web');
+    const heading = app.querySelector('h1');
+
+    expect(heading).not.toBeNull();
+    expect(heading?.innerHTML ?? '').toContain('Welcome smoke-web');
   });
 });

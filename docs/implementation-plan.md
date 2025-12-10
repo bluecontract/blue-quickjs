@@ -500,7 +500,7 @@ Prevent nondeterministic host logging. Logging (if any) must be via deterministi
 ### T-017: Capability profile conformance test suite
 
 **Phase:** P1 – QuickJS harness and deterministic capability profile
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-012, T-013, T-014, T-015, T-016
 
 **Goal:**
@@ -509,15 +509,19 @@ Lock down the deterministic profile with regression tests.
 **Detailed tasks:**
 
 - [ ] Add a suite of scripts checking:
-  - [ ] forbidden globals are missing/stubbed,
-  - [ ] key injected globals are immutable,
-  - [ ] global property enumeration is stable for injected names.
+  - [x] forbidden globals are missing/stubbed,
+  - [x] key injected globals are immutable,
+  - [x] global property enumeration is stable for injected names.
 
-- [ ] Add golden/snapshot outputs.
+- [x] Add golden/snapshot outputs.
 
 **Acceptance criteria:**
 
-- [ ] Running the suite twice yields identical outputs.
+- [x] Running the suite twice yields identical outputs.
+
+**Current state (P1 T-017):**
+- Added a capability snapshot assertion in the native harness that records deterministic outcomes for all disabled globals, confirms `Host`/`Host.v1` immutability/non-extensibility, and checks global property ordering for injected names; compared against a golden JSON output.
+- QuickJS deterministic init now prevents extensions on the `Host` namespaces to keep them immutable; harness suite passes deterministically.
 
 ---
 
