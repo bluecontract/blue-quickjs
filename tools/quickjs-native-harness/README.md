@@ -8,5 +8,5 @@ Minimal native harness for the QuickJS fork. Builds a standalone binary that eva
 - Manual run: `tools/quickjs-native-harness/dist/quickjs-native-harness --eval "1 + 2"`
 
 Notes:
-- The runtime currently uses QuickJS defaults; once the deterministic init entrypoint lands in the fork, this harness should switch to that initializer.
+- Uses the fork's deterministic init (`JS_NewDeterministicRuntime`): global scope excludes `Date`, `eval`, `Function`, `Proxy`, `RegExp`, typed arrays, `Promise`/`WeakRef` and reserves a null-prototype `Host.v1` placeholder.
 - Build artifacts live under `tools/quickjs-native-harness/dist`.

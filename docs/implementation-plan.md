@@ -317,7 +317,7 @@ Enable fast iteration on QuickJS changes by compiling and running the fork nativ
 ### T-011: Implement deterministic VM init hook in QuickJS fork
 
 **Phase:** P1 – QuickJS harness and deterministic capability profile
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-010, T-005
 
 **Goal:**
@@ -327,13 +327,20 @@ Centralize deterministic runtime/context initialization so native and wasm use t
 
 **Detailed tasks:**
 
-- [ ] Add a single “deterministic init” function in the fork that:
-  - [ ] creates runtime/context,
-  - [ ] installs minimal safe builtins,
-  - [ ] removes or stubs forbidden capabilities deterministically,
-  - [ ] prepares placeholders for `Host` namespace (to be installed from manifest later).
+- [x] Add a single “deterministic init” function in the fork that:
+  - [x] creates runtime/context,
+  - [x] installs minimal safe builtins,
+  - [x] removes or stubs forbidden capabilities deterministically,
+  - [x] prepares placeholders for `Host` namespace (to be installed from manifest later).
 
-- [ ] Ensure harness uses this init.
+- [x] Ensure harness uses this init.
+
+**Current state (P1 T-011):**
+- Added `JS_NewDeterministicRuntime(JSRuntime **, JSContext **)` in the fork (`quickjs.c`/`quickjs.h`):
+  - Initializes a context with base objects + JSON + Map/Set only; no Date/Proxy/RegExp/typed arrays/Promise/WeakRef/etc. yet.
+  - Stubs `eval` and `Function` with deterministic `TypeError` messages and clears `ctx->eval_internal`.
+  - Installs a null-prototype `Host.v1` placeholder on the global object with non-configurable/non-writable descriptor (to be populated later from manifest).
+- Native harness now uses this initializer and tests assert the disabled `eval`/`Function` behavior and `Host` descriptor shape.
 
 **Implementation hints (for Codex):**
 
@@ -342,8 +349,8 @@ Centralize deterministic runtime/context initialization so native and wasm use t
 
 **Acceptance criteria:**
 
-- [ ] A test asserts forbidden globals are absent/stubbed.
-- [ ] Global descriptors for injected names are stable across runs.
+- [x] A test asserts forbidden globals are absent/stubbed.
+- [x] Global descriptors for injected names are stable across runs.
 
 ---
 

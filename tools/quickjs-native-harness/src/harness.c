@@ -9,20 +9,10 @@ typedef struct {
 } HarnessRuntime;
 
 static int init_runtime(HarnessRuntime *runtime) {
-  runtime->rt = JS_NewRuntime();
-  if (!runtime->rt) {
-    fprintf(stderr, "init: JS_NewRuntime failed\n");
+  if (JS_NewDeterministicRuntime(&runtime->rt, &runtime->ctx) != 0) {
+    fprintf(stderr, "init: JS_NewDeterministicRuntime failed\n");
     return 1;
   }
-  runtime->ctx = JS_NewContext(runtime->rt);
-  if (!runtime->ctx) {
-    fprintf(stderr, "init: JS_NewContext failed\n");
-    JS_FreeRuntime(runtime->rt);
-    runtime->rt = NULL;
-    return 1;
-  }
-
-  /* TODO: replace with deterministic init entrypoint once implemented in the fork. */
 
   return 0;
 }
