@@ -197,17 +197,20 @@ All publishable libs and smoke apps scaffolded with placeholder src/test and wor
 ### T-003: Add QuickJS fork as git submodule at `vendor/quickjs`
 
 **Phase:** P0 – Monorepo bootstrap and standards
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-000
 
 **Goal:**
 Bring your QuickJS fork into the monorepo as a pinned submodule under `vendor/quickjs`.
 
+**Current state:**
+QuickJS submodule added at `vendor/quickjs` pointing to `git@blue.github.com:mjwebblue/quickjs.git`; vendor README documents pin/update workflow and root README notes fork ownership/init steps.
+
 **Detailed tasks:**
 
-- [ ] Add the git submodule under `vendor/quickjs`.
-- [ ] Add `vendor/README.md` documenting submodule update workflow and pinning rules.
-- [ ] Add a root README snippet explaining fork ownership and update process.
+- [x] Add the git submodule under `vendor/quickjs`.
+- [x] Add `vendor/README.md` documenting submodule update workflow and pinning rules.
+- [x] Add a root README snippet explaining fork ownership and update process.
 
 **Implementation hints (for Codex):**
 
@@ -216,8 +219,8 @@ Bring your QuickJS fork into the monorepo as a pinned submodule under `vendor/qu
 
 **Acceptance criteria:**
 
-- [ ] Fresh clone + `git submodule update --init --recursive` populates `vendor/quickjs`.
-- [ ] `vendor/quickjs` contains expected QuickJS sources.
+- [x] Fresh clone + `git submodule update --init --recursive` populates `vendor/quickjs`.
+- [x] `vendor/quickjs` contains expected QuickJS sources.
 
 ---
 
