@@ -227,18 +227,21 @@ QuickJS submodule added at `vendor/quickjs` pointing to `git@blue.github.com:mjw
 ### T-004: Pin Emscripten toolchain (local + CI)
 
 **Phase:** P0 – Monorepo bootstrap and standards
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-000
 
 **Goal:**
 Pin emsdk/emcc version and provide repeatable setup.
 
+**Current state:**
+Pinned emsdk version `3.1.56` recorded in `tools/scripts/emsdk-version.txt`; idempotent setup script installs/activates into `tools/emsdk`; `docs/toolchain.md` documents setup, env sourcing, and CI cache guidance.
+
 **Detailed tasks:**
 
-- [ ] Record pinned emsdk version in `tools/scripts/emsdk-version.txt`.
-- [ ] Add setup docs + scripts to install/activate pinned emsdk.
-- [ ] Add CI notes for caching emsdk directory.
-- [ ] Create `docs/toolchain.md`.
+- [x] Record pinned emsdk version in `tools/scripts/emsdk-version.txt`.
+- [x] Add setup docs + scripts to install/activate pinned emsdk.
+- [x] Add CI notes for caching emsdk directory.
+- [x] Create `docs/toolchain.md`.
 
 **Implementation hints (for Codex):**
 
@@ -247,8 +250,8 @@ Pin emsdk/emcc version and provide repeatable setup.
 
 **Acceptance criteria:**
 
-- [ ] `emcc --version` matches pinned version after setup.
-- [ ] `docs/toolchain.md` is sufficient for a clean machine setup.
+- [x] `emcc --version` matches pinned version after setup.
+- [x] `docs/toolchain.md` is sufficient for a clean machine setup.
 
 ---
 

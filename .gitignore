@@ -9,6 +9,7 @@ out-tsc
 node_modules
 
 # IDEs and editors
+tools/emsdk/
 /.idea
 .project
 .classpath

@@ -13,3 +13,6 @@ Deterministic QuickJS-in-Wasm evaluator monorepo (Nx + pnpm), tracking a hardene
 - Visualize projects: `pnpm nx graph`.
 - Run tests across projects: `pnpm nx run-many -t test`.
 - Apply lint fixes: `pnpm lint --fix`.
+
+## Toolchain
+- Emscripten is pinned to `3.1.56`; install via `tools/scripts/setup-emsdk.sh`, then `source tools/emsdk/emsdk_env.sh`. See `docs/toolchain.md` for details and CI cache notes.
