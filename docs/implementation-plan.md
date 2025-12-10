@@ -65,7 +65,6 @@ This repo exports a deterministic evaluator. The external embedder (`document-pr
 - workflow orchestration (step sequencing),
 - document overlay/commit/rollback logic,
 - providing the document snapshot context and **deterministic host-call implementation** for:
-
   - `Host.v1.document.get(path)`
   - `Host.v1.document.getCanonical(path)`
 
@@ -85,14 +84,6 @@ This repo ensures:
 - Publishable libs are scaffolded (`dv`, `abi-manifest`, `quickjs-wasm-build`, `quickjs-wasm`, `quickjs-runtime`, `test-harness`) plus smoke apps (`smoke-node`, `smoke-web`) with placeholder src/tests and passing build/test targets.
 - Lint/format configs and root scripts are in place; `README.md` still contains the Nx placeholder.
 - Docs folder currently only has this plan; toolchain/docs stubs are missing.
-
-## Working set (first Codex pass)
-
-- [x] T-000: Finish workspace bootstrap (root scripts, engines policy, verify `pnpm nx graph`/`run-many`).
-- [x] T-001: Add lint/format/.editorconfig/.gitignore and repo lint workflow.
-- [x] T-002: Scaffold empty libs/apps per proposed layout; wire minimal tests. (all libs/apps scaffolded)
-- [ ] T-005: Create doc stubs and link from README.
-- [ ] README: Replace Nx boilerplate with repo overview and doc links.
 
 ---
 
@@ -176,7 +167,6 @@ All publishable libs and smoke apps scaffolded with placeholder src/test and wor
 **Detailed tasks:**
 
 - [x] Create publishable library projects under `libs/`:
-
   - [x] `dv`
   - [x] `abi-manifest`
   - [x] `quickjs-wasm-build`
@@ -258,20 +248,23 @@ Pinned emsdk version `3.1.56` recorded in `tools/scripts/emsdk-version.txt`; ide
 ### T-005: Add docs scaffolding for determinism/gas/DV/ABI
 
 **Phase:** P0 – Monorepo bootstrap and standards
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-001
 
 **Goal:**
 Create documentation placeholders aligned to Baseline #1 and #2.
 
+**Current state:**
+Doc stubs added: `docs/determinism-profile.md`, `docs/gas-schedule.md`, `docs/dv-wire-format.md`, `docs/abi-manifest.md`, `docs/host-call-abi.md`, plus README links. Each file lists scope, Baseline references, and TODOs for future detail.
+
 **Detailed tasks:**
 
-- [ ] Create `docs/determinism-profile.md`.
-- [ ] Create `docs/gas-schedule.md`.
-- [ ] Create `docs/dv-wire-format.md`.
-- [ ] Create `docs/abi-manifest.md`.
-- [ ] Create `docs/host-call-abi.md`.
-- [ ] Link docs from root `README.md`.
+- [x] Create `docs/determinism-profile.md`.
+- [x] Create `docs/gas-schedule.md`.
+- [x] Create `docs/dv-wire-format.md`.
+- [x] Create `docs/abi-manifest.md`.
+- [x] Create `docs/host-call-abi.md`.
+- [x] Link docs from root `README.md`.
 
 **Implementation hints (for Codex):**
 
@@ -280,8 +273,8 @@ Create documentation placeholders aligned to Baseline #1 and #2.
 
 **Acceptance criteria:**
 
-- [ ] Docs exist and are linked.
-- [ ] Each doc cites Baseline #1/#2 sections.
+- [x] Docs exist and are linked.
+- [x] Each doc cites Baseline #1/#2 sections.
 
 ---
 
@@ -299,7 +292,6 @@ Enable fast iteration on QuickJS changes by compiling and running the fork nativ
 **Detailed tasks:**
 
 - [ ] Add C harness under `tools/quickjs-native-harness/` that can:
-
   - [ ] create runtime/context using the deterministic init entrypoint,
   - [ ] evaluate a provided JS source string,
   - [ ] return stable JSON-like output (DV bytes or a stable text format) and stable error codes.
@@ -333,7 +325,6 @@ Centralize deterministic runtime/context initialization so native and wasm use t
 **Detailed tasks:**
 
 - [ ] Add a single “deterministic init” function in the fork that:
-
   - [ ] creates runtime/context,
   - [ ] installs minimal safe builtins,
   - [ ] removes or stubs forbidden capabilities deterministically,
@@ -485,7 +476,6 @@ Lock down the deterministic profile with regression tests.
 **Detailed tasks:**
 
 - [ ] Add a suite of scripts checking:
-
   - [ ] forbidden globals are missing/stubbed,
   - [ ] key injected globals are immutable,
   - [ ] global property enumeration is stable for injected names.
@@ -716,7 +706,6 @@ Pick one canonical encoding for DV used for args/returns and (preferably) manife
 
 - [ ] Evaluate candidate formats (canonical CBOR, JCS, custom minimal binary).
 - [ ] Choose one and fully specify it in `docs/dv-wire-format.md`:
-
   - [ ] type tags, lengths, UTF-8 handling,
   - [ ] numeric restrictions: finite, no NaN/Inf, no -0 (canonicalize),
   - [ ] object key uniqueness + canonical key ordering,
@@ -792,7 +781,6 @@ Define manifest schema, canonical bytes, and hashing rules.
 **Detailed tasks:**
 
 - [ ] Write `docs/abi-manifest.md` specifying:
-
   - [ ] top-level fields (`abi_id`, `abi_version`, entries),
   - [ ] entry fields: `fn_id`, `js_path`, `arity`, `arg_schema`, `return_schema`, `effect`, `gas_schedule_id`, `limits`, `error_codes`,
   - [ ] canonical serialization rules (prefer DV encoding from T-030),
@@ -844,7 +832,6 @@ Lock down the minimal host ABI surface required by the read-only evaluator.
 **Detailed tasks:**
 
 - [ ] Create a fixture manifest (checked into `libs/test-harness/fixtures/`) that defines:
-
   - [ ] `Host.v1.document.get(path)` (READ)
   - [ ] `Host.v1.document.getCanonical(path)` (READ)
   - [ ] Optional: `Host.v1.emit(value)` (EMIT) for deterministic logging/tape (recommended)
@@ -921,7 +908,6 @@ Add a single syscall path from VM to host with deterministic guardrails.
 **Detailed tasks:**
 
 - [ ] Implement `host_call` invocation layer in the fork that works in both:
-
   - [ ] native harness (function pointer callback), and
   - [ ] wasm build (imported function).
 
@@ -949,7 +935,6 @@ Standardize host responses as `Ok(DV)` or `Err({code, tag, details?})` plus dete
 **Detailed tasks:**
 
 - [ ] Define the response envelope structure (as DV) including:
-
   - [ ] ok vs err,
   - [ ] `units` (u32),
   - [ ] optional metadata needed for charging/tape.
@@ -979,7 +964,6 @@ Expose host functions in JS as `Host.v1.*`, generated from manifest entries (js_
 
 - [ ] Parse manifest entries and install nested namespace objects (null prototype).
 - [ ] For each entry, create a JS wrapper that:
-
   - [ ] validates args by `arg_schema`,
   - [ ] DV-encodes args,
   - [ ] performs pre-charge gas (base + arg_bytes),
@@ -1204,14 +1188,12 @@ Make `(P, I, G)` explicit and version-pin critical ABI/engine fields.
 **Detailed tasks:**
 
 - [ ] Define `P` structure in TS including:
-
   - [ ] code (source string for now),
   - [ ] `abi_id`, `abi_version`,
   - [ ] `abi_manifest_hash`,
   - [ ] optional `engine_build_hash` / runtime flags.
 
 - [ ] Define `I` structure in TS including:
-
   - [ ] `event` DV, `eventCanonical` DV, `steps` DV,
   - [ ] a document snapshot identity (epoch/hash/id) for auditability,
   - [ ] any additional deterministic inputs required by host calls.
@@ -1238,13 +1220,11 @@ Implement the host-side `host_call` function in TS, using embedder-provided dete
 **Detailed tasks:**
 
 - [ ] Define a minimal embedder-facing interface for document reads (read-only):
-
   - [ ] `get(path) -> { ok DV | err {code,tag,details?}, units }`
   - [ ] `getCanonical(path) -> { ok DV | err ..., units }`
   - (units is required unless you can prove a tight bound from sizes alone.)
 
 - [ ] Implement a dispatcher that:
-
   - [ ] receives `fn_id` + request bytes,
   - [ ] DV-decodes args,
   - [ ] routes to correct handler based on fn_id,
@@ -1327,7 +1307,6 @@ Provide a single-call deterministic evaluator entrypoint suitable for embedding 
 **Detailed tasks:**
 
 - [ ] Implement `evaluate()` that:
-
   - [ ] validates P and I,
   - [ ] initializes VM,
   - [ ] evaluates `P.code`,

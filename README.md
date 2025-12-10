@@ -16,3 +16,10 @@ Deterministic QuickJS-in-Wasm evaluator monorepo (Nx + pnpm), tracking a hardene
 
 ## Toolchain
 - Emscripten is pinned to `3.1.56`; install via `tools/scripts/setup-emsdk.sh`, then `source tools/emsdk/emsdk_env.sh`. See `docs/toolchain.md` for details and CI cache notes.
+
+## Docs
+- Determinism profile: `docs/determinism-profile.md`
+- Gas schedule: `docs/gas-schedule.md`
+- DV wire format: `docs/dv-wire-format.md`
+- ABI manifest: `docs/abi-manifest.md`
+- Host call ABI: `docs/host-call-abi.md`
