@@ -38,7 +38,16 @@ jobs:
           node-version: 20
           cache: 'pnpm'
 
+      - name: Cache emsdk
+        uses: actions/cache@v4
+        with:
+          path: tools/emsdk
+          key: emsdk-${{ runner.os }}-${{ hashFiles('tools/scripts/emsdk-version.txt') }}
+
       - run: pnpm install --frozen-lockfile
+
+      - name: Install emsdk (pinned 3.1.56)
+        run: bash tools/scripts/setup-emsdk.sh
 
       - name: Reset Nx state (just in case)
         run: pnpm exec nx reset
