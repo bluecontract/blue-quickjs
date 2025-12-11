@@ -19,6 +19,7 @@ export default [
       'vendor/**',
       '**/vitest.config.*.timestamp*',
       '**/vite.config.*.timestamp*',
+      'tools/quickjs-native-harness/fixtures/**',
     ],
   },
   {
