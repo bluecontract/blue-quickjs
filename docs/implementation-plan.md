@@ -677,7 +677,7 @@ Ensure no builtin performs unmetered large work.
 ### T-025: Allocation gas via allocator hooks
 
 **Phase:** P2 – Canonical gas metering inside QuickJS fork
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-020
 
 **Goal:**
@@ -687,13 +687,20 @@ Charge gas deterministically by requested allocation bytes.
 
 **Detailed tasks:**
 
-- [ ] Wrap allocator hooks; charge `base + bytes*k`.
-- [ ] Define realloc charging rule and document it.
-- [ ] Add tests for predictable allocations.
+- [x] Wrap allocator hooks; charge `base + bytes*k`.
+- [x] Define realloc charging rule and document it.
+- [x] Add tests for predictable allocations.
 
 **Acceptance criteria:**
 
-- [ ] Allocation-heavy scripts consume deterministic gas and can OOG deterministically.
+- [x] Allocation-heavy scripts consume deterministic gas and can OOG deterministically.
+
+**Current state (P2 T-025):**
+
+- Allocation metering adds `JS_GAS_ALLOC_BASE=3` plus `ceil(bytes / 16)` via a helper and charges through context-aware allocators (`js_malloc`/`js_mallocz`/`js_realloc`/`js_realloc2`) and string allocations using the actual struct + buffer size; charges are skipped for unlimited gas or during uncatchable/OOG handling.
+- Realloc charges on the requested size (not delta), string allocator meters before hitting the runtime allocator, and runtime-level allocators remain unmetered to avoid bootstrap recursion; runtime shutdown follows upstream GC sequencing (no extra final sweep added).
+- `JS_ThrowOutOfGas` now guards against recursive throws while building the error.
+- Harness now asserts allocation gas deterministically: a 32 KiB repeat consumes 2,391 gas with 5,000 limit and OOGs at 2,000; array map expectations updated to reflect the new allocation charges.
 
 ---
 
