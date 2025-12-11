@@ -1,0 +1,98 @@
+[
+  {
+    "name": "zero-precharge",
+    "fixture": "gas/zero-precharge.js",
+    "args": ["--gas-limit", "0", "--report-gas", "--dump-global", "__touched"],
+    "expected": "ERROR OutOfGas: out of gas GAS remaining=0 used=0 STATE undefined"
+  },
+  {
+    "name": "gc-checkpoint-budget",
+    "fixture": "gas/zero-precharge.js",
+    "args": ["--gas-limit", "54", "--report-gas", "--dump-global", "__touched"],
+    "expected": "ERROR OutOfGas: out of gas GAS remaining=0 used=54 STATE undefined"
+  },
+  {
+    "name": "constant-gas",
+    "fixture": "gas/constant.js",
+    "args": ["--gas-limit", "147", "--report-gas"],
+    "expected": "RESULT 1 GAS remaining=0 used=147"
+  },
+  {
+    "name": "addition-gas",
+    "fixture": "gas/addition.js",
+    "args": ["--gas-limit", "154", "--report-gas"],
+    "expected": "RESULT 3 GAS remaining=0 used=154"
+  },
+  {
+    "name": "addition-oog",
+    "fixture": "gas/addition.js",
+    "args": ["--gas-limit", "150", "--report-gas"],
+    "expected": "ERROR OutOfGas: out of gas GAS remaining=0 used=150"
+  },
+  {
+    "name": "addition-trace",
+    "fixture": "gas/addition.js",
+    "args": ["--gas-limit", "154", "--report-gas", "--gas-trace"],
+    "expected": "RESULT 3 GAS remaining=0 used=154 TRACE {\"opcodeCount\":5,\"opcodeGas\":5,\"arrayCbBase\":{\"count\":0,\"gas\":0},\"arrayCbPerEl\":{\"count\":0,\"gas\":0},\"alloc\":{\"count\":19,\"bytes\":1336,\"gas\":149}}"
+  },
+  {
+    "name": "loop-oog",
+    "fixture": "gas/loop-counter.js",
+    "args": ["--gas-limit", "600", "--report-gas", "--dump-global", "__counter"],
+    "expected": "ERROR OutOfGas: out of gas GAS remaining=0 used=600 STATE 3"
+  },
+  {
+    "name": "array-map-single",
+    "fixture": "gas/array-map-single.js",
+    "args": ["--gas-limit", "900", "--report-gas", "--dump-global", "__calls"],
+    "expected": "RESULT 1 GAS remaining=154 used=746 STATE 1"
+  },
+  {
+    "name": "array-map-single-trace",
+    "fixture": "gas/array-map-single.js",
+    "args": ["--gas-limit", "900", "--report-gas", "--gas-trace", "--dump-global", "__calls"],
+    "expected": "RESULT 1 GAS remaining=154 used=746 STATE 1 TRACE {\"opcodeCount\":21,\"opcodeGas\":21,\"arrayCbBase\":{\"count\":1,\"gas\":5},\"arrayCbPerEl\":{\"count\":1,\"gas\":2},\"alloc\":{\"count\":73,\"bytes\":7552,\"gas\":718}}"
+  },
+  {
+    "name": "array-map-multi",
+    "fixture": "gas/array-map-multi.js",
+    "args": ["--gas-limit", "1000", "--report-gas", "--dump-global", "__calls"],
+    "expected": "RESULT 5 GAS remaining=185 used=815 STATE 5"
+  },
+  {
+    "name": "array-map-oog",
+    "fixture": "gas/array-map-multi.js",
+    "args": ["--gas-limit", "745", "--report-gas", "--dump-global", "__calls"],
+    "expected": "ERROR OutOfGas: out of gas GAS remaining=0 used=745 STATE 4"
+  },
+  {
+    "name": "array-filter-oog",
+    "fixture": "gas/array-filter-multi.js",
+    "args": ["--gas-limit", "740", "--report-gas", "--dump-global", "__filterCount"],
+    "expected": "ERROR OutOfGas: out of gas GAS remaining=0 used=740 STATE 4"
+  },
+  {
+    "name": "array-reduce-oog",
+    "fixture": "gas/array-reduce-multi.js",
+    "args": ["--gas-limit", "730", "--report-gas", "--dump-global", "__reduceCount"],
+    "expected": "ERROR OutOfGas: out of gas GAS remaining=0 used=730 STATE 4"
+  },
+  {
+    "name": "gc-pending-trace",
+    "fixture": "gas/gc-pending.js",
+    "args": ["--gas-limit", "40000", "--report-gas", "--gas-trace"],
+    "expected": "RESULT 1200000 GAS remaining=2111 used=37889 TRACE {\"opcodeCount\":18,\"opcodeGas\":18,\"arrayCbBase\":{\"count\":0,\"gas\":0},\"arrayCbPerEl\":{\"count\":0,\"gas\":0},\"alloc\":{\"count\":47,\"bytes\":603355,\"gas\":37871}}"
+  },
+  {
+    "name": "string-repeat",
+    "fixture": "gas/string-repeat.js",
+    "args": ["--gas-limit", "5000", "--report-gas"],
+    "expected": "RESULT 32768 GAS remaining=2609 used=2391"
+  },
+  {
+    "name": "string-repeat-oog",
+    "fixture": "gas/string-repeat.js",
+    "args": ["--gas-limit", "2000", "--report-gas"],
+    "expected": "ERROR OutOfGas: out of gas GAS remaining=0 used=2000"
+  }
+]

@@ -100,80 +100,6 @@ capability_snapshot_js="$(cat <<'EOF'
 EOF
 )"
 
-counter_loop_js="$(cat <<'EOF'
-(() => {
-  globalThis.__counter = 0;
-  for (let i = 0; i < 3; i++) {
-    globalThis.__counter++;
-  }
-  return globalThis.__counter;
-})()
-EOF
-)"
-
-zero_gas_touch_js="$(cat <<'EOF'
-(() => {
-  globalThis.__touched = true;
-  return 'never';
-})()
-EOF
-)"
-
-array_map_single_js="$(cat <<'EOF'
-(() => {
-  globalThis.__calls = 0;
-  [1].map((v) => {
-    __calls++;
-    return v;
-  });
-  return __calls;
-})()
-EOF
-)"
-
-array_map_multi_js="$(cat <<'EOF'
-(() => {
-  globalThis.__calls = 0;
-  [1, 2, 3, 4, 5].map((v) => {
-    __calls++;
-    return v;
-  });
-  return __calls;
-})()
-EOF
-)"
-
-array_filter_multi_js="$(cat <<'EOF'
-(() => {
-  globalThis.__filterCount = 0;
-  [1, 2, 3, 4, 5].filter((v) => {
-    __filterCount++;
-    return v % 2;
-  });
-  return __filterCount;
-})()
-EOF
-)"
-
-array_reduce_multi_js="$(cat <<'EOF'
-(() => {
-  globalThis.__reduceCount = 0;
-  return [1, 2, 3, 4, 5].reduce((acc, v) => {
-    __reduceCount++;
-    return acc + v;
-  }, 0);
-})()
-EOF
-)"
-
-alloc_repeat_js="$(cat <<'EOF'
-(() => {
-  const s = 'x'.repeat(1024 * 32);
-  return s.length;
-})()
-EOF
-)"
-
 assert_output "basic addition" "1 + 2" "RESULT 3"
 assert_output "eval disabled" "eval('1 + 1')" "ERROR TypeError: eval is disabled in deterministic mode"
 assert_output "Function disabled" "(new Function('return 7'))()" "ERROR TypeError: Function is disabled in deterministic mode"
@@ -199,23 +125,9 @@ assert_output "Date missing" "typeof Date" "RESULT \"undefined\""
 assert_output "Timers missing" "typeof setTimeout" "RESULT \"undefined\""
 assert_output "Promise disabled" "Promise.resolve(1)" "ERROR TypeError: Promise is disabled in deterministic mode"
 assert_output "queueMicrotask missing" "typeof queueMicrotask" "RESULT \"undefined\""
-assert_output "out of gas" "1 + 2" "ERROR OutOfGas: out of gas" --gas-limit 0
-assert_output "precharge prevents any progress" "${zero_gas_touch_js}" "ERROR OutOfGas: out of gas GAS remaining=0 used=0 STATE undefined" --gas-limit 0 --report-gas --dump-global __touched
-assert_output "GC checkpoints budget" "${zero_gas_touch_js}" "ERROR OutOfGas: out of gas GAS remaining=0 used=54 STATE undefined" --gas-limit 54 --report-gas --dump-global __touched
-assert_output "constant gas accounting" "1" "RESULT 1 GAS remaining=0 used=147" --gas-limit 147 --report-gas
-assert_output "addition gas accounting" "1 + 2" "RESULT 3 GAS remaining=0 used=154" --gas-limit 154 --report-gas
-assert_output "addition OOG boundary" "1 + 2" "ERROR OutOfGas: out of gas" --gas-limit 150
-assert_output "loop OOG boundary state" "${counter_loop_js}" "ERROR OutOfGas: out of gas GAS remaining=0 used=600 STATE 3" --gas-limit 600 --report-gas --dump-global __counter
-assert_output "Array.map single element gas" "${array_map_single_js}" "RESULT 1 GAS remaining=154 used=746 STATE 1" --gas-limit 900 --report-gas --dump-global __calls
-assert_output "Array.map multi element gas" "${array_map_multi_js}" "RESULT 5 GAS remaining=185 used=815 STATE 5" --gas-limit 1000 --report-gas --dump-global __calls
-assert_output "Gas trace basic addition" "1 + 2" "RESULT 3 GAS remaining=0 used=154 TRACE {\"opcodeCount\":5,\"opcodeGas\":5,\"arrayCbBase\":{\"count\":0,\"gas\":0},\"arrayCbPerEl\":{\"count\":0,\"gas\":0},\"alloc\":{\"count\":19,\"bytes\":1336,\"gas\":149}}" --gas-limit 154 --report-gas --gas-trace
-assert_output "Gas trace array map single" "${array_map_single_js}" "RESULT 1 GAS remaining=154 used=746 STATE 1 TRACE {\"opcodeCount\":21,\"opcodeGas\":21,\"arrayCbBase\":{\"count\":1,\"gas\":5},\"arrayCbPerEl\":{\"count\":1,\"gas\":2},\"alloc\":{\"count\":73,\"bytes\":7552,\"gas\":718}}" --gas-limit 900 --report-gas --gas-trace --dump-global __calls
-assert_output "Array.map OOG boundary" "${array_map_multi_js}" "ERROR OutOfGas: out of gas GAS remaining=0 used=745 STATE 4" --gas-limit 745 --report-gas --dump-global __calls
-assert_output "Array.filter OOG boundary" "${array_filter_multi_js}" "ERROR OutOfGas: out of gas GAS remaining=0 used=740 STATE 4" --gas-limit 740 --report-gas --dump-global __filterCount
-assert_output "Array.reduce OOG boundary" "${array_reduce_multi_js}" "ERROR OutOfGas: out of gas GAS remaining=0 used=730 STATE 4" --gas-limit 730 --report-gas --dump-global __reduceCount
-assert_output "String repeat allocation gas" "${alloc_repeat_js}" "RESULT 32768 GAS remaining=2609 used=2391" --gas-limit 5000 --report-gas
-assert_output "String repeat OOG boundary" "${alloc_repeat_js}" "ERROR OutOfGas: out of gas GAS remaining=0 used=2000" --gas-limit 2000 --report-gas
 assert_output "Host descriptor" "${host_descriptor_js}" "RESULT {\"configurable\":false,\"enumerable\":false,\"writable\":false,\"hostType\":\"object\",\"v1Type\":\"object\",\"v1NullProto\":true}"
 assert_output "capability snapshot" "${capability_snapshot_js}" "RESULT {\"eval\":{\"ok\":false,\"error\":\"TypeError: eval is disabled in deterministic mode\"},\"Function\":{\"ok\":false,\"error\":\"TypeError: Function is disabled in deterministic mode\"},\"RegExp\":{\"ok\":false,\"error\":\"TypeError: RegExp is disabled in deterministic mode\"},\"Proxy\":{\"ok\":false,\"error\":\"TypeError: Proxy is disabled in deterministic mode\"},\"Promise\":{\"ok\":false,\"error\":\"TypeError: Promise is disabled in deterministic mode\"},\"MathRandom\":{\"ok\":false,\"error\":\"TypeError: Math.random is disabled in deterministic mode\"},\"Date\":{\"ok\":true,\"value\":\"undefined\"},\"setTimeout\":{\"ok\":true,\"value\":\"undefined\"},\"ArrayBuffer\":{\"ok\":false,\"error\":\"TypeError: ArrayBuffer is disabled in deterministic mode\"},\"SharedArrayBuffer\":{\"ok\":false,\"error\":\"TypeError: SharedArrayBuffer is disabled in deterministic mode\"},\"DataView\":{\"ok\":false,\"error\":\"TypeError: DataView is disabled in deterministic mode\"},\"Uint8Array\":{\"ok\":false,\"error\":\"TypeError: Typed arrays are disabled in deterministic mode\"},\"Atomics\":{\"ok\":false,\"error\":\"TypeError: Atomics is disabled in deterministic mode\"},\"WebAssembly\":{\"ok\":false,\"error\":\"TypeError: WebAssembly is disabled in deterministic mode\"},\"consoleLog\":{\"ok\":false,\"error\":\"TypeError: console is disabled in deterministic mode\"},\"print\":{\"ok\":false,\"error\":\"TypeError: print is disabled in deterministic mode\"},\"globalOrder\":{\"ok\":true,\"value\":[\"console\",\"print\",\"Host\"]},\"hostImmutable\":{\"ok\":true,\"value\":{\"sameRef\":true,\"hasV1\":true,\"added\":false,\"desc\":{\"value\":{},\"writable\":false,\"enumerable\":false,\"configurable\":false},\"protoNull\":true,\"v1ProtoNull\":true,\"hostIsExtensible\":false,\"hostV1Extensible\":false}}}"
+
+node "${SCRIPT_DIR}/gas-goldens.mjs"
 
 echo "quickjs-native-harness test passed"

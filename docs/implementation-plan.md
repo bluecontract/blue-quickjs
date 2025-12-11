@@ -763,7 +763,7 @@ Enable deterministic gas tracing for golden tests (aggregated counts).
 ### T-028: Native gas golden tests
 
 **Phase:** P2 – Canonical gas metering inside QuickJS fork
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-022, T-023, T-025, T-026, T-027
 
 **Goal:**
@@ -771,12 +771,18 @@ Lock in gas semantics before wasm and host ABI.
 
 **Detailed tasks:**
 
-- [ ] Create representative scripts and expected gas numbers / OOG boundaries.
-- [ ] Add harness runner that asserts exact gas used and outcomes.
+- [x] Create representative scripts and expected gas numbers / OOG boundaries.
+- [x] Add harness runner that asserts exact gas used and outcomes.
 
 **Acceptance criteria:**
 
-- [ ] Golden suite passes with exact expected values.
+- [x] Golden suite passes with exact expected values.
+
+**Current state (P2 T-028):**
+
+- Added gas golden fixtures under `tools/quickjs-native-harness/fixtures/gas/` covering straight-line programs, OOG precharge boundaries, loop OOG checkpoints, array callback C-builtins (map/filter/reduce success + OOG), heavy allocation + GC-pending trigger, and string repeat allocation edges; each fixture is referenced by name in `scripts/gas-goldens.json` with expected `GAS`/`STATE`/`TRACE` output.
+- Introduced `tools/quickjs-native-harness/scripts/gas-goldens.mjs`, a Node runner that loads the JSON manifest, executes the native harness per case, and asserts exact stdout against the golden strings; the runner is invoked from the harness `test.sh` alongside the capability profile assertions.
+- Suite is passing with deterministic outputs, locking in opcode gas, allocation gas, GC checkpoint behavior, and aggregate gas traces ahead of the wasm/host ABI work.
 
 ---
 
