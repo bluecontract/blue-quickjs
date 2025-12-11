@@ -112,10 +112,25 @@ static int print_exception(JSContext *ctx, const HarnessOptions *options) {
   return 1;
 }
 
+static int run_gc_checkpoint(JSContext *ctx, const HarnessOptions *options) {
+  if (JS_RunGCCheckpoint(ctx) == 0) {
+    return 0;
+  }
+
+  return print_exception(ctx, options);
+}
+
 static int eval_source(JSContext *ctx, const char *code, const HarnessOptions *options) {
+  if (run_gc_checkpoint(ctx, options) != 0) {
+    return 1;
+  }
+
   JSValue result = JS_Eval(ctx, code, strlen(code), "<eval>", JS_EVAL_TYPE_GLOBAL);
   if (JS_IsException(result)) {
     JS_FreeValue(ctx, result);
+    if (run_gc_checkpoint(ctx, options) != 0) {
+      return 1;
+    }
     return print_exception(ctx, options);
   }
 
@@ -123,6 +138,9 @@ static int eval_source(JSContext *ctx, const char *code, const HarnessOptions *o
   JS_FreeValue(ctx, result);
 
   if (JS_IsException(json)) {
+    if (run_gc_checkpoint(ctx, options) != 0) {
+      return 1;
+    }
     return print_exception(ctx, options);
   }
 
@@ -130,6 +148,12 @@ static int eval_source(JSContext *ctx, const char *code, const HarnessOptions *o
   if (!json_str) {
     JS_FreeValue(ctx, json);
     fprintf(stdout, "ERROR <stringify>\n");
+    return 1;
+  }
+
+  if (run_gc_checkpoint(ctx, options) != 0) {
+    JS_FreeCString(ctx, json_str);
+    JS_FreeValue(ctx, json);
     return 1;
   }
 
@@ -223,6 +247,11 @@ int main(int argc, char **argv) {
   }
 
   JS_SetGasLimit(runtime.ctx, options.gas_limit);
+
+  if (run_gc_checkpoint(runtime.ctx, &options) != 0) {
+    free_runtime(&runtime);
+    return 1;
+  }
 
   int rc = eval_source(runtime.ctx, options.code, &options);
   free_runtime(&runtime);

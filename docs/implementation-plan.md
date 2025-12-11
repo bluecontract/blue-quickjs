@@ -707,7 +707,7 @@ Charge gas deterministically by requested allocation bytes.
 ### T-026: Deterministic GC checkpoints and charging
 
 **Phase:** P2 – Canonical gas metering inside QuickJS fork
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-025
 
 **Goal:**
@@ -717,13 +717,20 @@ Run GC only at deterministic checkpoints; charge deterministically.
 
 **Detailed tasks:**
 
-- [ ] Disable/neutralize heuristic auto-GC triggers.
-- [ ] Add explicit GC checkpoints at controlled points (init/eval/end, and later after host calls).
-- [ ] Define deterministic GC gas rule and test it.
+- [x] Disable/neutralize heuristic auto-GC triggers.
+- [x] Add explicit GC checkpoints at controlled points (init/eval/end; host-call checkpoints to be wired when host ABI lands).
+- [x] Define deterministic GC gas rule (GC free; cost amortized in allocation gas) and test it.
 
 **Acceptance criteria:**
 
-- [ ] GC occurs only at checkpoints; charges match tests.
+- [x] GC occurs only at checkpoints; charges match tests.
+- [x] GC charging rule is documented (free; cost amortized in allocation gas) and validated by harness baselines.
+
+**Current state (P2 T-026):**
+
+- Deterministic runtimes disable QuickJS’s heuristic GC triggers and set the upstream threshold to `-1`; `js_trigger_gc` is a no-op under deterministic mode so allocator heuristics never fire.
+- A deterministic allocator-side counter tracks requested allocation bytes; crossing a fixed threshold (512 KiB) sets a `det_gc_pending` flag. GC is still free (cost covered by T-025 allocation gas) and only runs via `JS_RunGCCheckpoint(JSContext *)`, which clears the flag/counter.
+- The native harness calls the checkpoint at deterministic points (post-init, pre/post eval), so GC runs only at checkpoints and only if `det_gc_pending` is set; gas baselines were updated accordingly.
 
 ---
 

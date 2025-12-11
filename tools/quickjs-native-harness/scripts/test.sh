@@ -201,6 +201,7 @@ assert_output "Promise disabled" "Promise.resolve(1)" "ERROR TypeError: Promise 
 assert_output "queueMicrotask missing" "typeof queueMicrotask" "RESULT \"undefined\""
 assert_output "out of gas" "1 + 2" "ERROR OutOfGas: out of gas" --gas-limit 0
 assert_output "precharge prevents any progress" "${zero_gas_touch_js}" "ERROR OutOfGas: out of gas GAS remaining=0 used=0 STATE undefined" --gas-limit 0 --report-gas --dump-global __touched
+assert_output "GC checkpoints budget" "${zero_gas_touch_js}" "ERROR OutOfGas: out of gas GAS remaining=0 used=54 STATE undefined" --gas-limit 54 --report-gas --dump-global __touched
 assert_output "constant gas accounting" "1" "RESULT 1 GAS remaining=0 used=147" --gas-limit 147 --report-gas
 assert_output "addition gas accounting" "1 + 2" "RESULT 3 GAS remaining=0 used=154" --gas-limit 154 --report-gas
 assert_output "addition OOG boundary" "1 + 2" "ERROR OutOfGas: out of gas" --gas-limit 150
