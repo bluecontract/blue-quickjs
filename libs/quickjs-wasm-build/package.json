@@ -18,9 +18,6 @@
     "dist",
     "!**/*.tsbuildinfo"
   ],
-  "nx": {
-    "name": "quickjs-wasm-build"
-  },
   "dependencies": {
     "tslib": "^2.3.0"
   }

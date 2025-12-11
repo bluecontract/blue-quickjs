@@ -1,0 +1,50 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "quickjs-wasm-build",
+  "projectType": "library",
+  "root": "libs/quickjs-wasm-build",
+  "sourceRoot": "libs/quickjs-wasm-build/src",
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["^build"],
+      "outputs": ["{projectRoot}/dist"],
+      "options": {
+        "command": "bash libs/quickjs-wasm-build/scripts/build.sh",
+        "cwd": "."
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "outputs": ["{projectRoot}/test-output/vitest/coverage"],
+      "options": {
+        "command": "vitest",
+        "cwd": "libs/quickjs-wasm-build"
+      }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "outputs": [
+        "{projectRoot}/dist/**/*.d.ts",
+        "{projectRoot}/dist/**/*.d.ts.map",
+        "{projectRoot}/dist/tsconfig.lib.tsbuildinfo",
+        "{projectRoot}/out-tsc/vitest/**/*.d.ts",
+        "{projectRoot}/out-tsc/vitest/**/*.d.ts.map",
+        "{projectRoot}/out-tsc/vitest/tsconfig.tsbuildinfo"
+      ],
+      "options": {
+        "command": "tsc --build --emitDeclarationOnly",
+        "cwd": "libs/quickjs-wasm-build"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "eslint .",
+        "cwd": "libs/quickjs-wasm-build"
+      }
+    }
+  },
+  "tags": [],
+  "implicitDependencies": []
+}

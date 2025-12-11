@@ -791,7 +791,7 @@ Lock in gas semantics before wasm and host ABI.
 ### T-029: Early QuickJS-in-Wasm gas harness (no host ABI)
 
 **Phase:** P2.5 – Early QuickJS-in-Wasm gas harness
-**Status:** TODO
+**Status:** IN PROGRESS
 **Depends on:** T-022, T-004, T-003, T-002
 
 **Goal:**
@@ -801,10 +801,10 @@ Produce a minimal Emscripten-built QuickJS-in-Wasm binary that exposes the canon
 
 **Detailed tasks (split into smaller subtasks):**
 
-- [ ] **Subtask A – Minimal `quickjs-wasm-build` Nx target**
-  - [ ] Add or wire up a `quickjs-wasm-build` Nx project (reusing the existing empty one if present) that compiles the current deterministic QuickJS fork with gas metering to Wasm using the pinned emsdk.
-  - [ ] Expose a simple C entrypoint equivalent to the native harness: `eval(code, gas_limit) -> { result, gas_used | OOG }`.
-  - [ ] Emit the `.wasm` artifact (plus minimal JS glue if needed) into a stable, deterministic `dist/` location that downstream tests can consume.
+- [x] **Subtask A – Minimal `quickjs-wasm-build` Nx target**
+  - [x] Add or wire up a `quickjs-wasm-build` Nx project (reusing the existing empty one if present) that compiles the current deterministic QuickJS fork with gas metering to Wasm using the pinned emsdk.
+  - [x] Expose a simple C entrypoint equivalent to the native harness: `eval(code, gas_limit) -> { result, gas_used | OOG }`.
+  - [x] Emit the `.wasm` artifact (plus minimal JS glue if needed) into a stable, deterministic `dist/` location that downstream tests can consume.
 
 - [ ] **Subtask B – Node gas-equivalence harness**
   - [ ] Add a tiny TS harness in `libs/test-harness` that loads the Wasm in Node.
@@ -823,10 +823,16 @@ Produce a minimal Emscripten-built QuickJS-in-Wasm binary that exposes the canon
 
 **Acceptance criteria (per subtask):**
 
-- [ ] **Subtask A:** `pnpm nx build quickjs-wasm-build` produces a runnable `.wasm` artifact that exposes `eval(code, gas_limit) -> { result, gas_used | OOG }` and is written to a stable `dist/` path.
+- [x] **Subtask A:** `pnpm nx build quickjs-wasm-build` produces a runnable `.wasm` artifact that exposes `eval(code, gas_limit) -> { result, gas_used | OOG }` and is written to a stable `dist/` path.
 - [ ] **Subtask B:** A `pnpm nx test` (or equivalent script) runs the native-vs-wasm gas fixtures in Node and asserts exact equality of `result`, `error code/tag`, and `gas_used`.
 - [ ] **Subtask C:** A manual or automated browser run of the same fixtures shows identical outcomes to the Node run (for the selected scripts and gas limits).
 - [ ] **Subtask D:** A short, checked-in document (or updated section of this plan) describes the temporary limitations and P4 hardening expectations without leaving ambiguity about what must remain stable.
+
+**Current state (P2.5 T-029 Subtask A):**
+
+- `pnpm nx build quickjs-wasm-build` now calls an emscripten build script (pinned 3.1.56) that compiles the deterministic QuickJS fork + a wasm harness to `libs/quickjs-wasm-build/dist/quickjs-eval.{js,wasm}` (alongside the TS outputs in the same folder).
+- The harness exports `qjs_eval(code, gas_limit)` and `qjs_free_output(ptr)`; `qjs_eval` mirrors the native harness formatting (`RESULT … GAS …` / `ERROR … GAS …`) and runs deterministic GC checkpoints around evaluation.
+- The JS glue is an ES module (`QuickJSGasWasm` factory) with runtime methods exported for `cwrap`/`UTF8ToString`; artifact paths are surfaced via `getQuickjsWasmArtifacts()` in `libs/quickjs-wasm-build`.
 
 ---
 
