@@ -737,7 +737,7 @@ Run GC only at deterministic checkpoints; charge deterministically.
 ### T-027: Optional gas trace facility
 
 **Phase:** P2 – Canonical gas metering inside QuickJS fork
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-021
 
 **Goal:**
@@ -745,12 +745,18 @@ Enable deterministic gas tracing for golden tests (aggregated counts).
 
 **Detailed tasks:**
 
-- [ ] Add optional trace: opcode counts, builtin charges, allocation totals.
-- [ ] Provide a stable export path for harness tests.
+- [x] Add optional trace: opcode counts, builtin charges, allocation totals.
+- [x] Provide a stable export path for harness tests.
 
 **Acceptance criteria:**
 
-- [ ] Trace output is stable and snapshot-testable.
+- [x] Trace output is stable and snapshot-testable.
+
+**Current state (P2 T-027):**
+
+- QuickJS exposes an optional aggregate gas trace (enabled via `JS_EnableGasTrace`, read via `JS_ReadGasTrace`) covering total opcode count/gas, array-callback base/per-element counts/gas, and allocation count/bytes/gas; no per-opcode vectors are stored to keep the fork minimal.
+- The native harness enables tracing with `--gas-trace` and prints a deterministic `TRACE {…}` object alongside results/errors; harness tests snapshot the aggregate trace for addition and array map fixtures.
+- Follow-up fix: gas/trace snapshots are now taken before optional `--dump-global` reads, so `gas used` and `TRACE` stay aligned even when dumping globals performs extra allocations; array-map baselines updated accordingly.
 
 ---
 

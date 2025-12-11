@@ -14,8 +14,15 @@ typedef struct {
   const char *code;
   uint64_t gas_limit;
   int report_gas;
+  int report_trace;
   const char *dump_global;
 } HarnessOptions;
+
+typedef struct {
+  uint64_t gas_remaining;
+  int has_trace;
+  JSGasTrace trace;
+} HarnessSnapshot;
 
 static int init_runtime(HarnessRuntime *runtime) {
   if (JS_NewDeterministicRuntime(&runtime->rt, &runtime->ctx) != 0) {
@@ -37,12 +44,12 @@ static void free_runtime(HarnessRuntime *runtime) {
   }
 }
 
-static void print_gas_suffix(JSContext *ctx, const HarnessOptions *options) {
-  if (!options->report_gas) {
+static void print_gas_suffix(const HarnessOptions *options, const HarnessSnapshot *snapshot) {
+  if (!options->report_gas || snapshot == NULL) {
     return;
   }
 
-  uint64_t remaining = JS_GetGasRemaining(ctx);
+  uint64_t remaining = snapshot->gas_remaining;
   if (options->gas_limit == JS_GAS_UNLIMITED) {
     fprintf(stdout, " GAS remaining=%" PRIu64, remaining);
   } else {
@@ -96,13 +103,43 @@ static void print_state_suffix(JSContext *ctx, const HarnessOptions *options) {
   JS_FreeValue(ctx, json);
 }
 
+static void print_trace_suffix(const HarnessOptions *options, const HarnessSnapshot *snapshot) {
+  if (!options->report_trace || snapshot == NULL) {
+    return;
+  }
+
+  if (!snapshot->has_trace) {
+    fprintf(stdout, " TRACE <unavailable>");
+    return;
+  }
+
+  fprintf(stdout,
+          " TRACE {\"opcodeCount\":%" PRIu64 ",\"opcodeGas\":%" PRIu64
+          ",\"arrayCbBase\":{\"count\":%" PRIu64 ",\"gas\":%" PRIu64
+          "},\"arrayCbPerEl\":{\"count\":%" PRIu64 ",\"gas\":%" PRIu64
+          "},\"alloc\":{\"count\":%" PRIu64 ",\"bytes\":%" PRIu64 ",\"gas\":%" PRIu64 "}",
+          snapshot->trace.opcode_count, snapshot->trace.opcode_gas,
+          snapshot->trace.builtin_array_cb_base_count, snapshot->trace.builtin_array_cb_base_gas,
+          snapshot->trace.builtin_array_cb_per_element_count,
+          snapshot->trace.builtin_array_cb_per_element_gas, snapshot->trace.allocation_count,
+          snapshot->trace.allocation_bytes, snapshot->trace.allocation_gas);
+
+  fputc('}', stdout);
+}
+
 static int print_exception(JSContext *ctx, const HarnessOptions *options) {
+  HarnessSnapshot snapshot = {0};
   JSValue exception = JS_GetException(ctx);
   const char *msg = JS_ToCString(ctx, exception);
+  snapshot.gas_remaining = JS_GetGasRemaining(ctx);
+  if (options->report_trace) {
+    snapshot.has_trace = JS_ReadGasTrace(ctx, &snapshot.trace) == 0;
+  }
   if (msg) {
     fprintf(stdout, "ERROR %s", msg);
-    print_gas_suffix(ctx, options);
+    print_gas_suffix(options, &snapshot);
     print_state_suffix(ctx, options);
+    print_trace_suffix(options, &snapshot);
     fprintf(stdout, "\n");
     JS_FreeCString(ctx, msg);
   } else {
@@ -157,9 +194,16 @@ static int eval_source(JSContext *ctx, const char *code, const HarnessOptions *o
     return 1;
   }
 
+  HarnessSnapshot snapshot = {0};
+  snapshot.gas_remaining = JS_GetGasRemaining(ctx);
+  if (options->report_trace) {
+    snapshot.has_trace = JS_ReadGasTrace(ctx, &snapshot.trace) == 0;
+  }
+
   fprintf(stdout, "RESULT %s", json_str);
-  print_gas_suffix(ctx, options);
+  print_gas_suffix(options, &snapshot);
   print_state_suffix(ctx, options);
+  print_trace_suffix(options, &snapshot);
   fprintf(stdout, "\n");
 
   JS_FreeCString(ctx, json_str);
@@ -169,7 +213,7 @@ static int eval_source(JSContext *ctx, const char *code, const HarnessOptions *o
 
 static void print_usage(const char *prog) {
   fprintf(stderr,
-          "Usage: %s [--gas-limit <u64>] [--report-gas] [--dump-global <name>] --eval \"<js-source>\"\n",
+          "Usage: %s [--gas-limit <u64>] [--report-gas] [--gas-trace] [--dump-global <name>] --eval \"<js-source>\"\n",
           prog);
 }
 
@@ -177,6 +221,7 @@ static int parse_args(int argc, char **argv, HarnessOptions *opts) {
   opts->code = NULL;
   opts->gas_limit = JS_GAS_UNLIMITED;
   opts->report_gas = 0;
+  opts->report_trace = 0;
   opts->dump_global = NULL;
 
   for (int i = 1; i < argc; i++) {
@@ -208,6 +253,11 @@ static int parse_args(int argc, char **argv, HarnessOptions *opts) {
 
     if (strcmp(argv[i], "--report-gas") == 0) {
       opts->report_gas = 1;
+      continue;
+    }
+
+    if (strcmp(argv[i], "--gas-trace") == 0) {
+      opts->report_trace = 1;
       continue;
     }
 
@@ -247,6 +297,14 @@ int main(int argc, char **argv) {
   }
 
   JS_SetGasLimit(runtime.ctx, options.gas_limit);
+
+  if (options.report_trace) {
+    if (JS_EnableGasTrace(runtime.ctx, 1) != 0) {
+      fprintf(stderr, "init: failed to enable gas trace\n");
+      free_runtime(&runtime);
+      return 1;
+    }
+  }
 
   if (run_gc_checkpoint(runtime.ctx, &options) != 0) {
     free_runtime(&runtime);
