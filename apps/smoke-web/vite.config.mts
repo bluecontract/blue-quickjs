@@ -1,4 +1,5 @@
 /// <reference types='vitest' />
+import path from 'node:path';
 import { defineConfig } from 'vite';
 
 export default defineConfig(() => ({
@@ -7,6 +8,10 @@ export default defineConfig(() => ({
   server: {
     port: 4200,
     host: 'localhost',
+    fs: {
+      // Allow importing the built wasm artifacts from the workspace root.
+      allow: [path.resolve(import.meta.dirname, '..', '..', '..')],
+    },
   },
   preview: {
     port: 4300,

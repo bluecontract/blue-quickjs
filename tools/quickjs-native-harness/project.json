@@ -7,6 +7,8 @@
   "targets": {
     "build": {
       "executor": "nx:run-commands",
+      "cache": true,
+      "inputs": ["default", "{workspaceRoot}/vendor/quickjs/**"],
       "outputs": ["{workspaceRoot}/tools/quickjs-native-harness/dist"],
       "options": {
         "command": "bash tools/quickjs-native-harness/scripts/build.sh"

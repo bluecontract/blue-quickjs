@@ -2,7 +2,19 @@
   "name": "@blue-quickjs/smoke-web",
   "version": "0.0.1",
   "private": true,
+  "dependencies": {
+    "@blue-quickjs/quickjs-wasm-build": "workspace:*"
+  },
   "nx": {
-    "name": "smoke-web"
+    "name": "smoke-web",
+    "targets": {
+      "e2e": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "pnpm nx run quickjs-wasm-build:build && pnpm playwright test apps/smoke-web/tests --config apps/smoke-web/playwright.config.cts",
+          "cwd": "."
+        }
+      }
+    }
   }
 }

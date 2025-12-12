@@ -812,10 +812,10 @@ Produce a minimal Emscripten-built QuickJS-in-Wasm binary that exposes the canon
   - [x] Compare `result`, `error code/tag`, and `gas_used` from the Wasm harness against the native harness, failing tests on any mismatch.
   - [x] Wire this into `pnpm nx test` (or an equivalent script) so it runs in CI.
 
-- [ ] **Subtask C – Browser gas smoke page**
-  - [ ] Add a basic browser smoke page (or reuse `apps/smoke-web`) that loads the same `.wasm` bytes as the Node harness.
-  - [ ] Run the same gas fixtures in the browser (no host ABI calls).
-  - [ ] Surface a simple report (e.g., list of cases with OK/FAIL) and log mismatches to the console for debugging.
+- [x] **Subtask C – Browser gas smoke page**
+  - [x] Add a basic browser smoke page (or reuse `apps/smoke-web`) that loads the same `.wasm` bytes as the Node harness.
+  - [x] Run the same gas fixtures in the browser (no host ABI calls).
+  - [x] Surface a simple report (e.g., list of cases with OK/FAIL) and log mismatches to the console for debugging.
 
 - [ ] **Subtask D – Document temporary limitations**
   - [ ] Document any temporary limitations of this early harness (e.g., no host ABI, no manifest, rough memory sizing, any non-final Emscripten flags) so that P4 can harden the build later without changing P2 gas semantics.
@@ -825,7 +825,7 @@ Produce a minimal Emscripten-built QuickJS-in-Wasm binary that exposes the canon
 
 - [x] **Subtask A:** `pnpm nx build quickjs-wasm-build` produces a runnable `.wasm` artifact that exposes `eval(code, gas_limit) -> { result, gas_used | OOG }` and is written to a stable `dist/` path.
 - [x] **Subtask B:** A `pnpm nx test` (or equivalent script) runs the native-vs-wasm gas fixtures in Node and asserts exact equality of `result`, `error code/tag`, and `gas_used`.
-- [ ] **Subtask C:** A manual or automated browser run of the same fixtures shows identical outcomes to the Node run (for the selected scripts and gas limits).
+- [x] **Subtask C:** A manual or automated browser run of the same fixtures shows identical outcomes to the Node run (for the selected scripts and gas limits).
 - [ ] **Subtask D:** A short, checked-in document (or updated section of this plan) describes the temporary limitations and P4 hardening expectations without leaving ambiguity about what must remain stable.
 
 **Current state (P2.5 T-029 Subtask A):**
@@ -839,6 +839,11 @@ Produce a minimal Emscripten-built QuickJS-in-Wasm binary that exposes the canon
 - The vitest spec at `libs/test-harness/src/lib/gas-equivalence.spec.ts` now covers the full gas golden set (`zero-precharge`, `gc-checkpoint-budget`, `loop-oog`, `constant`, `addition`, `string-repeat`) against both the native harness binary and the wasm module, asserting parity on kind/message/gas remaining/used.
 - The wasm build uses Emscripten `-sMEMORY64=1`, so allocator layouts match native. The loader calls `cwrap('qjs_eval', 'bigint', ['string', 'bigint'])` (no 64-bit splitting) and frees the returned pointer via the BigInt wrapper.
 - **Compatibility note:** Wasm memory64 was used to close the remaining parity gap because it aligns allocator layouts with native, but `-sMEMORY64` is still experimental and not widely available in browsers/worker runtimes. We removed the earlier wasm32-only canonical allocation padding helper (it did not affect parity because Emscripten’s allocator was already 16-byte aligned), so wasm32 parity still needs a portable adjustment if memory64 cannot be shipped. The default shipping artifact should remain wasm32 for portability; memory64 builds can stay as an internal/debug variant until target environments confirm support. Building native as 32-bit is impractical on macOS/arm64 and requires a dedicated i386 userspace + multilib toolchain even on x86 Linux (e.g., a 32-bit Docker base); this should not be relied on for parity.
+
+**Current state (P2.5 T-029 Subtask C):**
+
+- `apps/smoke-web` now hosts a browser gas smoke page that loads the wasm harness directly, runs the core gas golden fixtures, and reports pass/fail (logging mismatches to the console).
+- A Playwright smoke test (`apps/smoke-web/tests/gas-smoke.spec.ts`) with `apps/smoke-web/playwright.config.ts` starts the Vite dev server, runs the page, and asserts all fixtures pass; Chromium is launched with `--js-flags=--experimental-wasm-memory64` to match the current wasm64 artifact.
 
 ---
 
