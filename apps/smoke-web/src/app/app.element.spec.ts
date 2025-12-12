@@ -17,6 +17,8 @@ describe('AppElement', () => {
     const heading = app.querySelector('h1');
 
     expect(heading).not.toBeNull();
-    expect(heading?.innerHTML ?? '').toContain('Welcome smoke-web');
+    expect(heading?.innerHTML ?? '').toContain(
+      'QuickJS wasm gas fixtures (browser)',
+    );
   });
 });
