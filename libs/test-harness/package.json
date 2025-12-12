@@ -25,6 +25,9 @@
       "quickjs-wasm-build"
     ]
   },
+  "devDependencies": {
+    "@blue-quickjs/quickjs-wasm-build": "workspace:*"
+  },
   "dependencies": {
     "tslib": "^2.3.0"
   }
