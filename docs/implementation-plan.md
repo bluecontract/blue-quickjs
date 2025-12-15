@@ -949,7 +949,7 @@ Implement C encode/decode for DV to bridge JS values and request/response bytes 
 ### T-033: Define ABI manifest schema and canonical serialization
 
 **Phase:** P3 – Host ABI (DV + manifest + syscall)
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-030, T-005
 
 **Goal:**
@@ -959,17 +959,21 @@ Define manifest schema, canonical bytes, and hashing rules.
 
 **Detailed tasks:**
 
-- [ ] Write `docs/abi-manifest.md` specifying:
-  - [ ] top-level fields (`abi_id`, `abi_version`, entries),
-  - [ ] entry fields: `fn_id`, `js_path`, `arity`, `arg_schema`, `return_schema`, `effect`, `gas_schedule_id`, `limits`, `error_codes`,
-  - [ ] canonical serialization rules (prefer DV encoding from T-030),
-  - [ ] hash algorithm + output format.
+- [x] Write `docs/abi-manifest.md` specifying:
+  - [x] top-level fields (`abi_id`, `abi_version`, entries),
+  - [x] entry fields: `fn_id`, `js_path`, `arity`, `arg_schema`, `return_schema`, `effect`, `gas_schedule_id`, `limits`, `error_codes`,
+  - [x] canonical serialization rules (prefer DV encoding from T-030),
+  - [x] hash algorithm + output format.
 
-- [ ] Define a minimal schema language sufficient for initial functions (don’t overbuild).
+- [x] Define a minimal schema language sufficient for initial functions (don’t overbuild).
 
 **Acceptance criteria:**
 
-- [ ] Doc includes a complete example manifest for `Host.v1` with at least document.get/getCanonical.
+- [x] Doc includes a complete example manifest for `Host.v1` with at least document.get/getCanonical.
+
+**Current state (P3 T-033):**
+
+- `docs/abi-manifest.md` now normatively specifies the manifest structure (top-level and per-function fields), minimal schema language, canonical DV encoding rules, SHA-256 hashing (lowercase hex), and validation constraints. It includes a complete `Host.v1` example covering `document.get`, `document.getCanonical`, and `emit` with gas parameters, limits, and error codes.
 
 ---
 
