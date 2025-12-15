@@ -791,7 +791,7 @@ Lock in gas semantics before wasm and host ABI.
 ### T-029: Early QuickJS-in-Wasm gas harness (no host ABI)
 
 **Phase:** P2.5 – Early QuickJS-in-Wasm gas harness
-**Status:** IN PROGRESS
+**Status:** DONE
 **Depends on:** T-022, T-004, T-003, T-002
 
 **Goal:**
@@ -817,16 +817,16 @@ Produce a minimal Emscripten-built QuickJS-in-Wasm binary that exposes the canon
   - [x] Run the same gas fixtures in the browser (no host ABI calls).
   - [x] Surface a simple report (e.g., list of cases with OK/FAIL) and log mismatches to the console for debugging.
 
-- [ ] **Subtask D – Document temporary limitations**
-  - [ ] Document any temporary limitations of this early harness (e.g., no host ABI, no manifest, rough memory sizing, any non-final Emscripten flags) so that P4 can harden the build later without changing P2 gas semantics.
-  - [ ] Clearly call out which aspects (e.g., gas schedule, OOG boundaries) are treated as stable contracts versus which are explicitly “pre-P4” and allowed to evolve.
+- [x] **Subtask D – Document temporary limitations**
+  - [x] Document any temporary limitations of this early harness (e.g., no host ABI, no manifest, rough memory sizing, any non-final Emscripten flags) so that P4 can harden the build later without changing P2 gas semantics.
+  - [x] Clearly call out which aspects (e.g., gas schedule, OOG boundaries) are treated as stable contracts versus which are explicitly “pre-P4” and allowed to evolve.
 
 **Acceptance criteria (per subtask):**
 
 - [x] **Subtask A:** `pnpm nx build quickjs-wasm-build` produces a runnable `.wasm` artifact that exposes `eval(code, gas_limit) -> { result, gas_used | OOG }` and is written to a stable `dist/` path.
 - [x] **Subtask B:** A `pnpm nx test` (or equivalent script) runs the gas fixtures in Node against the wasm harness: wasm32 is the default baseline (stable outputs for result/kind/gas), and the wasm64 variant can still be compared to native for debugging.
 - [x] **Subtask C:** A manual or automated browser run of the same fixtures shows identical outcomes to the Node run for the selected scripts/gas limits using the current wasm variant (wasm32 by default).
-- [ ] **Subtask D:** A short, checked-in document (or updated section of this plan) describes the temporary limitations and P4 hardening expectations without leaving ambiguity about what must remain stable.
+- [x] **Subtask D:** A short, checked-in document (or updated section of this plan) describes the temporary limitations and P4 hardening expectations without leaving ambiguity about what must remain stable.
 
 **Current state (P2.5 T-029 Subtask A):**
 
@@ -838,12 +838,16 @@ Produce a minimal Emscripten-built QuickJS-in-Wasm binary that exposes the canon
 
 - The vitest spec at `libs/test-harness/src/lib/gas-equivalence.spec.ts` now covers the full gas fixture set (`zero-precharge`, `gc-checkpoint-budget`, `loop-oog`, `constant`, `addition`, `string-repeat`) against the wasm harness using the wasm32 artifact by default, asserting expected kind/message/gas remaining/used. Setting `QJS_WASM_VARIANT=wasm64` switches the test to the memory64 artifact and restores native-vs-wasm comparisons for debugging.
 - The wasm build defaults to wasm32 with `-sWASM_BIGINT=1`; `libs/quickjs-wasm-build/scripts/build-wasm.sh` accepts `WASM_VARIANTS=wasm32,wasm64` to also emit `quickjs-eval-wasm64.{js,wasm}`. Artifacts are resolved via `getQuickjsWasmArtifacts(variant)` so callers can pick the desired target.
-- **Compatibility note:** wasm32 gas numbers diverge from native because of the 32-bit allocator layout, but Node and browser harnesses now agree on the wasm32 outputs. Use the wasm64 variant (via `quickjs-eval-wasm64` and `QJS_WASM_VARIANT=wasm64`) when native parity is required for investigation; memory64 remains non-portable in mainstream browsers.
+- **Compatibility note:** wasm32 gas numbers diverge from native because of the 32-bit allocator layout, but Node and browser harnesses now agree on the wasm32 outputs. wasm32 is the chosen canonical variant; wasm64 is not planned/supported (memory64 remains non-portable in mainstream browsers), so native-parity debugging should proceed within wasm32 expectations.
 
 **Current state (P2.5 T-029 Subtask C):**
 
 - `apps/smoke-web` now hosts a browser gas smoke page that loads the wasm harness directly, runs the core gas golden fixtures, and reports pass/fail (logging mismatches to the console).
 - A Playwright smoke test (`apps/smoke-web/tests/gas-smoke.spec.ts`) with `apps/smoke-web/playwright.config.cts` starts the Vite dev server, runs the page, and asserts all fixtures pass using the wasm32 artifact; no browser flags are required for memory64.
+
+**Current state (P2.5 T-029 Subtask D):**
+
+- Added `docs/wasm-gas-harness.md` capturing the temporary limitations of the early wasm gas harness (no host ABI/manifest, JSON-stringify output, wasm32 vs native gas divergence, provisional emscripten flags/memory sizing) and explicitly marking what is stable for P2.5 (entrypoints/output format, artifact paths, pinned wasm32 gas fixtures) versus pre-P4 areas that may change during hardening.
 
 ---
 
