@@ -1009,7 +1009,7 @@ Provide TS tools to create canonical manifest bytes and compute `abi_manifest_ha
 ### T-035: Define the initial ABI surface manifest (v1) used by this evaluator
 
 **Phase:** P3 – Host ABI (DV + manifest + syscall)
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-033
 
 **Goal:**
@@ -1020,17 +1020,22 @@ Lock down the minimal host ABI surface required by the read-only evaluator.
 **Detailed tasks:**
 
 - [ ] Create a fixture manifest (checked into `libs/test-harness/fixtures/`) that defines:
-  - [ ] `Host.v1.document.get(path)` (READ)
-  - [ ] `Host.v1.document.getCanonical(path)` (READ)
-  - [ ] Optional: `Host.v1.emit(value)` (EMIT) for deterministic logging/tape (recommended)
+  - [x] `Host.v1.document.get(path)` (READ)
+  - [x] `Host.v1.document.getCanonical(path)` (READ)
+  - [x] Optional: `Host.v1.emit(value)` (EMIT) for deterministic logging/tape (recommended)
 
-- [ ] Define per-function limits and error codes (path invalid, not found, limit exceeded).
+- [x] Define per-function limits and error codes (path invalid, not found, limit exceeded).
 
-- [ ] Define per-function gas schedule parameters (base, k_arg_bytes, k_out_bytes, k_units).
+- [x] Define per-function gas schedule parameters (base, k_arg_bytes, k_out_bytes, k_units).
 
 **Acceptance criteria:**
 
-- [ ] Fixture manifest can be serialized + hashed by `libs/abi-manifest` reproducibly.
+- [x] Fixture manifest can be serialized + hashed by `libs/abi-manifest` reproducibly.
+
+**Current state (P3 T-035):**
+
+- Added `Host.v1` manifest fixture at `libs/test-harness/fixtures/abi-manifest/host-v1.json` with `document.get`, `document.getCanonical`, and `emit`; canonical DV bytes and SHA-256 hash are pinned alongside in `.bytes.hex`/`.hash` with a TS loader exported from `@blue-quickjs/test-harness`.
+- `libs/abi-manifest` tests now consume the fixture to assert canonical bytes/hash parity via `hashAbiManifest`/`hashAbiManifestBytes`, locking in the reproducible manifest encoding.
 
 ---
 

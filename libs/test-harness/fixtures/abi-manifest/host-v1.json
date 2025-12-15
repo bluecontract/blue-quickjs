@@ -1,0 +1,79 @@
+{
+  "abi_id": "Host.v1",
+  "abi_version": 1,
+  "functions": [
+    {
+      "fn_id": 1,
+      "js_path": ["document", "get"],
+      "effect": "READ",
+      "arity": 1,
+      "arg_schema": [{ "type": "string" }],
+      "return_schema": { "type": "dv" },
+      "gas": {
+        "schedule_id": "doc-read-v1",
+        "base": 20,
+        "k_arg_bytes": 1,
+        "k_ret_bytes": 1,
+        "k_units": 1
+      },
+      "limits": {
+        "max_request_bytes": 4096,
+        "max_response_bytes": 262144,
+        "max_units": 1000,
+        "arg_utf8_max": [2048]
+      },
+      "error_codes": [
+        { "code": "INVALID_PATH", "tag": "host/invalid_path" },
+        { "code": "LIMIT_EXCEEDED", "tag": "host/limit" },
+        { "code": "NOT_FOUND", "tag": "host/not_found" }
+      ]
+    },
+    {
+      "fn_id": 2,
+      "js_path": ["document", "getCanonical"],
+      "effect": "READ",
+      "arity": 1,
+      "arg_schema": [{ "type": "string" }],
+      "return_schema": { "type": "dv" },
+      "gas": {
+        "schedule_id": "doc-read-v1",
+        "base": 20,
+        "k_arg_bytes": 1,
+        "k_ret_bytes": 1,
+        "k_units": 1
+      },
+      "limits": {
+        "max_request_bytes": 4096,
+        "max_response_bytes": 262144,
+        "max_units": 1000,
+        "arg_utf8_max": [2048]
+      },
+      "error_codes": [
+        { "code": "INVALID_PATH", "tag": "host/invalid_path" },
+        { "code": "LIMIT_EXCEEDED", "tag": "host/limit" },
+        { "code": "NOT_FOUND", "tag": "host/not_found" }
+      ]
+    },
+    {
+      "fn_id": 3,
+      "js_path": ["emit"],
+      "effect": "EMIT",
+      "arity": 1,
+      "arg_schema": [{ "type": "dv" }],
+      "return_schema": { "type": "null" },
+      "gas": {
+        "schedule_id": "emit-v1",
+        "base": 5,
+        "k_arg_bytes": 1,
+        "k_ret_bytes": 0,
+        "k_units": 1
+      },
+      "limits": {
+        "max_request_bytes": 32768,
+        "max_response_bytes": 64,
+        "max_units": 1024
+      },
+      "error_codes": [{ "code": "LIMIT_EXCEEDED", "tag": "host/limit" }]
+    }
+  ]
+}
