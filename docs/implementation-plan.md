@@ -1125,7 +1125,7 @@ Add a single syscall path from VM to host with deterministic guardrails.
 ### T-039: Define and implement the host-call response envelope + deterministic HostError
 
 **Phase:** P3 – Host ABI (DV + manifest + syscall)
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-032, T-038
 
 **Goal:**
@@ -1135,19 +1135,26 @@ Standardize host responses as `Ok(DV)` or `Err({code, tag, details?})` plus dete
 
 **Detailed tasks:**
 
-- [ ] Define the response envelope structure (as DV) including:
-  - [ ] ok vs err,
-  - [ ] `units` (u32),
-  - [ ] optional metadata needed for charging/tape.
+- [x] Define the response envelope structure (as DV) including:
+  - [x] ok vs err,
+  - [x] `units` (u32),
+  - [x] optional metadata needed for charging/tape.
 
-- [ ] Implement parsing/validation in VM.
+- [x] Implement parsing/validation in VM.
 
-- [ ] Implement deterministic error throwing: `HostError` with stable `{code, tag}`.
+- [x] Implement deterministic error throwing: `HostError` with stable `{code, tag}`.
 
 **Acceptance criteria:**
 
-- [ ] VM throws deterministic HostError for Err responses.
-- [ ] Malformed envelopes are rejected with deterministic VM error.
+- [x] VM throws deterministic HostError for Err responses.
+- [x] Malformed envelopes are rejected with deterministic VM error.
+
+**Current state (P3 T-039):**
+
+- Added exported `JS_ThrowHostError`, `JS_ParseHostResponse`, and `JS_FreeHostResponse` in the fork to decode DV response envelopes (`ok`/`err` + `units`), enforce manifest-provided error code/tag mappings, and reject malformed envelopes with deterministic `HostError` codes (`HOST_TRANSPORT`, `HOST_ENVELOPE_INVALID`).
+- `JS_HostCall` now surfaces transport failures as `HostError { code: "HOST_TRANSPORT", tag: "host/transport" }` instead of a `TypeError`.
+- Native harness gains `--host-parse-envelope`/`--host-max-units` to decode host responses using default `Host.v1` error mappings; tests cover ok envelope decoding and HostError paths for manifest errors and invalid envelopes.
+- Follow-up hardening: `JS_ParseHostResponse` now enforces strict `units` uint32 semantics (no strings/floats/-0), requires `err.code` to be a string, preserves OutOfGas instead of masking it as `HOST_ENVELOPE_INVALID`, and frees all intermediate refs; harness tests were expanded to pin these envelope validation rules (non-number/non-integer units, non-string code, `max_units=0` cases).
 
 ---
 

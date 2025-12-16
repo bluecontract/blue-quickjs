@@ -39,6 +39,7 @@ fi
 
 SRC_FILES=(
   "${QJS_DIR}/quickjs.c"
+  "${QJS_DIR}/quickjs-host.c"
   "${QJS_DIR}/quickjs-dv.c"
   "${QJS_DIR}/quickjs-sha256.c"
   "${QJS_DIR}/dtoa.c"

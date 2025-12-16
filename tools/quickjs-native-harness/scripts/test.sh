@@ -15,6 +15,14 @@ BAD_MANIFEST_HASH="0000000000000000000000000000000000000000000000000000000000000
 SHA_EMPTY="e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 SHA_ABC="ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
 SHA_LONG="248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1"
+HOST_ERR_ENVELOPE_HEX="a263657272a164636f6465694e4f545f464f554e4465756e69747303"
+HOST_INVALID_ENVELOPE_HEX="a1626f6b01"
+HOST_OK_ENVELOPE_HEX="a2626f6ba16576616c75656568656c6c6f65756e69747305"
+HOST_UNITS_STRING_HEX="a2626f6b0165756e6974736135"
+HOST_UNITS_FLOAT_HEX="a2626f6b0165756e697473fb3ff8000000000000"
+HOST_ERR_CODE_NUMBER_HEX="a263657272a164636f6465187b65756e69747300"
+HOST_UNITS_ZERO_HEX="a2626f6b0065756e69747300"
+HOST_UNITS_ONE_HEX="a2626f6b0065756e69747301"
 
 assert_output() {
   local name="$1"
@@ -173,9 +181,17 @@ assert_output "Host descriptor" "${host_descriptor_js}" "RESULT {\"configurable\
 assert_output "capability snapshot" "${capability_snapshot_js}" "RESULT {\"eval\":{\"ok\":false,\"error\":\"TypeError: eval is disabled in deterministic mode\"},\"Function\":{\"ok\":false,\"error\":\"TypeError: Function is disabled in deterministic mode\"},\"RegExp\":{\"ok\":false,\"error\":\"TypeError: RegExp is disabled in deterministic mode\"},\"Proxy\":{\"ok\":false,\"error\":\"TypeError: Proxy is disabled in deterministic mode\"},\"Promise\":{\"ok\":false,\"error\":\"TypeError: Promise is disabled in deterministic mode\"},\"MathRandom\":{\"ok\":false,\"error\":\"TypeError: Math.random is disabled in deterministic mode\"},\"Date\":{\"ok\":true,\"value\":\"undefined\"},\"setTimeout\":{\"ok\":true,\"value\":\"undefined\"},\"ArrayBuffer\":{\"ok\":false,\"error\":\"TypeError: ArrayBuffer is disabled in deterministic mode\"},\"SharedArrayBuffer\":{\"ok\":false,\"error\":\"TypeError: SharedArrayBuffer is disabled in deterministic mode\"},\"DataView\":{\"ok\":false,\"error\":\"TypeError: DataView is disabled in deterministic mode\"},\"Uint8Array\":{\"ok\":false,\"error\":\"TypeError: Typed arrays are disabled in deterministic mode\"},\"Atomics\":{\"ok\":false,\"error\":\"TypeError: Atomics is disabled in deterministic mode\"},\"WebAssembly\":{\"ok\":false,\"error\":\"TypeError: WebAssembly is disabled in deterministic mode\"},\"consoleLog\":{\"ok\":false,\"error\":\"TypeError: console is disabled in deterministic mode\"},\"print\":{\"ok\":false,\"error\":\"TypeError: print is disabled in deterministic mode\"},\"globalOrder\":{\"ok\":true,\"value\":[\"console\",\"print\",\"Host\"]},\"hostImmutable\":{\"ok\":true,\"value\":{\"sameRef\":true,\"hasV1\":true,\"added\":false,\"desc\":{\"value\":{},\"writable\":false,\"enumerable\":false,\"configurable\":false},\"protoNull\":true,\"v1ProtoNull\":true,\"hostIsExtensible\":false,\"hostV1Extensible\":false}}}"
 assert_host_call "host_call echo" "HOSTCALL 0a0b0c GAS remaining=100 used=0" --host-call "0a0b0c" --gas-limit 100 --report-gas
 assert_host_call "host_call request limit" "ERROR TypeError: host_call request exceeds max_request_bytes" --host-call "010203" --host-max-request 2
-assert_host_call "host_call response limit" "ERROR TypeError: host_call transport failed" --host-call "0a0b0c" --host-max-request 3 --host-max-response 2
+assert_host_call "host_call response limit" "ERROR HostError: host/transport" --host-call "0a0b0c" --host-max-request 3 --host-max-response 2
 assert_host_call "host_call reentrancy guard" "ERROR TypeError: host_call is already in progress" --host-call "aa" --host-reentrant
 assert_host_call "host_call dispatcher exception" "ERROR TypeError: host stub exception" --host-call "aa" --host-exception
+assert_host_call "host_call err envelope" "ERROR HostError: host/not_found" --host-call "${HOST_ERR_ENVELOPE_HEX}" --host-parse-envelope --host-max-units 10
+assert_host_call "host_call envelope invalid" "ERROR HostError: host/envelope_invalid" --host-call "${HOST_INVALID_ENVELOPE_HEX}" --host-parse-envelope
+assert_host_call "host_call units must be number" "ERROR HostError: host/envelope_invalid" --host-call "${HOST_UNITS_STRING_HEX}" --host-parse-envelope
+assert_host_call "host_call units must be integer" "ERROR HostError: host/envelope_invalid" --host-call "${HOST_UNITS_FLOAT_HEX}" --host-parse-envelope
+assert_host_call "host_call err.code must be string" "ERROR HostError: host/envelope_invalid" --host-call "${HOST_ERR_CODE_NUMBER_HEX}" --host-parse-envelope
+assert_host_call "host_call max_units zero allowed" "HOSTRESP 0 UNITS 0" --host-call "${HOST_UNITS_ZERO_HEX}" --host-parse-envelope --host-max-units 0
+assert_host_call "host_call units above max_units zero" "ERROR HostError: host/envelope_invalid" --host-call "${HOST_UNITS_ONE_HEX}" --host-parse-envelope --host-max-units 0
+assert_host_call "host_call ok envelope" "HOSTRESP {\"value\":\"hello\"} UNITS 5" --host-call "${HOST_OK_ENVELOPE_HEX}" --host-parse-envelope --host-max-units 10
 
 node "${SCRIPT_DIR}/gas-goldens.mjs"
 node "${SCRIPT_DIR}/dv-parity.mjs"

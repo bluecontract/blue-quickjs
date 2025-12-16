@@ -1,4 +1,5 @@
 #include "quickjs.h"
+#include "quickjs-host.h"
 #include "quickjs-internal.h"
 #include <errno.h>
 #include <inttypes.h>
@@ -37,6 +38,9 @@ typedef struct {
   uint32_t host_call_max_response;
   int host_call_reentrant;
   int host_call_exception;
+  int host_call_parse_envelope;
+  uint32_t host_call_max_units;
+  int host_call_max_units_provided;
 } HarnessOptions;
 
 typedef struct {
@@ -44,6 +48,11 @@ typedef struct {
   int has_trace;
   JSGasTrace trace;
 } HarnessSnapshot;
+
+typedef struct {
+  JSHostErrorEntry entries[3];
+  size_t count;
+} HostErrorTable;
 
 static int print_exception(JSContext *ctx, const HarnessOptions *options);
 static void free_runtime(HarnessRuntime *runtime);
@@ -119,6 +128,56 @@ static int parse_hex_string(const char *hex, uint8_t **out, size_t *out_len) {
 
   *out = buf;
   *out_len = byte_len;
+  return 0;
+}
+
+static void free_default_host_errors(JSContext *ctx, HostErrorTable *table) {
+  if (!table) {
+    return;
+  }
+
+  for (size_t i = 0; i < table->count; i++) {
+    if (table->entries[i].code_atom != JS_ATOM_NULL) {
+      JS_FreeAtom(ctx, table->entries[i].code_atom);
+    }
+    if (table->entries[i].tag_atom != JS_ATOM_NULL) {
+      JS_FreeAtom(ctx, table->entries[i].tag_atom);
+    }
+    table->entries[i].code_atom = JS_ATOM_NULL;
+    table->entries[i].tag_atom = JS_ATOM_NULL;
+  }
+  table->count = 0;
+}
+
+static int init_default_host_errors(JSContext *ctx, HostErrorTable *table) {
+  if (!table) {
+    return -1;
+  }
+
+  const char *codes[] = {"INVALID_PATH", "LIMIT_EXCEEDED", "NOT_FOUND"};
+  const char *tags[] = {"host/invalid_path", "host/limit", "host/not_found"};
+  const size_t count = sizeof(codes) / sizeof(codes[0]);
+
+  table->count = 0;
+  for (size_t i = 0; i < count; i++) {
+    JSAtom code_atom = JS_NewAtom(ctx, codes[i]);
+    JSAtom tag_atom = JS_NewAtom(ctx, tags[i]);
+    if (code_atom == JS_ATOM_NULL || tag_atom == JS_ATOM_NULL) {
+      if (code_atom != JS_ATOM_NULL) {
+        JS_FreeAtom(ctx, code_atom);
+      }
+      if (tag_atom != JS_ATOM_NULL) {
+        JS_FreeAtom(ctx, tag_atom);
+      }
+      free_default_host_errors(ctx, table);
+      return -1;
+    }
+
+    table->entries[i].code_atom = code_atom;
+    table->entries[i].tag_atom = tag_atom;
+  }
+
+  table->count = count;
   return 0;
 }
 
@@ -558,8 +617,11 @@ static int run_host_call(HarnessRuntime *runtime, const HarnessOptions *options)
   uint8_t *req_bytes = NULL;
   size_t req_len = 0;
   JSHostCallResult result = {0};
+  HostErrorTable error_table = {0};
   uint32_t max_req = options->host_call_max_request;
   uint32_t max_resp = options->host_call_max_response;
+  uint32_t max_units =
+      options->host_call_max_units_provided ? options->host_call_max_units : 1000;
 
   if (parse_hex_string(options->host_call_hex, &req_bytes, &req_len) != 0) {
     return 2;
@@ -601,6 +663,74 @@ static int run_host_call(HarnessRuntime *runtime, const HarnessOptions *options)
   if (run_gc_checkpoint(runtime->ctx, options) != 0) {
     free(req_bytes);
     return 1;
+  }
+
+  if (options->host_call_parse_envelope) {
+    if (init_default_host_errors(runtime->ctx, &error_table) != 0) {
+      free(req_bytes);
+      return print_exception(runtime->ctx, options);
+    }
+
+    JSHostResponseValidation validation = {
+        .max_units = max_units,
+        .errors = error_table.entries,
+        .error_count = error_table.count,
+    };
+    JSHostResponse parsed;
+
+    if (JS_ParseHostResponse(runtime->ctx, result.data, result.length, &validation, &parsed) != 0) {
+      free_default_host_errors(runtime->ctx, &error_table);
+      free(req_bytes);
+      return print_exception(runtime->ctx, options);
+    }
+
+    if (parsed.is_error) {
+      JS_ThrowHostError(runtime->ctx, parsed.err_code_atom, parsed.err_tag_atom, parsed.err_details);
+      JS_FreeHostResponse(runtime->ctx, &parsed);
+      free_default_host_errors(runtime->ctx, &error_table);
+      free(req_bytes);
+      return print_exception(runtime->ctx, options);
+    }
+
+    HarnessSnapshot snapshot = {0};
+    snapshot.gas_remaining = JS_GetGasRemaining(runtime->ctx);
+    if (options->report_trace) {
+      snapshot.has_trace = JS_ReadGasTrace(runtime->ctx, &snapshot.trace) == 0;
+    }
+
+    JSValue json = JS_JSONStringify(runtime->ctx, parsed.ok, JS_UNDEFINED, JS_UNDEFINED);
+    if (JS_IsException(json)) {
+      JS_FreeHostResponse(runtime->ctx, &parsed);
+      free_default_host_errors(runtime->ctx, &error_table);
+      free(req_bytes);
+      return print_exception(runtime->ctx, options);
+    }
+
+    const char *json_str = JS_ToCString(runtime->ctx, json);
+    if (!json_str) {
+      JS_FreeValue(runtime->ctx, json);
+      JS_FreeHostResponse(runtime->ctx, &parsed);
+      free_default_host_errors(runtime->ctx, &error_table);
+      free(req_bytes);
+      fprintf(stdout, "ERROR <stringify>");
+      print_gas_suffix(options, &snapshot);
+      print_state_suffix(runtime->ctx, options);
+      print_trace_suffix(options, &snapshot);
+      fprintf(stdout, "\n");
+      return 1;
+    }
+
+    fprintf(stdout, "HOSTRESP %s UNITS %" PRIu32, json_str, parsed.units);
+    JS_FreeCString(runtime->ctx, json_str);
+    JS_FreeValue(runtime->ctx, json);
+    JS_FreeHostResponse(runtime->ctx, &parsed);
+    free_default_host_errors(runtime->ctx, &error_table);
+    print_gas_suffix(options, &snapshot);
+    print_state_suffix(runtime->ctx, options);
+    print_trace_suffix(options, &snapshot);
+    fprintf(stdout, "\n");
+    free(req_bytes);
+    return 0;
   }
 
   HarnessSnapshot snapshot = {0};
@@ -680,7 +810,7 @@ static void print_usage(const char *prog) {
           "  %s [--gas-limit <u64>] [--report-gas] [--gas-trace] [--dump-global <name>] [--abi-manifest-hex <hex> | --abi-manifest-hex-file <path>] [--abi-manifest-hash <hex>] [--context-blob-hex <hex>] --eval \"<js-source>\"\n"
           "  %s --dv-encode --eval \"<js-source>\"\n"
           "  %s --dv-decode <hex-string>\n"
-          "  %s --host-call <hex-string> [--host-fn-id <u32>] [--host-max-request <u32>] [--host-max-response <u32>] [--host-reentrant] [--host-exception] [--gas-limit <u64>] [--report-gas] [--gas-trace] [--abi-manifest-hex <hex> | --abi-manifest-hex-file <path>] [--abi-manifest-hash <hex>] [--context-blob-hex <hex>]\n"
+          "  %s --host-call <hex-string> [--host-fn-id <u32>] [--host-max-request <u32>] [--host-max-response <u32>] [--host-max-units <u32>] [--host-parse-envelope] [--host-reentrant] [--host-exception] [--gas-limit <u64>] [--report-gas] [--gas-trace] [--abi-manifest-hex <hex> | --abi-manifest-hex-file <path>] [--abi-manifest-hash <hex>] [--context-blob-hex <hex>]\n"
           "  %s --sha256-hex <hex-string>\n",
           prog,
           prog,
@@ -708,6 +838,9 @@ static int parse_args(int argc, char **argv, HarnessOptions *opts) {
   opts->host_call_max_response = 0;
   opts->host_call_reentrant = 0;
   opts->host_call_exception = 0;
+  opts->host_call_parse_envelope = 0;
+  opts->host_call_max_units = 0;
+  opts->host_call_max_units_provided = 0;
 
   for (int i = 1; i < argc; i++) {
     if (strcmp(argv[i], "--eval") == 0) {
@@ -877,6 +1010,24 @@ static int parse_args(int argc, char **argv, HarnessOptions *opts) {
       continue;
     }
 
+    if (strcmp(argv[i], "--host-max-units") == 0) {
+      if (i + 1 >= argc) {
+        print_usage(argv[0]);
+        return 2;
+      }
+      const char *value = argv[++i];
+      char *endptr = NULL;
+      errno = 0;
+      unsigned long parsed = strtoul(value, &endptr, 10);
+      if (errno != 0 || endptr == value || *endptr != '\0' || parsed > UINT32_MAX) {
+        fprintf(stderr, "Invalid --host-max-units: %s\n", value);
+        return 2;
+      }
+      opts->host_call_max_units = (uint32_t)parsed;
+      opts->host_call_max_units_provided = 1;
+      continue;
+    }
+
     if (strcmp(argv[i], "--host-reentrant") == 0) {
       opts->host_call_reentrant = 1;
       continue;
@@ -887,11 +1038,16 @@ static int parse_args(int argc, char **argv, HarnessOptions *opts) {
       continue;
     }
 
+    if (strcmp(argv[i], "--host-parse-envelope") == 0) {
+      opts->host_call_parse_envelope = 1;
+      continue;
+    }
+
     print_usage(argv[0]);
     return 2;
   }
 
-  const int host_call_mode = opts->host_call_hex != NULL;
+  const int host_call_mode = opts->host_call_hex != NULL || opts->host_call_parse_envelope;
 
   if (opts->dv_decode_hex) {
     if (opts->code != NULL || opts->dv_encode || host_call_mode) {
@@ -912,6 +1068,10 @@ static int parse_args(int argc, char **argv, HarnessOptions *opts) {
 
   if (host_call_mode) {
     if (opts->code != NULL || opts->dv_encode) {
+      print_usage(argv[0]);
+      return 2;
+    }
+    if (opts->host_call_hex == NULL) {
       print_usage(argv[0]);
       return 2;
     }
