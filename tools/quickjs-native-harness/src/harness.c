@@ -7,7 +7,13 @@
 #include <stdlib.h>
 #include <string.h>
 
+typedef enum {
+  HOST_STUB_MODE_ECHO = 0,
+  HOST_STUB_MODE_MANIFEST = 1
+} HostStubMode;
+
 typedef struct {
+  HostStubMode mode;
   int trigger_reentrancy;
   int trigger_exception;
 } HostStubConfig;
@@ -181,6 +187,125 @@ static int init_default_host_errors(JSContext *ctx, HostErrorTable *table) {
   return 0;
 }
 
+static uint32_t harness_manifest_host_call(JSContext *ctx,
+                                           uint32_t fn_id,
+                                           const uint8_t *req_ptr,
+                                           uint32_t req_len,
+                                           uint8_t *resp_ptr,
+                                           uint32_t resp_capacity) {
+  JSValue req = JS_UNDEFINED;
+  JSValue arg0 = JS_UNDEFINED;
+  JSValue envelope = JS_UNDEFINED;
+  JSValue err_obj = JS_UNDEFINED;
+  JSValue ok_val = JS_UNDEFINED;
+  JSDvBuffer resp = {0};
+  uint32_t units = 1;
+  const char *error_code = NULL;
+  uint32_t resp_len = JS_HOST_CALL_TRANSPORT_ERROR;
+
+  req = JS_DecodeDV(ctx, req_ptr, req_len, &JS_DV_LIMIT_DEFAULTS);
+  if (JS_IsException(req)) {
+    goto done;
+  }
+
+  if (!JS_IsArray(ctx, req)) {
+    goto done;
+  }
+
+  arg0 = JS_GetPropertyUint32(ctx, req, 0);
+  if (JS_IsException(arg0)) {
+    goto done;
+  }
+
+  envelope = JS_NewObjectProto(ctx, JS_NULL);
+  if (JS_IsException(envelope)) {
+    goto done;
+  }
+
+  if (fn_id == 1 || fn_id == 2) {
+    if (!JS_IsString(arg0)) {
+      goto done;
+    }
+    const char *path = JS_ToCString(ctx, arg0);
+    if (!path) {
+      goto done;
+    }
+    if (strcmp(path, "missing") == 0) {
+      error_code = "NOT_FOUND";
+      units = 2;
+    } else if (strcmp(path, "limit") == 0) {
+      error_code = "LIMIT_EXCEEDED";
+      units = 3;
+    }
+    JS_FreeCString(ctx, path);
+
+    if (error_code) {
+      err_obj = JS_NewObjectProto(ctx, JS_NULL);
+      if (JS_IsException(err_obj)) {
+        goto done;
+      }
+      if (JS_SetPropertyStr(ctx, err_obj, "code", JS_NewString(ctx, error_code)) < 0) {
+        goto done;
+      }
+    } else {
+      ok_val = JS_DupValue(ctx, arg0);
+    }
+  } else if (fn_id == 3) {
+    ok_val = JS_NULL;
+    units = 0;
+  } else {
+    goto done;
+  }
+
+  if (error_code) {
+    if (JS_SetPropertyStr(ctx, envelope, "err", err_obj) < 0) {
+      goto done;
+    }
+    err_obj = JS_UNDEFINED;
+  } else {
+    if (JS_SetPropertyStr(ctx, envelope, "ok", ok_val) < 0) {
+      goto done;
+    }
+    ok_val = JS_UNDEFINED;
+  }
+
+  if (JS_SetPropertyStr(ctx, envelope, "units", JS_NewUint32(ctx, units)) < 0) {
+    goto done;
+  }
+
+  if (JS_EncodeDV(ctx, envelope, &JS_DV_LIMIT_DEFAULTS, &resp) != 0) {
+    goto done;
+  }
+
+  if (resp.length > resp_capacity) {
+    goto done;
+  }
+
+  memcpy(resp_ptr, resp.data, resp.length);
+  resp_len = (uint32_t)resp.length;
+
+done:
+  if (resp.data) {
+    JS_FreeDVBuffer(ctx, &resp);
+  }
+  if (!JS_IsUndefined(ok_val)) {
+    JS_FreeValue(ctx, ok_val);
+  }
+  if (!JS_IsUndefined(err_obj)) {
+    JS_FreeValue(ctx, err_obj);
+  }
+  if (!JS_IsUndefined(envelope)) {
+    JS_FreeValue(ctx, envelope);
+  }
+  if (!JS_IsUndefined(arg0)) {
+    JS_FreeValue(ctx, arg0);
+  }
+  if (!JS_IsUndefined(req)) {
+    JS_FreeValue(ctx, req);
+  }
+  return resp_len;
+}
+
 static uint32_t harness_host_call(JSContext *ctx,
                                   uint32_t fn_id,
                                   const uint8_t *req_ptr,
@@ -209,6 +334,10 @@ static uint32_t harness_host_call(JSContext *ctx,
   if (config && config->trigger_exception) {
     JS_ThrowTypeError(ctx, "host stub exception");
     return req_len;
+  }
+
+  if (config && config->mode == HOST_STUB_MODE_MANIFEST) {
+    return harness_manifest_host_call(ctx, fn_id, req_ptr, req_len, resp_ptr, resp_capacity);
   }
 
   if (req_len > resp_capacity) {
@@ -354,7 +483,12 @@ static int init_runtime(HarnessRuntime *runtime, const HarnessOptions *options) 
     }
   }
 
-  if (options->host_call_hex) {
+  const int enable_host_stub =
+      options->host_call_hex != NULL || manifest_bytes != NULL || manifest_hex_from_file != NULL;
+
+  if (enable_host_stub) {
+    runtime->host_stub.mode =
+        options->host_call_hex != NULL ? HOST_STUB_MODE_ECHO : HOST_STUB_MODE_MANIFEST;
     runtime->host_stub.trigger_reentrancy = options->host_call_reentrant;
     runtime->host_stub.trigger_exception = options->host_call_exception;
     runtime->host_stub_enabled = 1;

@@ -125,12 +125,34 @@ capability_snapshot_js="$(cat <<'EOF'
       const before = Host;
       Host = 123;
       const after = Host;
+      const original = Host.v1.document.get;
       let added = false;
       try {
         Host.v1.added = 1;
         added = Object.prototype.hasOwnProperty.call(Host.v1, 'added');
       } catch (_) {
         added = false;
+      }
+      let overwrite = null;
+      try {
+        let threw = false;
+        (() => {
+          'use strict';
+          try {
+            Host.v1.document.get = () => 'pwn';
+          } catch (_) {
+            threw = true;
+          }
+        })();
+        const desc = Object.getOwnPropertyDescriptor(Host.v1.document, 'get');
+        overwrite = {
+          same: Host.v1.document.get === original,
+          threw,
+          writable: desc ? desc.writable : null,
+          configurable: desc ? desc.configurable : null
+        };
+      } catch (_) {
+        overwrite = null;
       }
       return {
         sameRef: before === after,
@@ -140,7 +162,8 @@ capability_snapshot_js="$(cat <<'EOF'
         protoNull: Object.getPrototypeOf(Host) === null,
         v1ProtoNull: Object.getPrototypeOf(Host.v1) === null,
         hostIsExtensible: Object.isExtensible(Host),
-        hostV1Extensible: Object.isExtensible(Host.v1)
+        hostV1Extensible: Object.isExtensible(Host.v1),
+        overwrite
       };
     })
   };
@@ -178,7 +201,13 @@ assert_output "Timers missing" "typeof setTimeout" "RESULT \"undefined\""
 assert_output "Promise disabled" "Promise.resolve(1)" "ERROR TypeError: Promise is disabled in deterministic mode"
 assert_output "queueMicrotask missing" "typeof queueMicrotask" "RESULT \"undefined\""
 assert_output "Host descriptor" "${host_descriptor_js}" "RESULT {\"configurable\":false,\"enumerable\":false,\"writable\":false,\"hostType\":\"object\",\"v1Type\":\"object\",\"v1NullProto\":true}"
-assert_output "capability snapshot" "${capability_snapshot_js}" "RESULT {\"eval\":{\"ok\":false,\"error\":\"TypeError: eval is disabled in deterministic mode\"},\"Function\":{\"ok\":false,\"error\":\"TypeError: Function is disabled in deterministic mode\"},\"RegExp\":{\"ok\":false,\"error\":\"TypeError: RegExp is disabled in deterministic mode\"},\"Proxy\":{\"ok\":false,\"error\":\"TypeError: Proxy is disabled in deterministic mode\"},\"Promise\":{\"ok\":false,\"error\":\"TypeError: Promise is disabled in deterministic mode\"},\"MathRandom\":{\"ok\":false,\"error\":\"TypeError: Math.random is disabled in deterministic mode\"},\"Date\":{\"ok\":true,\"value\":\"undefined\"},\"setTimeout\":{\"ok\":true,\"value\":\"undefined\"},\"ArrayBuffer\":{\"ok\":false,\"error\":\"TypeError: ArrayBuffer is disabled in deterministic mode\"},\"SharedArrayBuffer\":{\"ok\":false,\"error\":\"TypeError: SharedArrayBuffer is disabled in deterministic mode\"},\"DataView\":{\"ok\":false,\"error\":\"TypeError: DataView is disabled in deterministic mode\"},\"Uint8Array\":{\"ok\":false,\"error\":\"TypeError: Typed arrays are disabled in deterministic mode\"},\"Atomics\":{\"ok\":false,\"error\":\"TypeError: Atomics is disabled in deterministic mode\"},\"WebAssembly\":{\"ok\":false,\"error\":\"TypeError: WebAssembly is disabled in deterministic mode\"},\"consoleLog\":{\"ok\":false,\"error\":\"TypeError: console is disabled in deterministic mode\"},\"print\":{\"ok\":false,\"error\":\"TypeError: print is disabled in deterministic mode\"},\"globalOrder\":{\"ok\":true,\"value\":[\"console\",\"print\",\"Host\"]},\"hostImmutable\":{\"ok\":true,\"value\":{\"sameRef\":true,\"hasV1\":true,\"added\":false,\"desc\":{\"value\":{},\"writable\":false,\"enumerable\":false,\"configurable\":false},\"protoNull\":true,\"v1ProtoNull\":true,\"hostIsExtensible\":false,\"hostV1Extensible\":false}}}"
+assert_output "capability snapshot" "${capability_snapshot_js}" "RESULT {\"eval\":{\"ok\":false,\"error\":\"TypeError: eval is disabled in deterministic mode\"},\"Function\":{\"ok\":false,\"error\":\"TypeError: Function is disabled in deterministic mode\"},\"RegExp\":{\"ok\":false,\"error\":\"TypeError: RegExp is disabled in deterministic mode\"},\"Proxy\":{\"ok\":false,\"error\":\"TypeError: Proxy is disabled in deterministic mode\"},\"Promise\":{\"ok\":false,\"error\":\"TypeError: Promise is disabled in deterministic mode\"},\"MathRandom\":{\"ok\":false,\"error\":\"TypeError: Math.random is disabled in deterministic mode\"},\"Date\":{\"ok\":true,\"value\":\"undefined\"},\"setTimeout\":{\"ok\":true,\"value\":\"undefined\"},\"ArrayBuffer\":{\"ok\":false,\"error\":\"TypeError: ArrayBuffer is disabled in deterministic mode\"},\"SharedArrayBuffer\":{\"ok\":false,\"error\":\"TypeError: SharedArrayBuffer is disabled in deterministic mode\"},\"DataView\":{\"ok\":false,\"error\":\"TypeError: DataView is disabled in deterministic mode\"},\"Uint8Array\":{\"ok\":false,\"error\":\"TypeError: Typed arrays are disabled in deterministic mode\"},\"Atomics\":{\"ok\":false,\"error\":\"TypeError: Atomics is disabled in deterministic mode\"},\"WebAssembly\":{\"ok\":false,\"error\":\"TypeError: WebAssembly is disabled in deterministic mode\"},\"consoleLog\":{\"ok\":false,\"error\":\"TypeError: console is disabled in deterministic mode\"},\"print\":{\"ok\":false,\"error\":\"TypeError: print is disabled in deterministic mode\"},\"globalOrder\":{\"ok\":true,\"value\":[\"console\",\"print\",\"Host\"]},\"hostImmutable\":{\"ok\":true,\"value\":{\"sameRef\":true,\"hasV1\":true,\"added\":false,\"desc\":{\"value\":{},\"writable\":false,\"enumerable\":false,\"configurable\":false},\"protoNull\":true,\"v1ProtoNull\":true,\"hostIsExtensible\":false,\"hostV1Extensible\":false,\"overwrite\":{\"same\":true,\"threw\":true,\"writable\":false,\"configurable\":false}}}}"
+assert_output "Host.v1 document.get ok" "Host.v1.document.get('foo')" "RESULT \"foo\""
+assert_output "Host.v1 document.getCanonical ok" "Host.v1.document.getCanonical('bar')" "RESULT \"bar\""
+assert_output "Host.v1 emit" "Host.v1.emit({ a: 1 })" "RESULT null"
+assert_output "Host.v1 document missing" "Host.v1.document.get('missing')" "ERROR HostError: host/not_found"
+assert_output "Host.v1 document arg type" "Host.v1.document.get(123)" "ERROR TypeError: Host.v1.document.get argument 1 must be a string"
+assert_output "Host.v1 document arg utf8 limit" "Host.v1.document.get('x'.repeat(2050))" "ERROR TypeError: Host.v1.document.get argument 1 exceeds utf8 limit (2050 > 2048)"
 assert_host_call "host_call echo" "HOSTCALL 0a0b0c GAS remaining=100 used=0" --host-call "0a0b0c" --gas-limit 100 --report-gas
 assert_host_call "host_call request limit" "ERROR TypeError: host_call request exceeds max_request_bytes" --host-call "010203" --host-max-request 2
 assert_host_call "host_call response limit" "ERROR HostError: host/transport" --host-call "0a0b0c" --host-max-request 3 --host-max-response 2

@@ -1151,7 +1151,7 @@ Standardize host responses as `Ok(DV)` or `Err({code, tag, details?})` plus dete
 
 **Current state (P3 T-039):**
 
-- Added exported `JS_ThrowHostError`, `JS_ParseHostResponse`, and `JS_FreeHostResponse` in the fork to decode DV response envelopes (`ok`/`err` + `units`), enforce manifest-provided error code/tag mappings, and reject malformed envelopes with deterministic `HostError` codes (`HOST_TRANSPORT`, `HOST_ENVELOPE_INVALID`).
+- Added exported `JS_ThrowHostError`, `JS_ParseHostResponse`, and `JS_FreeHostResponse` in the fork (see `vendor/quickjs/quickjs-host.c`) to decode DV response envelopes (`ok`/`err` + `units`), enforce manifest-provided error code/tag mappings, and reject malformed envelopes with deterministic `HostError` codes (`HOST_TRANSPORT`, `HOST_ENVELOPE_INVALID`).
 - `JS_HostCall` now surfaces transport failures as `HostError { code: "HOST_TRANSPORT", tag: "host/transport" }` instead of a `TypeError`.
 - Native harness gains `--host-parse-envelope`/`--host-max-units` to decode host responses using default `Host.v1` error mappings; tests cover ok envelope decoding and HostError paths for manifest errors and invalid envelopes.
 - Follow-up hardening: `JS_ParseHostResponse` now enforces strict `units` uint32 semantics (no strings/floats/-0), requires `err.code` to be a string, preserves OutOfGas instead of masking it as `HOST_ENVELOPE_INVALID`, and frees all intermediate refs; harness tests were expanded to pin these envelope validation rules (non-number/non-integer units, non-string code, `max_units=0` cases).
@@ -1161,7 +1161,7 @@ Standardize host responses as `Ok(DV)` or `Err({code, tag, details?})` plus dete
 ### T-040: Generate `Host.v1` namespace from manifest in VM
 
 **Phase:** P3 – Host ABI (DV + manifest + syscall)
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-036, T-039, T-035
 
 **Goal:**
@@ -1171,23 +1171,29 @@ Expose host functions in JS as `Host.v1.*`, generated from manifest entries (js_
 
 **Detailed tasks:**
 
-- [ ] Parse manifest entries and install nested namespace objects (null prototype).
+- [x] Parse manifest entries and install nested namespace objects (null prototype).
 
-- [ ] For each entry, create a JS wrapper that:
-  - [ ] validates args by `arg_schema`,
-  - [ ] DV-encodes args,
-  - [ ] performs pre-charge gas (base + arg_bytes),
-  - [ ] calls host_call(fn_id, req_bytes),
-  - [ ] validates response envelope,
-  - [ ] performs post-charge gas (out_bytes + units),
-  - [ ] returns DV or throws HostError.
+- [x] For each entry, create a JS wrapper that:
+  - [x] validates args by `arg_schema`,
+  - [x] DV-encodes args,
+  - [x] performs pre-charge gas (base + arg_bytes),
+  - [x] calls host_call(fn_id, req_bytes),
+  - [x] validates response envelope,
+  - [x] performs post-charge gas (out_bytes + units),
+  - [x] returns DV or throws HostError.
 
-- [ ] Freeze and make namespaces non-extensible, non-writable, non-configurable.
+- [x] Freeze and make namespaces non-extensible, non-writable, non-configurable.
 
 **Acceptance criteria:**
 
-- [ ] With the fixture manifest, `Host.v1.document.get` exists and is callable.
-- [ ] Attempts to mutate `Host` or sub-objects fail deterministically.
+- [x] With the fixture manifest, `Host.v1.document.get` exists and is callable.
+- [x] Attempts to mutate `Host` or sub-objects fail deterministically.
+
+**Current state (P3 T-040):**
+
+- VM now decodes/validates the ABI manifest bytes on init and installs Host.v1 wrappers for each entry in `vendor/quickjs/quickjs-host.c`: arg schema checks (string/dv/null + utf8 limits), DV encode of args, host_call dispatch with manifest limits, envelope parsing + HostError mapping, return schema checks, and gas pre/post charging (base + arg_bytes, ret_bytes + units).
+- Namespaces are created from js_path segments with null prototypes and are made non-extensible after population; Host.v1 functions are bound via magic indices and respect manifest fn_id/error code tables.
+- Native harness uses a manifest-backed host stub and adds tests covering Host.v1 document.get/getCanonical/emit ok paths, HostError responses, and validation failures (type/utf8). Running `tools/quickjs-native-harness/scripts/test.sh` passes with the Host.v1 manifest fixture.
 
 ---
 
