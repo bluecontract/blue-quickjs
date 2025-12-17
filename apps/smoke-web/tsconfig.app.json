@@ -31,7 +31,13 @@
   "include": ["src/**/*.ts", "src/**/*.d.ts"],
   "references": [
     {
+      "path": "../../libs/test-harness/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/quickjs-wasm-build/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/quickjs-runtime/tsconfig.lib.json"
     }
   ]
 }

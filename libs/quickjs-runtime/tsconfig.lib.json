@@ -10,7 +10,20 @@
     "types": ["node"]
   },
   "include": ["src/**/*.ts"],
-  "references": [],
+  "references": [
+    {
+      "path": "../quickjs-wasm/tsconfig.lib.json"
+    },
+    {
+      "path": "../dv/tsconfig.lib.json"
+    },
+    {
+      "path": "../abi-manifest/tsconfig.lib.json"
+    },
+    {
+      "path": "../test-harness/tsconfig.lib.json"
+    }
+  ],
   "exclude": [
     "vite.config.ts",
     "vite.config.mts",

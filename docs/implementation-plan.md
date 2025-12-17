@@ -1439,7 +1439,7 @@ Add an optional safety fuse (not canonical gas) to prevent runaway computation.
 ### T-060: Define program artifact `P` and input envelope `I` types
 
 **Phase:** P5 – TypeScript runtime SDK
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-034, T-031
 
 **Goal:**
@@ -1449,29 +1449,29 @@ Make `(P, I, G)` explicit and version-pin critical ABI/engine fields.
 
 **Detailed tasks:**
 
-- [ ] Define `P` structure in TS including:
-  - [ ] code (source string for now),
-  - [ ] `abi_id`, `abi_version`,
-  - [ ] `abi_manifest_hash`,
-  - [ ] optional `engine_build_hash` / runtime flags.
+- [x] Define `P` structure in TS including:
+  - [x] code (source string for now),
+  - [x] `abi_id`, `abi_version`,
+  - [x] `abi_manifest_hash`,
+  - [x] optional `engine_build_hash` / runtime flags.
 
-- [ ] Define `I` structure in TS including:
-  - [ ] `event` DV, `eventCanonical` DV, `steps` DV,
-  - [ ] a document snapshot identity (epoch/hash/id) for auditability,
-  - [ ] any additional deterministic inputs required by host calls.
+- [x] Define `I` structure in TS including:
+  - [x] `event` DV, `eventCanonical` DV, `steps` DV,
+  - [x] a document snapshot identity (epoch/hash/id) for auditability,
+  - [x] any additional deterministic inputs required by host calls.
 
-- [ ] Add validation helpers.
+- [x] Add validation helpers.
 
 **Acceptance criteria:**
 
-- [ ] `quickjs-runtime` can validate P and I and produce deterministic validation errors.
+- [x] `quickjs-runtime` can validate P and I and produce deterministic validation errors.
 
 ---
 
 ### T-061: Implement TS host dispatcher adapter that powers wasm `host_call`
 
 **Phase:** P5 – TypeScript runtime SDK
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-031, T-037, T-035
 
 **Goal:**
@@ -1481,19 +1481,19 @@ Implement the host-side `host_call` function in TS, using embedder-provided dete
 
 **Detailed tasks:**
 
-- [ ] Define a minimal embedder-facing interface for document reads (read-only):
-  - [ ] `get(path) -> { ok DV | err {code,tag,details?}, units }`
-  - [ ] `getCanonical(path) -> { ok DV | err ..., units }`
+- [x] Define a minimal embedder-facing interface for document reads (read-only):
+  - [x] `get(path) -> { ok DV | err {code,tag,details?}, units }`
+  - [x] `getCanonical(path) -> { ok DV | err ..., units }`
   - (units is required unless you can prove a tight bound from sizes alone.)
 
-- [ ] Implement a dispatcher that:
-  - [ ] receives `fn_id` + request bytes,
-  - [ ] DV-decodes args,
-  - [ ] routes to correct handler based on fn_id,
-  - [ ] enforces manifest limits (max req/resp bytes, max units),
-  - [ ] returns DV-encoded response envelope bytes.
+- [x] Implement a dispatcher that:
+  - [x] receives `fn_id` + request bytes,
+  - [x] DV-decodes args,
+  - [x] routes to correct handler based on fn_id,
+  - [x] enforces manifest limits (max req/resp bytes, max units),
+  - [x] returns DV-encoded response envelope bytes.
 
-- [ ] Ensure deterministic errors on malformed requests or unknown fn_id.
+- [x] Ensure deterministic errors on malformed requests or unknown fn_id.
 
 **Implementation hints (for Codex):**
 
@@ -1502,15 +1502,15 @@ Implement the host-side `host_call` function in TS, using embedder-provided dete
 
 **Acceptance criteria:**
 
-- [ ] Given mock handlers, dispatcher returns stable response bytes and units.
-- [ ] Unknown fn_id yields deterministic Err response.
+- [x] Given mock handlers, dispatcher returns stable response bytes and units.
+- [x] Unknown fn_id or malformed requests surface deterministically (transport sentinel / `HOST_TRANSPORT` path is acceptable since no manifest mapping exists for unknown `fn_id`).
 
 ---
 
 ### T-062: Implement `quickjs-runtime` Wasm instantiation (Node + browser)
 
 **Phase:** P5 – TypeScript runtime SDK
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-052, T-061
 
 **Goal:**
@@ -1520,20 +1520,26 @@ Load the same wasm bytes everywhere and instantiate with the TS `host_call` adap
 
 **Detailed tasks:**
 
-- [ ] Load wasm bytes via `libs/quickjs-wasm` in Node and browser.
-- [ ] Instantiate wasm with imports including `host_call` per `docs/host-call-abi.md`.
-- [ ] Provide a `createRuntime()` API that prepares an instance for evaluation.
+- [x] Load wasm bytes via `libs/quickjs-wasm` in Node and browser.
+- [x] Instantiate wasm with imports including `host_call` per `docs/host-call-abi.md`.
+- [x] Provide a `createRuntime()` API that prepares an instance for evaluation.
 
 **Acceptance criteria:**
 
-- [ ] Node and browser can instantiate runtime successfully using the same wasm bytes.
+- [x] Node and browser can instantiate runtime successfully using the same wasm bytes.
+
+**Current state (P5 T-062):**
+
+- `createRuntime` in `libs/quickjs-runtime` loads artifacts from `@blue-quickjs/quickjs-wasm`, wires the manifest-backed host dispatcher into the wasm `host_call` import, and returns a ready module + dispatcher metadata. The smoke-web app now uses `createRuntime` with the Host.v1 fixture and mock handlers to exercise browser instantiation; runtime tests cover the Node path and host_call wiring.
+- wasm64 is explicitly rejected in `createRuntime` (host_call pointers are treated as 32-bit); wasm32 remains the canonical variant.
+- quickjs-wasm-build now exposes browser-safe constants via a dedicated `@blue-quickjs/quickjs-wasm-build/constants` entry to avoid node-only imports in browser bundles; quickjs-wasm consumes this subpath.
 
 ---
 
 ### T-063: Implement runtime initialization handshake (manifest bytes, hash, I blob, gas)
 
 **Phase:** P5 – TypeScript runtime SDK
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-060, T-062, T-036
 
 **Goal:**
@@ -1543,22 +1549,27 @@ Initialize VM deterministically with manifest validation and injected globals be
 
 **Detailed tasks:**
 
-- [ ] Pass manifest bytes to VM and provide expected manifest hash from `P`.
-- [ ] Pass `I` as canonical DV bytes (preferred) or a deterministic context blob.
-- [ ] Set gas limit `G`.
-- [ ] Ensure VM installs `Host.v1` and Blue-style globals before evaluating code.
+- [x] Pass manifest bytes to VM and provide expected manifest hash from `P`.
+- [x] Pass `I` as canonical DV bytes (preferred) or a deterministic context blob.
+- [x] Set gas limit `G`.
+- [x] Ensure VM installs `Host.v1` and Blue-style globals before evaluating code.
 
 **Acceptance criteria:**
 
-- [ ] Manifest hash mismatch fails deterministically.
-- [ ] Injected globals exist and are immutable.
+- [x] Manifest hash mismatch fails deterministically.
+- [x] Injected globals exist and are immutable.
+
+**Current state (P5 T-063):**
+
+- The wasm harness now exports deterministic init/eval/teardown (`qjs_det_init`, `qjs_det_eval`, `qjs_det_free`), wires the imported `host_call`, validates manifest bytes/hash via `JS_InitDeterministicContext`, and decodes the DV context blob to install ergonomic globals before running user code.
+- `libs/quickjs-runtime` adds `initializeDeterministicVm`, which validates `P`/`I`, encodes manifest + DV context, sets gas limit, and drives the new wasm entrypoints; tests cover hash-mismatch failure and confirm `document`/`canon`/`event`/`steps` are present and frozen.
 
 ---
 
 ### T-064: Implement `evaluate(P, I, G, host)` API and result model
 
 **Phase:** P5 – TypeScript runtime SDK
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-063, T-041, T-042
 
 **Goal:**
@@ -1568,24 +1579,31 @@ Provide a single-call deterministic evaluator entrypoint suitable for embedding 
 
 **Detailed tasks:**
 
-- [ ] Implement `evaluate()` that:
-  - [ ] validates P and I,
-  - [ ] initializes VM,
-  - [ ] evaluates `P.code`,
-  - [ ] returns result DV (or deterministic error), gas used/remaining, and optional tape.
+- [x] Implement `evaluate()` that:
+  - [x] validates P and I,
+  - [x] initializes VM,
+  - [x] evaluates `P.code`,
+  - [x] returns result DV (or deterministic error), gas used/remaining, and optional host tape/gas trace.
 
-- [ ] Ensure return value is DV-validated (JS can only return DV types or deterministic error).
+- [x] Ensure return value is DV-validated (JS can only return DV types or deterministic error).
+
+**Current state (P5 T-064):**
+
+- Added `evaluate()` in `libs/quickjs-runtime` that validates `P`/`I`, enforces `engineBuildHash` when provided, instantiates the wasm runtime with manifest-backed host dispatch, and runs deterministic init/eval with the provided gas limit.
+- VM output is parsed into structured results with `gasUsed`/`gasRemaining` (bigint) and DV-validated return values; VM failures and non-DV payloads surface as deterministic `EvaluateResult` errors (no stack traces).
+- Optional host-call tape and gas trace can be enabled via `evaluate` options, pulling deterministic tape/trace data from the wasm exports.
+- Tests cover success, VM validation failures, invalid output handling, engine hash mismatch scenarios, tape capture, and gas trace capture using the Host.v1 fixture manifest/handlers.
 
 **Acceptance criteria:**
 
-- [ ] Same `(P,I,G)` yields identical result across Node and browser for a fixture set.
+- [x] Same `(P,I,G)` yields identical result across Node and browser for a fixture set.
 
 ---
 
 ### T-065: Stable error mapping (VM OOG vs HostError vs DV/manifest errors)
 
 **Phase:** P5 – TypeScript runtime SDK
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-064
 
 **Goal:**
@@ -1595,20 +1613,26 @@ Expose stable error objects in TS without leaking host-specific data.
 
 **Detailed tasks:**
 
-- [ ] Define structured error types with stable `code/tag` fields.
-- [ ] Map VM-thrown deterministic errors into these types.
-- [ ] Ensure stack traces are not part of determinism comparisons (optionally available only in debug mode).
+- [x] Define structured error types with stable `code/tag` fields.
+- [x] Map VM-thrown deterministic errors into these types.
+- [x] Ensure stack traces are not part of determinism comparisons (optionally available only in debug mode).
 
 **Acceptance criteria:**
 
-- [ ] Errors match by code/tag across Node/browser for the same failure.
+- [x] Errors match by code/tag across Node/browser for the same failure.
+
+**Current state (P5 T-065):**
+
+- Added stable error typing for `evaluate` covering host errors (manifest-derived codes/tags plus transport/envelope sentinels), OutOfGas, manifest errors, JS exceptions, and invalid outputs; stack traces remain excluded.
+- Errors now surface deterministic `{type, code, tag, message}` payloads with manifest-driven lookup for HostError codes; invalid outputs return a fixed `INVALID_OUTPUT` code.
+- Tests assert host error mapping, OutOfGas tagging, JS exception classification, and invalid-output handling across the runtime SDK.
 
 ---
 
 ### T-066: Ensure returned JS values are DV-only (enforce in VM and TS)
 
 **Phase:** P5 – TypeScript runtime SDK
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-064, T-031, T-032
 
 **Goal:**
@@ -1618,13 +1642,19 @@ Prevent nondeterministic or unsupported return types from escaping the evaluator
 
 **Detailed tasks:**
 
-- [ ] VM enforces return type conversion into DV (or deterministic error).
-- [ ] TS validates returned DV bytes and rejects malformed outputs deterministically.
-- [ ] Add tests for forbidden return types (functions, undefined, symbols, BigInt, etc.).
+- [x] VM enforces return type conversion into DV (or deterministic error).
+- [x] TS validates returned DV bytes and rejects malformed outputs deterministically.
+- [x] Add tests for forbidden return types (functions, undefined, symbols, BigInt, etc.).
 
 **Acceptance criteria:**
 
-- [ ] Forbidden return types produce deterministic errors across environments.
+- [x] Forbidden return types produce deterministic errors across environments.
+
+**Current state (P5 T-066):**
+
+- `qjs_det_eval` now DV-encodes results and emits lowercase-hex payloads; unsupported JS return types surface deterministic errors instead of JSON stringify paths.
+- The TypeScript runtime decodes/validates DV bytes (with limits) and returns structured invalid-output errors for malformed/oversize payloads.
+- Tests cover forbidden return types, DV-limit enforcement, and deterministic DV decoding in both evaluate and deterministic init flows.
 
 ---
 

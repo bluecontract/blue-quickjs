@@ -3,7 +3,9 @@
   "version": "0.0.1",
   "private": true,
   "dependencies": {
-    "@blue-quickjs/quickjs-wasm-build": "workspace:*"
+    "@blue-quickjs/quickjs-runtime": "workspace:*",
+    "@blue-quickjs/quickjs-wasm-build": "workspace:*",
+    "@blue-quickjs/test-harness": "workspace:*"
   },
   "nx": {
     "name": "smoke-web",
