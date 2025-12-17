@@ -1439,7 +1439,7 @@ Add an optional safety fuse (not canonical gas) to prevent runaway computation.
 ### T-060: Define program artifact `P` and input envelope `I` types
 
 **Phase:** P5 – TypeScript runtime SDK
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-034, T-031
 
 **Goal:**
@@ -1449,22 +1449,22 @@ Make `(P, I, G)` explicit and version-pin critical ABI/engine fields.
 
 **Detailed tasks:**
 
-- [ ] Define `P` structure in TS including:
-  - [ ] code (source string for now),
-  - [ ] `abi_id`, `abi_version`,
-  - [ ] `abi_manifest_hash`,
-  - [ ] optional `engine_build_hash` / runtime flags.
+- [x] Define `P` structure in TS including:
+  - [x] code (source string for now),
+  - [x] `abi_id`, `abi_version`,
+  - [x] `abi_manifest_hash`,
+  - [x] optional `engine_build_hash` / runtime flags.
 
-- [ ] Define `I` structure in TS including:
-  - [ ] `event` DV, `eventCanonical` DV, `steps` DV,
-  - [ ] a document snapshot identity (epoch/hash/id) for auditability,
-  - [ ] any additional deterministic inputs required by host calls.
+- [x] Define `I` structure in TS including:
+  - [x] `event` DV, `eventCanonical` DV, `steps` DV,
+  - [x] a document snapshot identity (epoch/hash/id) for auditability,
+  - [x] any additional deterministic inputs required by host calls.
 
-- [ ] Add validation helpers.
+- [x] Add validation helpers.
 
 **Acceptance criteria:**
 
-- [ ] `quickjs-runtime` can validate P and I and produce deterministic validation errors.
+- [x] `quickjs-runtime` can validate P and I and produce deterministic validation errors.
 
 ---
 
