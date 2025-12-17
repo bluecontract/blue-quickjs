@@ -15,6 +15,9 @@
         "{workspaceRoot}/tools/scripts/emsdk-version.txt",
         {
           "env": "WASM_VARIANTS"
+        },
+        {
+          "env": "SOURCE_DATE_EPOCH"
         }
       ],
       "outputs": ["{projectRoot}/dist"],

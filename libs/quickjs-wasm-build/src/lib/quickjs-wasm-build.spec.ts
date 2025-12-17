@@ -67,9 +67,22 @@ describe('metadata helpers', () => {
       quickjsCommit: 'abc123',
       emscriptenVersion: '3.1.56',
       engineBuildHash: 'deadbeef',
+      build: {
+        memory: {
+          initial: 33554432,
+          maximum: 33554432,
+          stackSize: 1048576,
+          allowGrowth: false,
+        },
+        determinism: {
+          sourceDateEpoch: 1704067200,
+          flags: ['-sDETERMINISTIC=1', '-sFILESYSTEM=0'],
+        },
+      },
       variants: {
         wasm32: {
           engineBuildHash: 'deadbeef',
+          variantFlags: [],
           wasm: {
             filename: 'quickjs-eval.wasm',
             sha256: 'aa',

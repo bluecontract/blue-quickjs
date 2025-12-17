@@ -8,6 +8,10 @@ QJS_DIR="${REPO_ROOT}/vendor/quickjs"
 OUT_DIR="${PROJECT_ROOT}/dist"
 METADATA_BASENAME="quickjs-wasm-build.metadata.json"
 VARIANTS_RAW="${WASM_VARIANTS:-wasm32}"
+WASM_INITIAL_MEMORY_BYTES=$((32 * 1024 * 1024))
+WASM_STACK_SIZE_BYTES=$((1 * 1024 * 1024))
+ALLOW_MEMORY_GROWTH=0
+SOURCE_DATE_EPOCH_DEFAULT=1704067200
 
 ENV_SCRIPT="${REPO_ROOT}/tools/emsdk/emsdk_env.sh"
 if [[ ! -f "${ENV_SCRIPT}" ]]; then
@@ -22,6 +26,26 @@ if ! command -v emcc >/dev/null 2>&1; then
   echo "emcc not available after sourcing ${ENV_SCRIPT}" >&2
   exit 1
 fi
+
+export SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH:-${SOURCE_DATE_EPOCH_DEFAULT}}"
+export QJS_WASM_INITIAL_MEMORY_BYTES="${WASM_INITIAL_MEMORY_BYTES}"
+export QJS_WASM_MAX_MEMORY_BYTES="${WASM_INITIAL_MEMORY_BYTES}"
+export QJS_WASM_STACK_SIZE_BYTES="${WASM_STACK_SIZE_BYTES}"
+export QJS_WASM_ALLOW_MEMORY_GROWTH="${ALLOW_MEMORY_GROWTH}"
+
+DETERMINISTIC_FLAGS=(
+  "-sDETERMINISTIC=1"
+  "-sFILESYSTEM=0"
+  "-sALLOW_MEMORY_GROWTH=${ALLOW_MEMORY_GROWTH}"
+  "-sINITIAL_MEMORY=${WASM_INITIAL_MEMORY_BYTES}"
+  "-sMAXIMUM_MEMORY=${WASM_INITIAL_MEMORY_BYTES}"
+  "-sSTACK_SIZE=${WASM_STACK_SIZE_BYTES}"
+  "-sALLOW_TABLE_GROWTH=0"
+  "-sENVIRONMENT=node,web"
+  "-sNO_EXIT_RUNTIME=1"
+)
+
+export QJS_WASM_DETERMINISTIC_FLAGS="$(printf '%s\n' "${DETERMINISTIC_FLAGS[@]}")"
 
 VERSION="$(cat "${QJS_DIR}/VERSION")"
 
@@ -48,16 +72,23 @@ COMMON_EMCC_FLAGS=(
   -funsigned-char
   -fwrapv
   -I"${QJS_DIR}"
+  "-ffile-prefix-map=${REPO_ROOT}=."
+  "-ffile-prefix-map=${QJS_DIR}=vendor/quickjs"
   -D_GNU_SOURCE
   "-DCONFIG_VERSION=\"${VERSION}\""
+  -sDETERMINISTIC=1
   -sASSERTIONS=0
-  -sENVIRONMENT=node,web
   -sMODULARIZE=1
   -sEXPORT_ES6=1
+  -sENVIRONMENT=node,web
   -sNO_EXIT_RUNTIME=1
-  -sINITIAL_MEMORY=33554432
-  -sALLOW_MEMORY_GROWTH=0
-  -sSTACK_SIZE=1048576
+  -sINITIAL_MEMORY="${WASM_INITIAL_MEMORY_BYTES}"
+  -sMAXIMUM_MEMORY="${WASM_INITIAL_MEMORY_BYTES}"
+  -sALLOW_MEMORY_GROWTH="${ALLOW_MEMORY_GROWTH}"
+  -sALLOW_TABLE_GROWTH=0
+  -sSTACK_SIZE="${WASM_STACK_SIZE_BYTES}"
+  -sFILESYSTEM=0
+  # host_call is provided by the embedder; keep undefined-symbols lax so the import is allowed.
   -sERROR_ON_UNDEFINED_SYMBOLS=0
   -sEXPORT_NAME=QuickJSGasWasm
   -sWASM_BIGINT=1
@@ -90,7 +121,8 @@ inject_host_imports() {
 rm -rf "${OUT_DIR}"
 mkdir -p "${OUT_DIR}"
 
-IFS=',' read -ra REQUESTED_VARIANTS <<< "${VARIANTS_RAW// /,}"
+VARIANTS_RAW_CLEAN="${VARIANTS_RAW//[[:space:]]/}"
+IFS=',' read -ra REQUESTED_VARIANTS <<< "${VARIANTS_RAW_CLEAN}"
 if [[ ${#REQUESTED_VARIANTS[@]} -eq 0 ]]; then
   REQUESTED_VARIANTS=("wasm32")
 fi
@@ -100,6 +132,7 @@ for variant in "${REQUESTED_VARIANTS[@]}"; do
   suffix=""
   declare -a variant_flags=()
   emcc_args=("${SRC_FILES[@]}" "${COMMON_EMCC_FLAGS[@]}")
+  variant_flags_str=""
 
   case "${normalized_variant}" in
     wasm32)
@@ -120,7 +153,11 @@ for variant in "${REQUESTED_VARIANTS[@]}"; do
   emcc "${emcc_args[@]}" -o "${OUT_DIR}/quickjs-eval${suffix}.js"
   inject_host_imports "${OUT_DIR}/quickjs-eval${suffix}.js"
 
-  BUILT_VARIANTS+=("${normalized_variant}:${OUT_DIR}/quickjs-eval${suffix}.wasm:${OUT_DIR}/quickjs-eval${suffix}.js")
+  if [[ ${#variant_flags[@]} -gt 0 ]]; then
+    variant_flags_str="$(IFS=','; echo "${variant_flags[*]}")"
+  fi
+
+  BUILT_VARIANTS+=("${normalized_variant}:${OUT_DIR}/quickjs-eval${suffix}.wasm:${OUT_DIR}/quickjs-eval${suffix}.js:${variant_flags_str}")
   echo "Built QuickJS wasm harness (${normalized_variant}):"
   echo "  JS:   ${OUT_DIR}/quickjs-eval${suffix}.js"
   echo "  Wasm: ${OUT_DIR}/quickjs-eval${suffix}.wasm"
@@ -142,6 +179,19 @@ if (variantArgs.length === 0) {
   throw new Error('No variant arguments passed to metadata writer.');
 }
 
+const parseUintEnv = (name) => {
+  const raw = process.env[name];
+  if (!raw) return null;
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const parseFlagsEnv = (name) =>
+  (process.env[name] ?? '')
+    .split(/\r?\n/)
+    .map((flag) => flag.trim())
+    .filter(Boolean);
+
 const readTrim = (filePath) => fs.readFileSync(filePath, 'utf8').trim();
 const sha256File = (filePath) =>
   crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
@@ -159,11 +209,14 @@ try {
 
 const variants = variantArgs
   .map((entry) => {
-    const [variant, wasmPath, loaderPath] = entry.split(':');
+    const [variant, wasmPath, loaderPath, variantFlagsRaw = ''] = entry.split(':');
     if (!variant || !wasmPath || !loaderPath) {
       throw new Error(`Invalid variant entry: ${entry}`);
     }
-    return { variant, wasmPath, loaderPath };
+    const variantFlags = variantFlagsRaw
+      ? variantFlagsRaw.split(',').map((flag) => flag.trim()).filter(Boolean)
+      : [];
+    return { variant, wasmPath, loaderPath, variantFlags };
   })
   .sort((a, b) => a.variant.localeCompare(b.variant));
 
@@ -183,6 +236,7 @@ for (const entry of variants) {
     engineBuildHash: wasm.sha256,
     wasm,
     loader,
+    variantFlags: entry.variantFlags,
   };
 }
 
@@ -195,11 +249,27 @@ if (variantsMeta.wasm32?.engineBuildHash) {
   engineBuildHash = variantsMeta[variants[0].variant].engineBuildHash;
 }
 
+const buildMemory = {
+  initial: parseUintEnv('QJS_WASM_INITIAL_MEMORY_BYTES'),
+  maximum: parseUintEnv('QJS_WASM_MAX_MEMORY_BYTES'),
+  stackSize: parseUintEnv('QJS_WASM_STACK_SIZE_BYTES'),
+  allowGrowth: process.env.QJS_WASM_ALLOW_MEMORY_GROWTH === '1',
+};
+
+const determinism = {
+  sourceDateEpoch: parseUintEnv('SOURCE_DATE_EPOCH'),
+  flags: parseFlagsEnv('QJS_WASM_DETERMINISTIC_FLAGS'),
+};
+
 const metadata = {
   quickjsVersion,
   quickjsCommit,
   emscriptenVersion: readTrim(emsdkVersionFile),
   engineBuildHash,
+  build: {
+    memory: buildMemory,
+    determinism,
+  },
   variants: variantsMeta,
 };
 

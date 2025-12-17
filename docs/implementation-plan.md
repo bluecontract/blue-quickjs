@@ -1322,7 +1322,7 @@ Compile the forked QuickJS to Wasm using pinned Emscripten.
 ### T-051: Enforce deterministic Wasm memory sizing + disable nondeterministic Emscripten features
 
 **Phase:** P4 – Emscripten build and deterministic artifacts
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-050
 
 **Goal:**
@@ -1332,15 +1332,21 @@ Freeze memory growth and remove nondeterministic runtime features.
 
 **Detailed tasks:**
 
-- [ ] Configure fixed memory sizing (min == max or strictly controlled).
-- [ ] Ensure no FS/network/syscalls.
-- [ ] Ensure build outputs don’t embed timestamps or env-dependent differences.
-- [ ] Document chosen flags in `docs/toolchain.md`.
+- [x] Configure fixed memory sizing (min == max or strictly controlled).
+- [x] Ensure no FS/network/syscalls.
+- [x] Ensure build outputs don’t embed timestamps or env-dependent differences.
+- [x] Document chosen flags in `docs/toolchain.md`.
 
 **Acceptance criteria:**
 
-- [ ] Wasm memory growth is disabled/fixed per build inspection.
-- [ ] Wasm bytes hash is stable across repeated builds with identical inputs.
+- [x] Wasm memory growth is disabled/fixed per build inspection.
+- [x] Wasm bytes hash is stable across repeated builds with identical inputs.
+
+**Current state (P4 T-051):**
+
+- `scripts/build-wasm.sh` now builds with `-sDETERMINISTIC=1`, `-sFILESYSTEM=0`, `-sALLOW_MEMORY_GROWTH=0`, `-sALLOW_TABLE_GROWTH=0`, fixed memory (`INITIAL_MEMORY=MAXIMUM_MEMORY=32 MiB`) and a 1 MiB stack; SOURCE_DATE_EPOCH is pinned (override via env) to strip timestamps.
+- Memory/flag settings are exported into `quickjs-wasm-build.metadata.json` under `build.memory` and `build.determinism` for audit, and `docs/toolchain.md` documents the deterministic flags/memory choices.
+- `pnpm nx build quickjs-wasm-build` and `pnpm nx test quickjs-wasm-build` pass with the deterministic settings; wasm/hash metadata reflects stable builds given identical inputs/epoch.
 
 ---
 

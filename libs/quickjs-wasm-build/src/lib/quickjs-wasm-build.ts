@@ -48,6 +48,24 @@ export interface QuickjsWasmBuildVariantMetadata {
   engineBuildHash: string;
   wasm: QuickjsWasmBuildArtifactInfo;
   loader: QuickjsWasmBuildArtifactInfo;
+  variantFlags?: string[];
+}
+
+export interface QuickjsWasmMemoryConfig {
+  initial: number | null;
+  maximum: number | null;
+  stackSize: number | null;
+  allowGrowth: boolean;
+}
+
+export interface QuickjsWasmDeterminismConfig {
+  sourceDateEpoch: number | null;
+  flags: string[];
+}
+
+export interface QuickjsWasmBuildConfig {
+  memory: QuickjsWasmMemoryConfig;
+  determinism: QuickjsWasmDeterminismConfig;
 }
 
 export interface QuickjsWasmBuildMetadata {
@@ -55,6 +73,7 @@ export interface QuickjsWasmBuildMetadata {
   quickjsCommit: string | null;
   emscriptenVersion: string;
   engineBuildHash: string | null;
+  build: QuickjsWasmBuildConfig;
   variants: Partial<
     Record<QuickjsWasmVariant, QuickjsWasmBuildVariantMetadata>
   >;
