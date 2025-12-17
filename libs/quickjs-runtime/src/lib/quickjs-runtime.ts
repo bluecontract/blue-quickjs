@@ -149,15 +149,21 @@ export function validateProgramArtifact(
     'program.abiManifestHash',
     { exactLength: SHA256_HEX_LENGTH },
   );
-  const engineBuildHash = program.engineBuildHash
-    ? expectHexString(program.engineBuildHash, 'program.engineBuildHash', {
-        exactLength: SHA256_HEX_LENGTH,
-      })
-    : undefined;
+  const engineBuildHash =
+    program.engineBuildHash !== undefined
+      ? expectHexString(program.engineBuildHash, 'program.engineBuildHash', {
+          exactLength: SHA256_HEX_LENGTH,
+        })
+      : undefined;
 
-  const runtimeFlags = program.runtimeFlags
-    ? validateRuntimeFlags(program.runtimeFlags, limits, 'program.runtimeFlags')
-    : undefined;
+  const runtimeFlags =
+    program.runtimeFlags !== undefined
+      ? validateRuntimeFlags(
+          program.runtimeFlags,
+          limits,
+          'program.runtimeFlags',
+        )
+      : undefined;
 
   return {
     code,

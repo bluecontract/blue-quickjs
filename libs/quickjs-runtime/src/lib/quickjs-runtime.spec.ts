@@ -57,6 +57,31 @@ describe('validateProgramArtifact', () => {
       }),
     ).toThrow(RuntimeValidationError);
   });
+
+  it('rejects null or empty engineBuildHash values', () => {
+    expect(() =>
+      validateProgramArtifact({
+        ...baseProgram,
+        engineBuildHash: null as unknown as string,
+      }),
+    ).toThrow(RuntimeValidationError);
+
+    expect(() =>
+      validateProgramArtifact({
+        ...baseProgram,
+        engineBuildHash: '',
+      }),
+    ).toThrow(RuntimeValidationError);
+  });
+
+  it('rejects null runtimeFlags', () => {
+    expect(() =>
+      validateProgramArtifact({
+        ...baseProgram,
+        runtimeFlags: null as unknown as Record<string, never>,
+      }),
+    ).toThrow(RuntimeValidationError);
+  });
 });
 
 describe('validateInputEnvelope', () => {
