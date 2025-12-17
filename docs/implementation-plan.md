@@ -1539,7 +1539,7 @@ Load the same wasm bytes everywhere and instantiate with the TS `host_call` adap
 ### T-063: Implement runtime initialization handshake (manifest bytes, hash, I blob, gas)
 
 **Phase:** P5 – TypeScript runtime SDK
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-060, T-062, T-036
 
 **Goal:**
@@ -1549,15 +1549,20 @@ Initialize VM deterministically with manifest validation and injected globals be
 
 **Detailed tasks:**
 
-- [ ] Pass manifest bytes to VM and provide expected manifest hash from `P`.
-- [ ] Pass `I` as canonical DV bytes (preferred) or a deterministic context blob.
-- [ ] Set gas limit `G`.
-- [ ] Ensure VM installs `Host.v1` and Blue-style globals before evaluating code.
+- [x] Pass manifest bytes to VM and provide expected manifest hash from `P`.
+- [x] Pass `I` as canonical DV bytes (preferred) or a deterministic context blob.
+- [x] Set gas limit `G`.
+- [x] Ensure VM installs `Host.v1` and Blue-style globals before evaluating code.
 
 **Acceptance criteria:**
 
-- [ ] Manifest hash mismatch fails deterministically.
-- [ ] Injected globals exist and are immutable.
+- [x] Manifest hash mismatch fails deterministically.
+- [x] Injected globals exist and are immutable.
+
+**Current state (P5 T-063):**
+
+- The wasm harness now exports deterministic init/eval/teardown (`qjs_det_init`, `qjs_det_eval`, `qjs_det_free`), wires the imported `host_call`, validates manifest bytes/hash via `JS_InitDeterministicContext`, and decodes the DV context blob to install ergonomic globals before running user code.
+- `libs/quickjs-runtime` adds `initializeDeterministicVm`, which validates `P`/`I`, encodes manifest + DV context, sets gas limit, and drives the new wasm entrypoints; tests cover hash-mismatch failure and confirm `document`/`canon`/`event`/`steps` are present and frozen.
 
 ---
 

@@ -6,6 +6,52 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* The wasm module imports a single host_call symbol provided by the embedder.
+   Keep the signature aligned with docs/host-call-abi.md (all uint32 params). */
+__attribute__((import_module("host"), import_name("host_call")))
+extern uint32_t host_call(uint32_t fn_id,
+                          uint32_t req_ptr,
+                          uint32_t req_len,
+                          uint32_t resp_ptr,
+                          uint32_t resp_capacity);
+
+static JSRuntime *det_rt = NULL;
+static JSContext *det_ctx = NULL;
+static uint64_t det_gas_limit = JS_GAS_UNLIMITED;
+
+static void free_det_runtime(void) {
+  if (det_ctx) {
+    JS_FreeContext(det_ctx);
+    det_ctx = NULL;
+  }
+  if (det_rt) {
+    JS_FreeRuntime(det_rt);
+    det_rt = NULL;
+  }
+  det_gas_limit = JS_GAS_UNLIMITED;
+}
+
+static uint32_t wasm_host_call(JSContext *ctx,
+                               uint32_t fn_id,
+                               const uint8_t *req_ptr,
+                               uint32_t req_len,
+                               uint8_t *resp_ptr,
+                               uint32_t resp_capacity,
+                               void *opaque) {
+  (void)ctx;
+  (void)opaque;
+
+  if (!req_ptr && req_len > 0) {
+    return JS_HOST_CALL_TRANSPORT_ERROR;
+  }
+
+  return host_call(fn_id,
+                   (uint32_t)(uintptr_t)req_ptr,
+                   req_len,
+                   (uint32_t)(uintptr_t)resp_ptr,
+                   resp_capacity);
+}
+
 static char *dup_printf(const char *fmt, ...) {
   va_list args;
   va_start(args, fmt);
@@ -76,6 +122,101 @@ static char *format_exception(JSContext *ctx, uint64_t gas_limit, const char *fa
 }
 
 static int run_gc_checkpoint(JSContext *ctx) { return JS_RunGCCheckpoint(ctx); }
+
+EMSCRIPTEN_KEEPALIVE
+char *qjs_det_init(const uint8_t *manifest_bytes,
+                   uint32_t manifest_size,
+                   const char *manifest_hash_hex,
+                   const uint8_t *context_blob,
+                   uint32_t context_blob_size,
+                   uint64_t gas_limit) {
+  free_det_runtime();
+  det_gas_limit = gas_limit;
+
+  if (JS_NewDeterministicRuntime(&det_rt, &det_ctx) != 0) {
+    return dup_printf("ERROR <init> GAS remaining=0 used=0");
+  }
+
+  if (JS_SetHostCallDispatcher(det_rt, wasm_host_call, NULL) != 0) {
+    free_det_runtime();
+    return dup_printf("ERROR <host dispatcher> GAS remaining=0 used=0");
+  }
+
+  JSDeterministicInitOptions opts = {
+      .manifest_bytes = manifest_bytes,
+      .manifest_size = manifest_size,
+      .manifest_hash_hex = manifest_hash_hex,
+      .context_blob = context_blob,
+      .context_blob_size = context_blob_size,
+      .gas_limit = gas_limit,
+  };
+
+  if (JS_InitDeterministicContext(det_ctx, &opts) != 0) {
+    char *out = format_exception(det_ctx, det_gas_limit, "<init>", NULL);
+    free_det_runtime();
+    return out;
+  }
+
+  if (run_gc_checkpoint(det_ctx) != 0) {
+    char *out = format_exception(det_ctx, det_gas_limit, "<gc checkpoint>", NULL);
+    free_det_runtime();
+    return out;
+  }
+
+  return NULL;
+}
+
+EMSCRIPTEN_KEEPALIVE
+char *qjs_det_eval(const char *code) {
+  if (!det_ctx || !det_rt) {
+    return dup_printf("ERROR <uninitialized> GAS remaining=0 used=0");
+  }
+
+  if (run_gc_checkpoint(det_ctx) != 0) {
+    return format_exception(det_ctx, det_gas_limit, "<gc checkpoint>", NULL);
+  }
+
+  JSValue result = JS_Eval(det_ctx, code, strlen(code), "<eval>", JS_EVAL_TYPE_GLOBAL);
+  if (JS_IsException(result)) {
+    JS_FreeValue(det_ctx, result);
+    return format_exception(det_ctx, det_gas_limit, "<exception>", NULL);
+  }
+
+  JSValue json = JS_JSONStringify(det_ctx, result, JS_UNDEFINED, JS_UNDEFINED);
+  JS_FreeValue(det_ctx, result);
+
+  if (JS_IsException(json)) {
+    char *out = format_exception(det_ctx, det_gas_limit, "<stringify>", NULL);
+    JS_FreeValue(det_ctx, json);
+    return out;
+  }
+
+  const char *json_str = JS_ToCString(det_ctx, json);
+  if (!json_str) {
+    uint64_t remaining = JS_GetGasRemaining(det_ctx);
+    char *out =
+        format_with_gas("ERROR", "<stringify>", det_gas_limit, remaining, NULL);
+    JS_FreeValue(det_ctx, json);
+    return out;
+  }
+
+  if (run_gc_checkpoint(det_ctx) != 0) {
+    char *out = format_exception(det_ctx, det_gas_limit, "<gc checkpoint>", NULL);
+    JS_FreeCString(det_ctx, json_str);
+    JS_FreeValue(det_ctx, json);
+    return out;
+  }
+
+  uint64_t remaining = JS_GetGasRemaining(det_ctx);
+  char *out = format_with_gas("RESULT", json_str, det_gas_limit, remaining, NULL);
+
+  JS_FreeCString(det_ctx, json_str);
+  JS_FreeValue(det_ctx, json);
+  return out;
+}
+
+EMSCRIPTEN_KEEPALIVE
+void qjs_det_free(void) { free_det_runtime(); }
 
 EMSCRIPTEN_KEEPALIVE
 char *qjs_eval(const char *code, uint64_t gas_limit) {
