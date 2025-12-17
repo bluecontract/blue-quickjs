@@ -2,24 +2,26 @@
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import * as path from 'path';
-import { QUICKJS_WASM_METADATA_BASENAME } from '@blue-quickjs/quickjs-wasm-build';
-import type { QuickjsWasmBuildMetadata } from '@blue-quickjs/quickjs-wasm-build';
-import { defineConfig } from 'vite';
+import { defineConfig, Plugin, type ResolvedConfig } from 'vite';
 import dts from 'vite-plugin-dts';
+import {
+  QUICKJS_WASM_METADATA_BASENAME,
+  type QuickjsWasmBuildMetadata,
+} from '@blue-quickjs/quickjs-wasm-build';
 
 const WASM_BUILD_DIST = path.resolve(
   import.meta.dirname,
   '../quickjs-wasm-build/dist',
 );
 
-function copyWasmArtifactsPlugin() {
+function copyWasmArtifactsPlugin(): Plugin {
   let outDir: string | null = null;
   let metadata: QuickjsWasmBuildMetadata | null = null;
 
   return {
     name: 'quickjs-wasm-artifacts',
     apply: 'build',
-    configResolved(resolved) {
+    configResolved(resolved: ResolvedConfig) {
       outDir = path.resolve(resolved.root, resolved.build.outDir ?? 'dist');
     },
     buildStart() {
@@ -104,11 +106,7 @@ export default defineConfig(() => ({
     },
     rollupOptions: {
       // External packages that should not be bundled into your library.
-      external: [
-        'node:fs/promises',
-        'node:url',
-        '@blue-quickjs/quickjs-wasm-build',
-      ],
+      external: ['node:fs/promises', 'node:url'],
     },
   },
   test: {
