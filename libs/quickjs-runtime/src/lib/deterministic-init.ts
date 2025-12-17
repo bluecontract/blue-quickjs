@@ -23,16 +23,28 @@ type DetInitFn = (
 
 type DetEvalFn = (code: string) => number;
 type FreeOutputFn = (ptr: number) => void;
+type EnableTapeFn = (capacity: number) => number;
+type ReadTapeFn = () => number;
+type EnableTraceFn = (enabled: number) => number;
+type ReadTraceFn = () => number;
 
 interface DeterministicExports {
   init: DetInitFn;
   eval: DetEvalFn;
   freeRuntime: () => void;
   freeOutput: FreeOutputFn;
+  enableTape: EnableTapeFn;
+  readTape: ReadTapeFn;
+  enableTrace: EnableTraceFn;
+  readTrace: ReadTraceFn;
 }
 
 export interface DeterministicVm {
   eval(code: string): string;
+  enableTape(capacity: number): void;
+  readTape(): string;
+  enableGasTrace(enabled: boolean): void;
+  readGasTrace(): string;
   dispose(): void;
 }
 
@@ -96,6 +108,37 @@ export function initializeDeterministicVm(
       }
       return readAndFreeCString(runtime.module, ptr, ffi.freeOutput);
     },
+    enableTape(capacity: number): void {
+      if (!Number.isInteger(capacity) || capacity < 0) {
+        throw new Error(
+          `tape capacity must be a non-negative integer (received ${capacity})`,
+        );
+      }
+      const rc = ffi.enableTape(capacity >>> 0);
+      if (rc !== 0) {
+        throw new Error('failed to enable host tape');
+      }
+    },
+    readTape(): string {
+      const ptr = ffi.readTape();
+      if (ptr === 0) {
+        throw new Error('qjs_det_read_tape returned a null pointer');
+      }
+      return readAndFreeCString(runtime.module, ptr, ffi.freeOutput);
+    },
+    enableGasTrace(enabled: boolean): void {
+      const rc = ffi.enableTrace(enabled ? 1 : 0);
+      if (rc !== 0) {
+        throw new Error('failed to configure gas trace');
+      }
+    },
+    readGasTrace(): string {
+      const ptr = ffi.readTrace();
+      if (ptr === 0) {
+        throw new Error('qjs_det_read_trace returned a null pointer');
+      }
+      return readAndFreeCString(runtime.module, ptr, ffi.freeOutput);
+    },
     dispose() {
       ffi.freeRuntime();
     },
@@ -126,12 +169,32 @@ function createDeterministicExports(
   const freeOutput = module.cwrap('qjs_free_output', null, [
     'number',
   ]) as unknown as FreeOutputFn;
+  const enableTape = module.cwrap('qjs_det_enable_tape', 'number', [
+    'number',
+  ]) as unknown as EnableTapeFn;
+  const readTape = module.cwrap(
+    'qjs_det_read_tape',
+    'number',
+    [],
+  ) as unknown as ReadTapeFn;
+  const enableTrace = module.cwrap('qjs_det_enable_trace', 'number', [
+    'number',
+  ]) as unknown as EnableTraceFn;
+  const readTrace = module.cwrap(
+    'qjs_det_read_trace',
+    'number',
+    [],
+  ) as unknown as ReadTraceFn;
 
   return {
     init,
     eval: evalFn,
     freeRuntime,
     freeOutput,
+    enableTape,
+    readTape,
+    enableTrace,
+    readTrace,
   };
 }
 

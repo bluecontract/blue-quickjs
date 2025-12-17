@@ -1,4 +1,5 @@
 #include "quickjs.h"
+#include "quickjs-host.h"
 #include <emscripten/emscripten.h>
 #include <inttypes.h>
 #include <stdarg.h>
@@ -123,6 +124,38 @@ static char *format_exception(JSContext *ctx, uint64_t gas_limit, const char *fa
 
 static int run_gc_checkpoint(JSContext *ctx) { return JS_RunGCCheckpoint(ctx); }
 
+static char *hex32(const uint8_t *bytes, size_t length)
+{
+  static const char *HEX = "0123456789abcdef";
+  char *out;
+
+  if (!bytes || length != 32)
+    return NULL;
+
+  out = malloc(65);
+  if (!out)
+    return NULL;
+
+  for (size_t i = 0; i < 32; i++) {
+    out[i * 2] = HEX[(bytes[i] >> 4) & 0x0f];
+    out[i * 2 + 1] = HEX[bytes[i] & 0x0f];
+  }
+  out[64] = '\0';
+  return out;
+}
+
+static int js_set_prop(JSContext *ctx, JSValue obj, const char *name, JSValue val)
+{
+  if (JS_IsException(val))
+    return -1;
+  if (JS_DefinePropertyValueStr(ctx, obj, name, val,
+                                JS_PROP_C_W_E) < 0) {
+    JS_FreeValue(ctx, val);
+    return -1;
+  }
+  return 0;
+}
+
 EMSCRIPTEN_KEEPALIVE
 char *qjs_det_init(const uint8_t *manifest_bytes,
                    uint32_t manifest_size,
@@ -217,6 +250,176 @@ char *qjs_det_eval(const char *code) {
 
 EMSCRIPTEN_KEEPALIVE
 void qjs_det_free(void) { free_det_runtime(); }
+
+EMSCRIPTEN_KEEPALIVE
+int qjs_det_enable_tape(uint32_t capacity)
+{
+  if (!det_ctx || !det_rt)
+    return -1;
+
+  return JS_EnableHostTape(det_ctx, capacity);
+}
+
+EMSCRIPTEN_KEEPALIVE
+char *qjs_det_read_tape(void)
+{
+  JSHostTapeRecord *records = NULL;
+  size_t count = 0;
+  size_t to_read = 0;
+  JSValue arr = JS_UNDEFINED;
+  JSValue json = JS_UNDEFINED;
+  const char *json_str = NULL;
+  char *out = NULL;
+
+  if (!det_ctx || !det_rt)
+    return dup_printf("[]");
+
+  count = JS_GetHostTapeLength(det_ctx);
+  if (count == 0)
+    return dup_printf("[]");
+
+  to_read = count > JS_HOST_TAPE_MAX_CAPACITY ? JS_HOST_TAPE_MAX_CAPACITY : count;
+  records = js_mallocz(det_ctx, sizeof(JSHostTapeRecord) * to_read);
+  if (!records)
+    return dup_printf("[]");
+
+  if (JS_ReadHostTape(det_ctx, records, to_read, &count) != 0) {
+    js_free(det_ctx, records);
+    return dup_printf("[]");
+  }
+
+  arr = JS_NewArray(det_ctx);
+  if (JS_IsException(arr))
+    goto done;
+
+  for (size_t i = 0; i < count; i++) {
+    JSValue obj = JS_NewObjectProto(det_ctx, JS_NULL);
+    char *req_hex = NULL;
+    char *resp_hex = NULL;
+    char gas_pre_buf[32];
+    char gas_post_buf[32];
+
+    if (JS_IsException(obj))
+      goto loop_error;
+
+    if (js_set_prop(det_ctx, obj, "fnId", JS_NewUint32(det_ctx, records[i].fn_id)) < 0)
+      goto loop_error;
+    if (js_set_prop(det_ctx, obj, "reqLen", JS_NewUint32(det_ctx, records[i].req_len)) < 0)
+      goto loop_error;
+    if (js_set_prop(det_ctx, obj, "respLen", JS_NewUint32(det_ctx, records[i].resp_len)) < 0)
+      goto loop_error;
+    if (js_set_prop(det_ctx, obj, "units", JS_NewUint32(det_ctx, records[i].units)) < 0)
+      goto loop_error;
+    snprintf(gas_pre_buf, sizeof(gas_pre_buf), "%" PRIu64, records[i].gas_pre);
+    snprintf(gas_post_buf, sizeof(gas_post_buf), "%" PRIu64, records[i].gas_post);
+    if (js_set_prop(det_ctx, obj, "gasPre", JS_NewString(det_ctx, gas_pre_buf)) < 0)
+      goto loop_error;
+    if (js_set_prop(det_ctx, obj, "gasPost", JS_NewString(det_ctx, gas_post_buf)) < 0)
+      goto loop_error;
+    if (js_set_prop(det_ctx, obj, "isError", JS_NewBool(det_ctx, records[i].is_error)) < 0)
+      goto loop_error;
+    if (js_set_prop(det_ctx, obj, "chargeFailed", JS_NewBool(det_ctx, records[i].charge_failed)) < 0)
+      goto loop_error;
+
+    req_hex = hex32(records[i].req_hash, sizeof(records[i].req_hash));
+    resp_hex = hex32(records[i].resp_hash, sizeof(records[i].resp_hash));
+    if (!req_hex || !resp_hex) {
+      if (req_hex)
+        free(req_hex);
+      if (resp_hex)
+        free(resp_hex);
+      goto loop_error;
+    }
+
+    if (js_set_prop(det_ctx, obj, "reqHash", JS_NewString(det_ctx, req_hex)) < 0) {
+      free(req_hex);
+      free(resp_hex);
+      goto loop_error;
+    }
+    if (js_set_prop(det_ctx, obj, "respHash", JS_NewString(det_ctx, resp_hex)) < 0) {
+      free(req_hex);
+      free(resp_hex);
+      goto loop_error;
+    }
+
+    free(req_hex);
+    free(resp_hex);
+
+    if (JS_SetPropertyUint32(det_ctx, arr, (uint32_t)i, obj) < 0) {
+      JS_FreeValue(det_ctx, obj);
+      goto done;
+    }
+
+    continue;
+
+  loop_error:
+    JS_FreeValue(det_ctx, obj);
+    goto done;
+  }
+
+  json = JS_JSONStringify(det_ctx, arr, JS_UNDEFINED, JS_UNDEFINED);
+  if (JS_IsException(json))
+    goto done;
+
+  json_str = JS_ToCString(det_ctx, json);
+  if (!json_str)
+    goto done;
+
+  out = dup_printf("%s", json_str);
+  JS_FreeCString(det_ctx, json_str);
+
+done:
+  if (records)
+    js_free(det_ctx, records);
+  if (!JS_IsUndefined(arr))
+    JS_FreeValue(det_ctx, arr);
+  if (!JS_IsUndefined(json))
+    JS_FreeValue(det_ctx, json);
+
+  if (!out)
+    return dup_printf("[]");
+  return out;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int qjs_det_enable_trace(int enabled)
+{
+  if (!det_ctx || !det_rt)
+    return -1;
+
+  if (JS_EnableGasTrace(det_ctx, enabled ? 1 : 0) != 0)
+    return -1;
+
+  if (enabled) {
+    if (JS_ResetGasTrace(det_ctx) != 0)
+      return -1;
+  }
+  return 0;
+}
+
+EMSCRIPTEN_KEEPALIVE
+char *qjs_det_read_trace(void)
+{
+  JSGasTrace trace = {0};
+
+  if (det_ctx && det_rt) {
+    if (JS_ReadGasTrace(det_ctx, &trace) != 0) {
+      memset(&trace, 0, sizeof(trace));
+    }
+  }
+
+  return dup_printf(
+      "{\"opcodeCount\":\"%" PRIu64 "\",\"opcodeGas\":\"%" PRIu64
+      "\",\"arrayCbBaseCount\":\"%" PRIu64 "\",\"arrayCbBaseGas\":\"%" PRIu64
+      "\",\"arrayCbPerElCount\":\"%" PRIu64
+      "\",\"arrayCbPerElGas\":\"%" PRIu64
+      "\",\"allocationCount\":\"%" PRIu64 "\",\"allocationBytes\":\"%" PRIu64
+      "\",\"allocationGas\":\"%" PRIu64 "\"}",
+      trace.opcode_count, trace.opcode_gas, trace.builtin_array_cb_base_count,
+      trace.builtin_array_cb_base_gas, trace.builtin_array_cb_per_element_count,
+      trace.builtin_array_cb_per_element_gas, trace.allocation_count,
+      trace.allocation_bytes, trace.allocation_gas);
+}
 
 EMSCRIPTEN_KEEPALIVE
 char *qjs_eval(const char *code, uint64_t gas_limit) {

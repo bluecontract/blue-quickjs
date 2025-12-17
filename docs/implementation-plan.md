@@ -1569,7 +1569,7 @@ Initialize VM deterministically with manifest validation and injected globals be
 ### T-064: Implement `evaluate(P, I, G, host)` API and result model
 
 **Phase:** P5 – TypeScript runtime SDK
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-063, T-041, T-042
 
 **Goal:**
@@ -1579,17 +1579,24 @@ Provide a single-call deterministic evaluator entrypoint suitable for embedding 
 
 **Detailed tasks:**
 
-- [ ] Implement `evaluate()` that:
-  - [ ] validates P and I,
-  - [ ] initializes VM,
-  - [ ] evaluates `P.code`,
-  - [ ] returns result DV (or deterministic error), gas used/remaining, and optional tape.
+- [x] Implement `evaluate()` that:
+  - [x] validates P and I,
+  - [x] initializes VM,
+  - [x] evaluates `P.code`,
+  - [x] returns result DV (or deterministic error), gas used/remaining, and optional host tape/gas trace.
 
-- [ ] Ensure return value is DV-validated (JS can only return DV types or deterministic error).
+- [x] Ensure return value is DV-validated (JS can only return DV types or deterministic error).
+
+**Current state (P5 T-064):**
+
+- Added `evaluate()` in `libs/quickjs-runtime` that validates `P`/`I`, enforces `engineBuildHash` when provided, instantiates the wasm runtime with manifest-backed host dispatch, and runs deterministic init/eval with the provided gas limit.
+- VM output is parsed into structured results with `gasUsed`/`gasRemaining` (bigint) and DV-validated return values; VM failures and non-DV payloads surface as deterministic `EvaluateResult` errors (no stack traces).
+- Optional host-call tape and gas trace can be enabled via `evaluate` options, pulling deterministic tape/trace data from the wasm exports.
+- Tests cover success, VM validation failures, invalid output handling, engine hash mismatch scenarios, tape capture, and gas trace capture using the Host.v1 fixture manifest/handlers.
 
 **Acceptance criteria:**
 
-- [ ] Same `(P,I,G)` yields identical result across Node and browser for a fixture set.
+- [x] Same `(P,I,G)` yields identical result across Node and browser for a fixture set.
 
 ---
 
