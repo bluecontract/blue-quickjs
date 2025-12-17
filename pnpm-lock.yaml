@@ -101,6 +101,15 @@ importers:
 
   apps/smoke-node:
     dependencies:
+      '@blue-quickjs/dv':
+        specifier: workspace:*
+        version: link:../../libs/dv
+      '@blue-quickjs/quickjs-runtime':
+        specifier: workspace:*
+        version: link:../../libs/quickjs-runtime
+      '@blue-quickjs/test-harness':
+        specifier: workspace:*
+        version: link:../../libs/test-harness
       tslib:
         specifier: ^2.3.0
         version: 2.8.1

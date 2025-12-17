@@ -1663,21 +1663,27 @@ Prevent nondeterministic or unsupported return types from escaping the evaluator
 ### T-070: Node smoke runner (`apps/smoke-node`)
 
 **Phase:** P6 – Smoke apps
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-064
 
 **Goal:**
 Provide a CLI-like dev runner for quick debugging and fixtures.
 
+**Current state:**
+
+- `apps/smoke-node` bundles a sample `(P, I, G, manifest)` using the Host.v1 fixture and mock host handlers, runs `evaluate()`, and prints a stable summary (DV hash, gas used/remaining, host tape count, optional error code/tag).
+- `--debug` expands DV payloads and emitted values; `--quiet` suppresses logs.
+- `pnpm nx serve smoke-node [-- --debug|--quiet]` builds then runs the sample deterministically.
+
 **Detailed tasks:**
 
-- [ ] Load sample fixture `(P, I, G, manifest)` and create a mock host implementation.
-- [ ] Run evaluate and print a stable summary: result DV hash, gas used, tape count, error code/tag.
-- [ ] Provide a “debug” mode that prints decoded DV JSON (still deterministic).
+- [x] Load sample fixture `(P, I, G, manifest)` and create a mock host implementation.
+- [x] Run evaluate and print a stable summary: result DV hash, gas used, tape count, error code/tag.
+- [x] Provide a “debug” mode that prints decoded DV JSON (still deterministic).
 
 **Acceptance criteria:**
 
-- [ ] `pnpm nx serve smoke-node` runs a sample deterministically.
+- [x] `pnpm nx serve smoke-node` runs a sample deterministically.
 
 ---
 
