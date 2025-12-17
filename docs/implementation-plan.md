@@ -1410,7 +1410,7 @@ Provide two variants without changing semantics (debug adds assertions/tape, not
 ### T-054: Optional Wasm-level safety fuse (non-canonical)
 
 **Phase:** P4 – Emscripten build and deterministic artifacts
-**Status:** TODO
+**Status:** WON'T DO (decision: avoid wasm instrumentation nondeterminism; rely on canonical gas inside QuickJS)
 **Depends on:** T-051
 
 **Goal:**
@@ -1427,6 +1427,10 @@ Add an optional safety fuse (not canonical gas) to prevent runaway computation.
 **Acceptance criteria:**
 
 - [ ] Fuse can be triggered deterministically in a test without affecting canonical gas accounting.
+
+**Decision:**
+
+- Skipping this optional fuse. Prior wasm instrumentation attempts were not fully deterministic; QuickJS-level canonical gas already enforces bounded execution, and adding a wasm-level fuse would not add meaningful safety without risking nondeterminism.
 
 ---
 
