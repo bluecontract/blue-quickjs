@@ -13,6 +13,12 @@
   "references": [
     {
       "path": "../dv/tsconfig.lib.json"
+    },
+    {
+      "path": "../abi-manifest/tsconfig.lib.json"
+    },
+    {
+      "path": "../test-harness/tsconfig.lib.json"
     }
   ],
   "exclude": [

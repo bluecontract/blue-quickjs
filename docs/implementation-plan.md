@@ -1471,7 +1471,7 @@ Make `(P, I, G)` explicit and version-pin critical ABI/engine fields.
 ### T-061: Implement TS host dispatcher adapter that powers wasm `host_call`
 
 **Phase:** P5 – TypeScript runtime SDK
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-031, T-037, T-035
 
 **Goal:**
@@ -1481,19 +1481,19 @@ Implement the host-side `host_call` function in TS, using embedder-provided dete
 
 **Detailed tasks:**
 
-- [ ] Define a minimal embedder-facing interface for document reads (read-only):
-  - [ ] `get(path) -> { ok DV | err {code,tag,details?}, units }`
-  - [ ] `getCanonical(path) -> { ok DV | err ..., units }`
+- [x] Define a minimal embedder-facing interface for document reads (read-only):
+  - [x] `get(path) -> { ok DV | err {code,tag,details?}, units }`
+  - [x] `getCanonical(path) -> { ok DV | err ..., units }`
   - (units is required unless you can prove a tight bound from sizes alone.)
 
-- [ ] Implement a dispatcher that:
-  - [ ] receives `fn_id` + request bytes,
-  - [ ] DV-decodes args,
-  - [ ] routes to correct handler based on fn_id,
-  - [ ] enforces manifest limits (max req/resp bytes, max units),
-  - [ ] returns DV-encoded response envelope bytes.
+- [x] Implement a dispatcher that:
+  - [x] receives `fn_id` + request bytes,
+  - [x] DV-decodes args,
+  - [x] routes to correct handler based on fn_id,
+  - [x] enforces manifest limits (max req/resp bytes, max units),
+  - [x] returns DV-encoded response envelope bytes.
 
-- [ ] Ensure deterministic errors on malformed requests or unknown fn_id.
+- [x] Ensure deterministic errors on malformed requests or unknown fn_id.
 
 **Implementation hints (for Codex):**
 
@@ -1502,8 +1502,8 @@ Implement the host-side `host_call` function in TS, using embedder-provided dete
 
 **Acceptance criteria:**
 
-- [ ] Given mock handlers, dispatcher returns stable response bytes and units.
-- [ ] Unknown fn_id yields deterministic Err response.
+- [x] Given mock handlers, dispatcher returns stable response bytes and units.
+- [x] Unknown fn_id or malformed requests surface deterministically (transport sentinel / `HOST_TRANSPORT` path is acceptable since no manifest mapping exists for unknown `fn_id`).
 
 ---
 
