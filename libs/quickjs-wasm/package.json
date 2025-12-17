@@ -28,7 +28,10 @@
     "!**/*.tsbuildinfo"
   ],
   "nx": {
-    "name": "quickjs-wasm"
+    "name": "quickjs-wasm",
+    "implicitDependencies": [
+      "quickjs-wasm-build"
+    ]
   },
   "dependencies": {
     "@blue-quickjs/quickjs-wasm-build": "workspace:*"
