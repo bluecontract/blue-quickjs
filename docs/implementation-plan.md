@@ -1353,7 +1353,7 @@ Freeze memory growth and remove nondeterministic runtime features.
 ### T-052: Package artifacts into `libs/quickjs-wasm`
 
 **Phase:** P4 – Emscripten build and deterministic artifacts
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-050, T-002
 
 **Goal:**
@@ -1361,14 +1361,20 @@ Publish Wasm bytes + loader and metadata in a consumable library.
 
 **Detailed tasks:**
 
-- [ ] Define public API for getting wasm bytes (Node + browser).
-- [ ] Ensure `.wasm` is included in package output.
-- [ ] Export engine metadata (engine build hash, feature flags).
+- [x] Define public API for getting wasm bytes (Node + browser).
+- [x] Ensure `.wasm` is included in package output.
+- [x] Export engine metadata (engine build hash, feature flags).
 
 **Acceptance criteria:**
 
-- [ ] Node script can import `quickjs-wasm` and obtain wasm bytes.
-- [ ] Browser app can load wasm from the same package.
+- [x] Node script can import `quickjs-wasm` and obtain wasm bytes.
+- [x] Browser app can load wasm from the same package.
+
+**Current state (P4 T-052):**
+
+- `@blue-quickjs/quickjs-wasm` packages `quickjs-eval{,-wasm64}.{js,wasm}` and `quickjs-wasm-build.metadata.json` under `dist/wasm`, exporting them in `package.json`.
+- Public helpers (`loadQuickjsWasmMetadata`, `getQuickjsWasmArtifact`, `loadQuickjsWasmBinary`, `loadQuickjsWasmLoaderSource`) resolve artifacts in Node (file URLs) and browser/bundler contexts; constants/types come from `@blue-quickjs/quickjs-wasm-build`.
+- Vite build copies artifacts from `quickjs-wasm-build/dist` into the package; tests assert metadata presence and successful wasm/loader loading (magic header, host_call marker). `quickjs-wasm-build` remains the build-only/private producer of artifacts.
 
 ---
 
