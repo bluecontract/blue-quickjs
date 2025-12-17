@@ -138,7 +138,7 @@ describe('encodeDv / decodeDv', () => {
       maxArrayLength: 6,
       maxMapLength: 6,
       maxStringBytes: 64,
-      maxEncodedBytes: 256,
+      maxEncodedBytes: DV_LIMIT_DEFAULTS.maxEncodedBytes,
     };
 
     const stringArb = fc
