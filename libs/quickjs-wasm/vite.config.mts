@@ -4,11 +4,9 @@ import fsp from 'node:fs/promises';
 import * as path from 'path';
 import { defineConfig, Plugin, type ResolvedConfig } from 'vite';
 import dts from 'vite-plugin-dts';
-import {
-  QUICKJS_WASM_METADATA_BASENAME,
-  type QuickjsWasmBuildMetadata,
-} from '@blue-quickjs/quickjs-wasm-build';
+import { type QuickjsWasmBuildMetadata } from '@blue-quickjs/quickjs-wasm-build';
 
+const QUICKJS_WASM_METADATA_BASENAME = 'quickjs-wasm-build.metadata.json';
 const WASM_BUILD_DIST = path.resolve(
   import.meta.dirname,
   '../quickjs-wasm-build/dist',

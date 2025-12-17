@@ -29,5 +29,8 @@
   ],
   "nx": {
     "name": "quickjs-wasm"
+  },
+  "dependencies": {
+    "@blue-quickjs/quickjs-wasm-build": "workspace:*"
   }
 }
