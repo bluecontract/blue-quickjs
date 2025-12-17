@@ -16,6 +16,7 @@
   },
   "files": [
     "dist",
+    "fixtures",
     "!**/*.tsbuildinfo"
   ],
   "nx": {
@@ -29,6 +30,7 @@
     "@blue-quickjs/quickjs-wasm-build": "workspace:*"
   },
   "dependencies": {
-    "tslib": "^2.3.0"
+    "tslib": "^2.3.0",
+    "@blue-quickjs/abi-manifest": "workspace:*"
   }
 }

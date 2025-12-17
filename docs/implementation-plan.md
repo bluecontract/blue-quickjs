@@ -890,7 +890,7 @@ Pick one canonical encoding for DV used for args/returns and (preferably) manife
 ### T-031: Implement DV encode/decode in TypeScript (`libs/dv`)
 
 **Phase:** P3 – Host ABI (DV + manifest + syscall)
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-030, T-002
 
 **Goal:**
@@ -900,21 +900,26 @@ Provide TS reference implementation for DV validation and canonical encode/decod
 
 **Detailed tasks:**
 
-- [ ] Define DV TS types and runtime validators.
-- [ ] Implement canonical encode/decode per spec.
-- [ ] Enforce numeric/string/object rules and limits.
-- [ ] Add property-based tests for roundtrip and canonicalization.
+- [x] Define DV TS types and runtime validators.
+- [x] Implement canonical encode/decode per spec.
+- [x] Enforce numeric/string/object rules and limits.
+- [x] Add property-based tests for roundtrip and canonicalization.
 
 **Acceptance criteria:**
 
-- [ ] `pnpm nx test dv` passes; includes non-canonical input tests.
+- [x] `pnpm nx test dv` passes; includes non-canonical input tests.
+
+**Current state (P3 T-031):**
+
+- `libs/dv` now exports DV types, limits, validators, and canonical CBOR subset encode/decode with strict rejection of non-canonical encodings, invalid UTF-8, and out-of-range numbers; limits match `docs/dv-wire-format.md`.
+- Property-based tests plus targeted fixtures cover canonical examples, forbidden encodings (float width/float64 integers, map key ordering/duplicates, MIN_SAFE_INTEGER–1), and UTF-8/surrogate handling; `pnpm nx test dv` and `pnpm nx typecheck dv` pass.
 
 ---
 
 ### T-032: Implement VM-side DV encode/decode (QuickJS fork)
 
 **Phase:** P3 – Host ABI (DV + manifest + syscall)
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-030, T-010
 
 **Goal:**
@@ -924,21 +929,27 @@ Implement C encode/decode for DV to bridge JS values and request/response bytes 
 
 **Detailed tasks:**
 
-- [ ] JS→DV conversion enforcing DV restrictions deterministically.
-- [ ] DV→JS conversion preserving canonical key insertion order.
-- [ ] Enforce limits.
-- [ ] Add harness tests that compare encoded bytes to TS reference fixtures.
+- [x] JS→DV conversion enforcing DV restrictions deterministically.
+- [x] DV→JS conversion preserving canonical key insertion order.
+- [x] Enforce limits.
+- [x] Add harness tests that compare encoded bytes to TS reference fixtures.
 
 **Acceptance criteria:**
 
-- [ ] Byte-level parity tests vs `libs/dv` pass for a shared fixture set.
+- [x] Byte-level parity tests vs `libs/dv` pass for a shared fixture set.
+
+**Current state (P3 T-032):**
+
+- DV encode/decode lives outside `quickjs.c` in `vendor/quickjs/quickjs-dv.c` with public APIs `JS_EncodeDV`, `JS_DecodeDV`, `JS_FreeDVBuffer`, and default limits `JS_DV_LIMIT_DEFAULTS` exposed via `quickjs.h`.
+- The C implementation mirrors the TS reference: canonical CBOR subset, safe integer enforcement, `-0` canonicalization, UTF-8 validation, canonical map key ordering, depth/size limits, and null-prototype object decoding.
+- Native harness now supports `--dv-encode` (evaluate JS and emit DV hex) and `--dv-decode <hex>` (decode DV bytes and emit JSON). `tools/quickjs-native-harness/scripts/dv-parity.mjs` compares harness DV bytes/decodes against the TS `encodeDv`/`decodeDv` fixtures (null/boolean/ints/floats/strings/arrays/maps/null-proto/nested/-0), and `test.sh` runs this parity check.
 
 ---
 
 ### T-033: Define ABI manifest schema and canonical serialization
 
 **Phase:** P3 – Host ABI (DV + manifest + syscall)
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-030, T-005
 
 **Goal:**
@@ -948,24 +959,28 @@ Define manifest schema, canonical bytes, and hashing rules.
 
 **Detailed tasks:**
 
-- [ ] Write `docs/abi-manifest.md` specifying:
-  - [ ] top-level fields (`abi_id`, `abi_version`, entries),
-  - [ ] entry fields: `fn_id`, `js_path`, `arity`, `arg_schema`, `return_schema`, `effect`, `gas_schedule_id`, `limits`, `error_codes`,
-  - [ ] canonical serialization rules (prefer DV encoding from T-030),
-  - [ ] hash algorithm + output format.
+- [x] Write `docs/abi-manifest.md` specifying:
+  - [x] top-level fields (`abi_id`, `abi_version`, entries),
+  - [x] entry fields: `fn_id`, `js_path`, `arity`, `arg_schema`, `return_schema`, `effect`, `gas_schedule_id`, `limits`, `error_codes`,
+  - [x] canonical serialization rules (prefer DV encoding from T-030),
+  - [x] hash algorithm + output format.
 
-- [ ] Define a minimal schema language sufficient for initial functions (don’t overbuild).
+- [x] Define a minimal schema language sufficient for initial functions (don’t overbuild).
 
 **Acceptance criteria:**
 
-- [ ] Doc includes a complete example manifest for `Host.v1` with at least document.get/getCanonical.
+- [x] Doc includes a complete example manifest for `Host.v1` with at least document.get/getCanonical.
+
+**Current state (P3 T-033):**
+
+- `docs/abi-manifest.md` now normatively specifies the manifest structure (top-level and per-function fields), minimal schema language, canonical DV encoding rules, SHA-256 hashing (lowercase hex), and validation constraints. It includes a complete `Host.v1` example covering `document.get`, `document.getCanonical`, and `emit` with gas parameters, limits, and error codes.
 
 ---
 
 ### T-034: Implement manifest tooling in TypeScript (`libs/abi-manifest`)
 
 **Phase:** P3 – Host ABI (DV + manifest + syscall)
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-031, T-033
 
 **Goal:**
@@ -975,21 +990,26 @@ Provide TS tools to create canonical manifest bytes and compute `abi_manifest_ha
 
 **Detailed tasks:**
 
-- [ ] Implement manifest types + validators.
-- [ ] Implement canonical serialization to bytes.
-- [ ] Implement hashing function (same as VM).
-- [ ] Add tests asserting stable bytes and hash for a fixture manifest.
+- [x] Implement manifest types + validators.
+- [x] Implement canonical serialization to bytes.
+- [x] Implement hashing function (same as VM).
+- [x] Add tests asserting stable bytes and hash for a fixture manifest.
 
 **Acceptance criteria:**
 
-- [ ] `pnpm nx test abi-manifest` passes with stable fixture hashes.
+- [x] `pnpm nx test abi-manifest` passes with stable fixture hashes.
+
+**Current state (P3 T-034):**
+
+- `libs/abi-manifest` now exposes manifest types, strict validators (uint32 bounds, js_path collision/prefix detection, sorted fn_ids/error_codes, arg_utf8_max checks, DV size limits), canonical DV serialization, and SHA-256 hashing helpers (`hashAbiManifest`, `hashAbiManifestBytes`).
+- Tests include the Host.v1 fixture manifest, pin its canonical bytes/hash, and negative coverage for unsorted functions, path conflicts, and invalid arg_utf8_max; `pnpm nx test abi-manifest` passes.
 
 ---
 
 ### T-035: Define the initial ABI surface manifest (v1) used by this evaluator
 
 **Phase:** P3 – Host ABI (DV + manifest + syscall)
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-033
 
 **Goal:**
@@ -999,25 +1019,30 @@ Lock down the minimal host ABI surface required by the read-only evaluator.
 
 **Detailed tasks:**
 
-- [ ] Create a fixture manifest (checked into `libs/test-harness/fixtures/`) that defines:
-  - [ ] `Host.v1.document.get(path)` (READ)
-  - [ ] `Host.v1.document.getCanonical(path)` (READ)
-  - [ ] Optional: `Host.v1.emit(value)` (EMIT) for deterministic logging/tape (recommended)
+- [x] Create a fixture manifest (checked into `libs/test-harness/fixtures/`) that defines:
+  - [x] `Host.v1.document.get(path)` (READ)
+  - [x] `Host.v1.document.getCanonical(path)` (READ)
+  - [x] Optional: `Host.v1.emit(value)` (EMIT) for deterministic logging/tape (recommended)
 
-- [ ] Define per-function limits and error codes (path invalid, not found, limit exceeded).
+- [x] Define per-function limits and error codes (path invalid, not found, limit exceeded).
 
-- [ ] Define per-function gas schedule parameters (base, k_arg_bytes, k_out_bytes, k_units).
+- [x] Define per-function gas schedule parameters (base, k_arg_bytes, k_out_bytes, k_units).
 
 **Acceptance criteria:**
 
-- [ ] Fixture manifest can be serialized + hashed by `libs/abi-manifest` reproducibly.
+- [x] Fixture manifest can be serialized + hashed by `libs/abi-manifest` reproducibly.
+
+**Current state (P3 T-035):**
+
+- Added `Host.v1` manifest fixture at `libs/test-harness/fixtures/abi-manifest/host-v1.json` with `document.get`, `document.getCanonical`, and `emit`; canonical DV bytes and SHA-256 hash are pinned alongside in `.bytes.hex`/`.hash` with a TS loader exported from `@blue-quickjs/test-harness`.
+- `libs/abi-manifest` tests now consume the fixture to assert canonical bytes/hash parity via `hashAbiManifest`/`hashAbiManifestBytes`, locking in the reproducible manifest encoding.
 
 ---
 
 ### T-036: Implement VM-side manifest hash validation during initialization
 
 **Phase:** P3 – Host ABI (DV + manifest + syscall)
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-033, T-010
 
 **Goal:**
@@ -1027,20 +1052,26 @@ VM receives manifest bytes at init, computes hash, and exact-matches `abi_manife
 
 **Detailed tasks:**
 
-- [ ] Implement the hash algorithm in C (matching TS).
-- [ ] Add VM init API parameters for: manifest bytes, expected hash, gas limit, and context blob.
-- [ ] On mismatch, fail deterministically with fixed error code/tag.
+- [x] Implement the hash algorithm in C (matching TS).
+- [x] Add VM init API parameters for: manifest bytes, expected hash, gas limit, and context blob.
+- [x] On mismatch, fail deterministically with fixed error code/tag.
 
 **Acceptance criteria:**
 
-- [ ] Harness test verifies correct manifest passes and incorrect hash fails deterministically.
+- [x] Harness test verifies correct manifest passes and incorrect hash fails deterministically.
+
+**Current state (P3 T-036):**
+
+- Added `quickjs-sha256.c` with a standalone SHA-256 helper and wired `JS_InitDeterministicContext` in `quickjs.c`/`quickjs.h` to validate a provided manifest (bytes + expected hash), copy it into the context, and optionally stash a context blob while setting the gas limit (defaulting to unlimited when unset). A deterministic `ManifestError` with code `ABI_MANIFEST_HASH_MISMATCH` is thrown on hash mismatch, and invalid inputs surface `TypeError` failures.
+- `JSContext` now retains the manifest bytes/hash/hex plus optional context blob and frees them on shutdown; vendor `Makefile` and harness/wasm build scripts include the new SHA source.
+- Native harness CLI accepts manifest inputs via `--abi-manifest-hex`/`--abi-manifest-hex-file` + `--abi-manifest-hash` (and optional `--context-blob-hex`), and test/golden scripts load the Host.v1 manifest fixture by default. The harness test suite asserts the mismatch case and runs all eval capability checks under manifest validation.
 
 ---
 
 ### T-037: Specify the Wasm `host_call` import ABI and memory ownership
 
 **Phase:** P3 – Host ABI (DV + manifest + syscall)
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-005
 
 **Goal:**
@@ -1050,23 +1081,23 @@ Define the exact Wasm import signature and buffer ownership rules implementing `
 
 **Detailed tasks:**
 
-- [ ] Write `docs/host-call-abi.md` specifying:
-  - [ ] function signature (fn_id + ptr/len for req; plus a response mechanism),
-  - [ ] max request/response sizes,
-  - [ ] error behavior for malformed responses,
-  - [ ] memory ownership (who allocates response bytes and how VM reads them),
-  - [ ] explicit no-reentrancy rule (host_call cannot call back into VM).
+- [x] Write `docs/host-call-abi.md` specifying:
+  - [x] function signature (fn_id + ptr/len for req; plus a response mechanism),
+  - [x] max request/response sizes,
+  - [x] error behavior for malformed responses,
+  - [x] memory ownership (who allocates response bytes and how VM reads them),
+  - [x] explicit no-reentrancy rule (host_call cannot call back into VM).
 
 **Acceptance criteria:**
 
-- [ ] The ABI doc is unambiguous enough to implement in both wasm host (TS) and VM (C).
+- [x] The ABI doc is unambiguous enough to implement in both wasm host (TS) and VM (C).
 
 ---
 
 ### T-038: Implement VM-side syscall dispatcher plumbing + reentrancy guard
 
 **Phase:** P3 – Host ABI (DV + manifest + syscall)
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-037, T-020
 
 **Goal:**
@@ -1076,25 +1107,25 @@ Add a single syscall path from VM to host with deterministic guardrails.
 
 **Detailed tasks:**
 
-- [ ] Implement `host_call` invocation layer in the fork that works in both:
-  - [ ] native harness (function pointer callback), and
-  - [ ] wasm build (imported function).
+- [x] Implement `host_call` invocation layer in the fork that works in both:
+  - [x] native harness (function pointer callback), and
+  - [x] wasm build (imported function).
 
-- [ ] Add a reentrancy guard preventing nested host calls.
+- [x] Add a reentrancy guard preventing nested host calls.
 
-- [ ] Add deterministic failures for oversized request/response.
+- [x] Add deterministic failures for oversized request/response.
 
 **Acceptance criteria:**
 
-- [ ] Native harness can register a host_call stub and receive deterministic responses.
-- [ ] Reentrancy is detected and fails deterministically.
+- [x] Native harness can register a host_call stub and receive deterministic responses.
+- [x] Reentrancy is detected and fails deterministically.
 
 ---
 
 ### T-039: Define and implement the host-call response envelope + deterministic HostError
 
 **Phase:** P3 – Host ABI (DV + manifest + syscall)
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-032, T-038
 
 **Goal:**
@@ -1104,26 +1135,33 @@ Standardize host responses as `Ok(DV)` or `Err({code, tag, details?})` plus dete
 
 **Detailed tasks:**
 
-- [ ] Define the response envelope structure (as DV) including:
-  - [ ] ok vs err,
-  - [ ] `units` (u32),
-  - [ ] optional metadata needed for charging/tape.
+- [x] Define the response envelope structure (as DV) including:
+  - [x] ok vs err,
+  - [x] `units` (u32),
+  - [x] optional metadata needed for charging/tape.
 
-- [ ] Implement parsing/validation in VM.
+- [x] Implement parsing/validation in VM.
 
-- [ ] Implement deterministic error throwing: `HostError` with stable `{code, tag}`.
+- [x] Implement deterministic error throwing: `HostError` with stable `{code, tag}`.
 
 **Acceptance criteria:**
 
-- [ ] VM throws deterministic HostError for Err responses.
-- [ ] Malformed envelopes are rejected with deterministic VM error.
+- [x] VM throws deterministic HostError for Err responses.
+- [x] Malformed envelopes are rejected with deterministic VM error.
+
+**Current state (P3 T-039):**
+
+- Added exported `JS_ThrowHostError`, `JS_ParseHostResponse`, and `JS_FreeHostResponse` in the fork (see `vendor/quickjs/quickjs-host.c`) to decode DV response envelopes (`ok`/`err` + `units`), enforce manifest-provided error code/tag mappings, and reject malformed envelopes with deterministic `HostError` codes (`HOST_TRANSPORT`, `HOST_ENVELOPE_INVALID`).
+- `JS_HostCall` now surfaces transport failures as `HostError { code: "HOST_TRANSPORT", tag: "host/transport" }` instead of a `TypeError`.
+- Native harness gains `--host-parse-envelope`/`--host-max-units` to decode host responses using default `Host.v1` error mappings; tests cover ok envelope decoding and HostError paths for manifest errors and invalid envelopes.
+- Follow-up hardening: `JS_ParseHostResponse` now enforces strict `units` uint32 semantics (no strings/floats/-0), requires `err.code` to be a string, preserves OutOfGas instead of masking it as `HOST_ENVELOPE_INVALID`, and frees all intermediate refs; harness tests were expanded to pin these envelope validation rules (non-number/non-integer units, non-string code, `max_units=0` cases).
 
 ---
 
 ### T-040: Generate `Host.v1` namespace from manifest in VM
 
 **Phase:** P3 – Host ABI (DV + manifest + syscall)
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-036, T-039, T-035
 
 **Goal:**
@@ -1133,30 +1171,36 @@ Expose host functions in JS as `Host.v1.*`, generated from manifest entries (js_
 
 **Detailed tasks:**
 
-- [ ] Parse manifest entries and install nested namespace objects (null prototype).
+- [x] Parse manifest entries and install nested namespace objects (null prototype).
 
-- [ ] For each entry, create a JS wrapper that:
-  - [ ] validates args by `arg_schema`,
-  - [ ] DV-encodes args,
-  - [ ] performs pre-charge gas (base + arg_bytes),
-  - [ ] calls host_call(fn_id, req_bytes),
-  - [ ] validates response envelope,
-  - [ ] performs post-charge gas (out_bytes + units),
-  - [ ] returns DV or throws HostError.
+- [x] For each entry, create a JS wrapper that:
+  - [x] validates args by `arg_schema`,
+  - [x] DV-encodes args,
+  - [x] performs pre-charge gas (base + arg_bytes),
+  - [x] calls host_call(fn_id, req_bytes),
+  - [x] validates response envelope,
+  - [x] performs post-charge gas (out_bytes + units),
+  - [x] returns DV or throws HostError.
 
-- [ ] Freeze and make namespaces non-extensible, non-writable, non-configurable.
+- [x] Freeze and make namespaces non-extensible, non-writable, non-configurable.
 
 **Acceptance criteria:**
 
-- [ ] With the fixture manifest, `Host.v1.document.get` exists and is callable.
-- [ ] Attempts to mutate `Host` or sub-objects fail deterministically.
+- [x] With the fixture manifest, `Host.v1.document.get` exists and is callable.
+- [x] Attempts to mutate `Host` or sub-objects fail deterministically.
+
+**Current state (P3 T-040):**
+
+- VM now decodes/validates the ABI manifest bytes on init and installs Host.v1 wrappers for each entry in `vendor/quickjs/quickjs-host.c`: arg schema checks (string/dv/null + utf8 limits), DV encode of args, host_call dispatch with manifest limits, envelope parsing + HostError mapping, return schema checks, and gas pre/post charging (base + arg_bytes, ret_bytes + units).
+- Namespaces are created from js_path segments with null prototypes and are made non-extensible after population; Host.v1 functions are bound via magic indices and respect manifest fn_id/error code tables.
+- Native harness uses a manifest-backed host stub and adds tests covering Host.v1 document.get/getCanonical/emit ok paths, HostError responses, and validation failures (type/utf8). Running `tools/quickjs-native-harness/scripts/test.sh` passes with the Host.v1 manifest fixture.
 
 ---
 
 ### T-041: Install Blue-style ergonomic globals using Host.v1 wrappers
 
 **Phase:** P3 – Host ABI (DV + manifest + syscall)
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-040
 
 **Goal:**
@@ -1166,23 +1210,30 @@ Provide `document()`, `event`, `steps`, and `canon` helpers consistent with Blue
 
 **Detailed tasks:**
 
-- [ ] Implement `document(path)` as a wrapper calling `Host.v1.document.get(path)`.
-- [ ] Implement `document.canonical(path)` calling `Host.v1.document.getCanonical(path)`.
-- [ ] Accept injected DV values for `event`, `eventCanonical`, `steps` from input envelope `I` (wired later).
-- [ ] Implement `canon.unwrap` and `canon.at` as pure JS helpers (loaded deterministically by init).
-- [ ] Freeze/lock `document`, `event`, `eventCanonical`, `steps`, `canon`.
+ - [x] Implement `document(path)` as a wrapper calling `Host.v1.document.get(path)`.
+ - [x] Implement `document.canonical(path)` calling `Host.v1.document.getCanonical(path)`.
+ - [x] Accept injected DV values for `event`, `eventCanonical`, `steps` from input envelope `I` (wired later).
+ - [x] Implement `canon.unwrap` and `canon.at` as pure JS helpers (loaded deterministically by init).
+ - [x] Freeze/lock `document`, `event`, `eventCanonical`, `steps`, `canon`.
 
 **Acceptance criteria:**
 
-- [ ] A test script can call `document("x")` and read `event`/`steps`.
-- [ ] Helpers behave deterministically and cannot be overridden by user code.
+ - [x] A test script can call `document("x")` and read `event`/`steps`.
+ - [x] Helpers behave deterministically and cannot be overridden by user code.
+
+**Current state (P3 T-041):**
+
+- Deterministic init now installs ergonomic globals once the manifest is loaded: `document` calls `Host.v1.document.get`, `document.canonical` calls `Host.v1.document.getCanonical`, and helpers are non-extensible.
+- Context blob DV decoding clones and deep-freezes `event`, `eventCanonical`, and `steps` before exposing them on the global.
+- Added pure C `canon.unwrap` (DV roundtrip + freeze) and `canon.at` (safe path walker with deterministic errors and bounds) under a frozen `canon` object.
+- Native harness tests now cover ergonomic globals + canon helpers using the pinned context blob fixture; full harness suite passes.
 
 ---
 
 ### T-042: Implement two-phase gas charging for host calls (VM)
 
 **Phase:** P3 – Host ABI (DV + manifest + syscall)
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-040, T-022
 
 **Goal:**
@@ -1192,21 +1243,27 @@ Ensure host calls incur deterministic gas independent of host performance.
 
 **Detailed tasks:**
 
-- [ ] Implement pre-charge: base + arg_bytes \* k_arg.
-- [ ] Implement post-charge: out*bytes * k*out + units * k_units.
-- [ ] Ensure OOG after host returns results in deterministic abort with no additional effects (for READ-only this is simpler; still must be deterministic).
-- [ ] Add tests for host-call gas formulas using a mock host_call stub.
+- [x] Implement pre-charge: base + arg_bytes \* k_arg.
+- [x] Implement post-charge: out*bytes * k*out + units * k_units.
+- [x] Ensure OOG after host returns results in deterministic abort with no additional effects (for READ-only this is simpler; still must be deterministic).
+- [x] Add tests for host-call gas formulas using a mock host_call stub.
 
 **Acceptance criteria:**
 
-- [ ] Gas charged for host calls matches expected formula exactly.
+- [x] Gas charged for host calls matches expected formula exactly.
+
+**Current state (P3 T-042):**
+
+- Host.v1 wrappers charge gas pre-call (`base + arg_bytes * k_arg`) and post-call (`resp_bytes * k_ret + units * k_units`) using the manifest parameters; overflow is guarded and out-of-gas is uncatchable.
+- Added native harness coverage (`tools/quickjs-native-harness/scripts/host-gas.mjs`) that DV-encodes manifest fixture args/responses and asserts the measured host-call gas matches the formula for ok, err, and emit paths; wired into `tools/quickjs-native-harness/scripts/test.sh`.
+- Existing host-call arg/response validation, manifest limits, and HostError mapping remain unchanged; the gas tests ensure formula stability across refactors.
 
 ---
 
 ### T-043: Add optional VM-side tape for auditing host calls
 
 **Phase:** P3 – Host ABI (DV + manifest + syscall)
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-042
 
 **Goal:**
@@ -1216,13 +1273,19 @@ Provide deterministic audit traces (request/response hashes, fn_id, gas breakdow
 
 **Detailed tasks:**
 
-- [ ] Define tape record fields and hashing algorithm(s) (document).
-- [ ] Implement bounded tape buffer in VM.
-- [ ] Expose tape output deterministically as part of evaluation result.
+- [x] Define tape record fields and hashing algorithm(s) (document).
+- [x] Implement bounded tape buffer in VM.
+- [x] Expose tape output deterministically as part of evaluation result.
 
 **Acceptance criteria:**
 
-- [ ] Tape enabled runs produce identical tape across repeated executions.
+- [x] Tape enabled runs produce identical tape across repeated executions.
+
+**Current state (P3 T-043):**
+
+- `quickjs-host.*` now keeps an optional per-context ring buffer (max 1024 records) recording `fn_id`, request/response byte lengths, units, pre/post gas charges, `is_error`/`charge_failed` flags, and SHA-256 hashes of the request/response bytes. It is opt-in via `JS_EnableHostTape(ctx, capacity)`, resettable, and readable in order via `JS_ReadHostTape`/`JS_GetHostTapeLength`.
+- Tape hashing uses SHA-256 over the exact DV request/response slices; ring order is deterministic and bounded, with overflow wrapping oldest entries.
+- SDK/evaluator can include tape in results by calling the tape read API after execution without affecting VM semantics.
 
 ---
 
@@ -1231,7 +1294,7 @@ Provide deterministic audit traces (request/response hashes, fn_id, gas breakdow
 ### T-050: Implement `libs/quickjs-wasm-build` pipeline scaffolding
 
 **Phase:** P4 – Emscripten build and deterministic artifacts
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-003, T-004, T-002, T-029
 
 **Goal:**
@@ -1241,20 +1304,25 @@ Compile the forked QuickJS to Wasm using pinned Emscripten.
 
 **Detailed tasks:**
 
-- [ ] Add Nx build target invoking emcc on QuickJS sources + fork changes.
-- [ ] Emit `.wasm` + loader/glue into deterministic `dist/` paths.
-- [ ] Emit build metadata (engine build hash placeholder).
+- [x] Add Nx build target invoking emcc on QuickJS sources + fork changes.
+- [x] Emit `.wasm` + loader/glue into deterministic `dist/` paths.
+- [x] Emit build metadata (engine build hash placeholder).
 
 **Acceptance criteria:**
 
-- [ ] `pnpm nx build quickjs-wasm-build` produces wasm + JS glue outputs.
+- [x] `pnpm nx build quickjs-wasm-build` produces wasm + JS glue outputs.
+
+**Current state (P4 T-050):**
+
+- `pnpm nx build quickjs-wasm-build` calls `scripts/build-wasm.sh` (emscripten 3.1.56) to emit `quickjs-eval{,-wasm64}.{js,wasm}` into `libs/quickjs-wasm-build/dist/` alongside compiled TS outputs.
+- Builds now emit `quickjs-wasm-build.metadata.json` capturing QuickJS version/commit, pinned emscripten version, per-variant artifact sizes and SHA-256 hashes, and a placeholder `engineBuildHash` (currently the wasm hash); helpers `getQuickjsWasmMetadataPath`/`readQuickjsWasmMetadata` expose the metadata.
 
 ---
 
 ### T-051: Enforce deterministic Wasm memory sizing + disable nondeterministic Emscripten features
 
 **Phase:** P4 – Emscripten build and deterministic artifacts
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-050
 
 **Goal:**
@@ -1264,15 +1332,21 @@ Freeze memory growth and remove nondeterministic runtime features.
 
 **Detailed tasks:**
 
-- [ ] Configure fixed memory sizing (min == max or strictly controlled).
-- [ ] Ensure no FS/network/syscalls.
-- [ ] Ensure build outputs don’t embed timestamps or env-dependent differences.
-- [ ] Document chosen flags in `docs/toolchain.md`.
+- [x] Configure fixed memory sizing (min == max or strictly controlled).
+- [x] Ensure no FS/network/syscalls.
+- [x] Ensure build outputs don’t embed timestamps or env-dependent differences.
+- [x] Document chosen flags in `docs/toolchain.md`.
 
 **Acceptance criteria:**
 
-- [ ] Wasm memory growth is disabled/fixed per build inspection.
-- [ ] Wasm bytes hash is stable across repeated builds with identical inputs.
+- [x] Wasm memory growth is disabled/fixed per build inspection.
+- [x] Wasm bytes hash is stable across repeated builds with identical inputs.
+
+**Current state (P4 T-051):**
+
+- `scripts/build-wasm.sh` now builds with `-sDETERMINISTIC=1`, `-sFILESYSTEM=0`, `-sALLOW_MEMORY_GROWTH=0`, `-sALLOW_TABLE_GROWTH=0`, fixed memory (`INITIAL_MEMORY=MAXIMUM_MEMORY=32 MiB`) and a 1 MiB stack; SOURCE_DATE_EPOCH is pinned (override via env) to strip timestamps.
+- Memory/flag settings are exported into `quickjs-wasm-build.metadata.json` under `build.memory` and `build.determinism` for audit, and `docs/toolchain.md` documents the deterministic flags/memory choices.
+- `pnpm nx build quickjs-wasm-build` and `pnpm nx test quickjs-wasm-build` pass with the deterministic settings; wasm/hash metadata reflects stable builds given identical inputs/epoch.
 
 ---
 

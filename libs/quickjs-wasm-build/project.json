@@ -12,7 +12,13 @@
       "inputs": [
         "default",
         "{workspaceRoot}/vendor/quickjs/**",
-        "{workspaceRoot}/tools/scripts/emsdk-version.txt"
+        "{workspaceRoot}/tools/scripts/emsdk-version.txt",
+        {
+          "env": "WASM_VARIANTS"
+        },
+        {
+          "env": "SOURCE_DATE_EPOCH"
+        }
       ],
       "outputs": ["{projectRoot}/dist"],
       "options": {
