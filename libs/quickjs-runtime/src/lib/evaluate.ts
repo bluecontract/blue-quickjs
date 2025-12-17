@@ -3,7 +3,7 @@ import {
   type DV,
   DV_LIMIT_DEFAULTS,
   type DvLimits,
-  validateDv,
+  decodeDv,
 } from '@blue-quickjs/dv';
 import { initializeDeterministicVm } from './deterministic-init.js';
 import type {
@@ -28,6 +28,7 @@ import {
   type EvaluateInvalidOutputDetail,
   type EvaluateVmErrorDetail,
 } from './evaluate-errors.js';
+import { parseHexToBytes } from './hex-utils.js';
 
 export interface EvaluateOptions
   extends RuntimeArtifactSelection, HostDispatcherOptions {
@@ -239,20 +240,21 @@ function decodeResultPayload(
   payload: string,
   limits?: Partial<DvLimits>,
 ): DecodedResultPayload {
-  let parsed: unknown;
+  const dvLimits = normalizeDvLimits(limits);
+  let bytes: Uint8Array;
   try {
-    parsed = JSON.parse(payload);
+    bytes = parseHexToBytes(payload, dvLimits.maxEncodedBytes);
   } catch (err) {
     return {
       kind: 'error',
-      message: `VM returned non-JSON result: ${String(err)}`,
+      message: `VM returned non-hex DV payload: ${err instanceof Error ? err.message : String(err)}`,
       cause: err,
     };
   }
 
   try {
-    validateDv(parsed, { limits: normalizeDvLimits(limits) });
-    return { kind: 'ok', value: parsed as DV };
+    const value = decodeDv(bytes, { limits: dvLimits });
+    return { kind: 'ok', value };
   } catch (err) {
     return {
       kind: 'error',

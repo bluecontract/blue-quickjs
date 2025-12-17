@@ -1632,7 +1632,7 @@ Expose stable error objects in TS without leaking host-specific data.
 ### T-066: Ensure returned JS values are DV-only (enforce in VM and TS)
 
 **Phase:** P5 – TypeScript runtime SDK
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-064, T-031, T-032
 
 **Goal:**
@@ -1642,13 +1642,19 @@ Prevent nondeterministic or unsupported return types from escaping the evaluator
 
 **Detailed tasks:**
 
-- [ ] VM enforces return type conversion into DV (or deterministic error).
-- [ ] TS validates returned DV bytes and rejects malformed outputs deterministically.
-- [ ] Add tests for forbidden return types (functions, undefined, symbols, BigInt, etc.).
+- [x] VM enforces return type conversion into DV (or deterministic error).
+- [x] TS validates returned DV bytes and rejects malformed outputs deterministically.
+- [x] Add tests for forbidden return types (functions, undefined, symbols, BigInt, etc.).
 
 **Acceptance criteria:**
 
-- [ ] Forbidden return types produce deterministic errors across environments.
+- [x] Forbidden return types produce deterministic errors across environments.
+
+**Current state (P5 T-066):**
+
+- `qjs_det_eval` now DV-encodes results and emits lowercase-hex payloads; unsupported JS return types surface deterministic errors instead of JSON stringify paths.
+- The TypeScript runtime decodes/validates DV bytes (with limits) and returns structured invalid-output errors for malformed/oversize payloads.
+- Tests cover forbidden return types, DV-limit enforcement, and deterministic DV decoding in both evaluate and deterministic init flows.
 
 ---
 

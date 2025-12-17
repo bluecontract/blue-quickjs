@@ -1,6 +1,8 @@
+import { decodeDv } from '@blue-quickjs/dv';
 import { HOST_V1_HASH, HOST_V1_MANIFEST } from '@blue-quickjs/test-harness';
 import { initializeDeterministicVm } from './deterministic-init.js';
 import type { HostDispatcherHandlers } from './host-dispatcher.js';
+import { parseHexToBytes } from './hex-utils.js';
 import { createRuntime } from './runtime.js';
 import type { InputEnvelope, ProgramArtifact } from './quickjs-runtime.js';
 
@@ -130,12 +132,8 @@ function parseEvalOutput(raw: string): {
   }
 
   const [, kind, payload, remaining, used] = match;
-  let value: unknown = payload;
-  try {
-    value = JSON.parse(payload);
-  } catch {
-    // Leave value as the raw payload string.
-  }
+  const value =
+    kind === 'RESULT' ? decodeDv(parseHexToBytes(payload)) : payload.trim();
 
   return {
     kind: kind as 'RESULT' | 'ERROR',

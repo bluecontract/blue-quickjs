@@ -144,6 +144,26 @@ static char *hex32(const uint8_t *bytes, size_t length)
   return out;
 }
 
+static char *hex_bytes(const uint8_t *bytes, size_t length)
+{
+  static const char *HEX = "0123456789abcdef";
+  char *out;
+
+  if (length > 0 && !bytes)
+    return NULL;
+
+  out = malloc((length * 2) + 1);
+  if (!out)
+    return NULL;
+
+  for (size_t i = 0; i < length; i++) {
+    out[i * 2] = HEX[(bytes[i] >> 4) & 0x0f];
+    out[i * 2 + 1] = HEX[bytes[i] & 0x0f];
+  }
+  out[length * 2] = '\0';
+  return out;
+}
+
 static int js_set_prop(JSContext *ctx, JSValue obj, const char *name, JSValue val)
 {
   if (JS_IsException(val))
@@ -215,36 +235,31 @@ char *qjs_det_eval(const char *code) {
     return format_exception(det_ctx, det_gas_limit, "<exception>", NULL);
   }
 
-  JSValue json = JS_JSONStringify(det_ctx, result, JS_UNDEFINED, JS_UNDEFINED);
+  JSDvBuffer dv = {0};
+  if (JS_EncodeDV(det_ctx, result, &JS_DV_LIMIT_DEFAULTS, &dv) != 0) {
+    JS_FreeValue(det_ctx, result);
+    char *out = format_exception(det_ctx, det_gas_limit, "<dv encode>", NULL);
+    JS_FreeDVBuffer(det_ctx, &dv);
+    return out;
+  }
+
   JS_FreeValue(det_ctx, result);
 
-  if (JS_IsException(json)) {
-    char *out = format_exception(det_ctx, det_gas_limit, "<stringify>", NULL);
-    JS_FreeValue(det_ctx, json);
-    return out;
-  }
-
-  const char *json_str = JS_ToCString(det_ctx, json);
-  if (!json_str) {
-    uint64_t remaining = JS_GetGasRemaining(det_ctx);
-    char *out =
-        format_with_gas("ERROR", "<stringify>", det_gas_limit, remaining, NULL);
-    JS_FreeValue(det_ctx, json);
-    return out;
-  }
-
   if (run_gc_checkpoint(det_ctx) != 0) {
-    char *out = format_exception(det_ctx, det_gas_limit, "<gc checkpoint>", NULL);
-    JS_FreeCString(det_ctx, json_str);
-    JS_FreeValue(det_ctx, json);
-    return out;
+    JS_FreeDVBuffer(det_ctx, &dv);
+    return format_exception(det_ctx, det_gas_limit, "<gc checkpoint>", NULL);
+  }
+
+  char *hex = hex_bytes(dv.data, dv.length);
+  JS_FreeDVBuffer(det_ctx, &dv);
+  if (!hex) {
+    uint64_t remaining = JS_GetGasRemaining(det_ctx);
+    return format_with_gas("ERROR", "<dv encode>", det_gas_limit, remaining, NULL);
   }
 
   uint64_t remaining = JS_GetGasRemaining(det_ctx);
-  char *out = format_with_gas("RESULT", json_str, det_gas_limit, remaining, NULL);
-
-  JS_FreeCString(det_ctx, json_str);
-  JS_FreeValue(det_ctx, json);
+  char *out = format_with_gas("RESULT", hex, det_gas_limit, remaining, NULL);
+  free(hex);
   return out;
 }
 

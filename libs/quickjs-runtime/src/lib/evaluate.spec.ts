@@ -68,13 +68,35 @@ describe('evaluate', () => {
     expect(handlers.document.get).not.toHaveBeenCalled();
   });
 
-  it('treats non-JSON payloads as invalid outputs', async () => {
+  it('rejects unsupported return types at the VM boundary', async () => {
+    const unsupported = ['undefined', '(() => {})', 'Symbol("x")', '1n'];
+
+    for (const code of unsupported) {
+      const result = await evaluate({
+        program: { ...BASE_PROGRAM, code },
+        input: BASE_INPUT,
+        gasLimit: TEST_GAS_LIMIT,
+        manifest: HOST_V1_MANIFEST,
+        handlers: createHandlers(),
+      });
+
+      expect(result.ok).toBe(false);
+      if (result.ok) {
+        throw new Error('expected VM failure');
+      }
+      expect(result.type).toBe('vm-error');
+      expect(result.error.kind).toBe('js-exception');
+    }
+  });
+
+  it('applies output DV limits to returned payloads', async () => {
     const result = await evaluate({
-      program: { ...BASE_PROGRAM, code: 'void 0' },
+      program: { ...BASE_PROGRAM, code: '"hello world"' },
       input: BASE_INPUT,
       gasLimit: TEST_GAS_LIMIT,
       manifest: HOST_V1_MANIFEST,
       handlers: createHandlers(),
+      outputDvLimits: { maxEncodedBytes: 4 },
     });
 
     expect(result.ok).toBe(false);
@@ -84,7 +106,7 @@ describe('evaluate', () => {
 
     expect(result.type).toBe('invalid-output');
     expect(result.error.code).toBe('INVALID_OUTPUT');
-    expect(result.message).toMatch(/non-JSON/i);
+    expect(result.message).toMatch(/payload exceeds/i);
   });
 
   it('maps HostError failures to code/tag using the manifest', async () => {

@@ -21,4 +21,4 @@ This documents the early wasm gas harness from T-029 (no host ABI) so P4 hardeni
 - Decide the canonical wasm variant (wasm32 with padded allocator vs wasm64) and lock the gas numbers before layering in the host ABI.
 - Add build metadata/hashes and deterministic packaging in `quickjs-wasm`.
 - Revisit memory sizing/fuse/config for determinism without moving gas baselines.
-- Replace the JSON-stringify harness with DV-aware plumbing once host ABI wiring lands.
+- Replace the JSON-stringify harness with DV-aware plumbing once host ABI wiring lands. Note: the deterministic entrypoint `qjs_det_eval` already returns DV-encoded bytes as lowercase hex; only the legacy `qjs_eval` harness remains JSON-stringified for gas baselines.
