@@ -12,7 +12,7 @@ import {
   type QuickjsWasmBuildVariantMetadata,
   type QuickjsWasmBuildType,
   type QuickjsWasmVariant,
-} from '@blue-quickjs/quickjs-wasm-build';
+} from '@blue-quickjs/quickjs-wasm-build/constants';
 
 export interface QuickjsWasmArtifact {
   variant: QuickjsWasmVariant;

@@ -107,9 +107,15 @@ importers:
 
   apps/smoke-web:
     dependencies:
+      '@blue-quickjs/quickjs-runtime':
+        specifier: workspace:*
+        version: link:../../libs/quickjs-runtime
       '@blue-quickjs/quickjs-wasm-build':
         specifier: workspace:*
         version: link:../../libs/quickjs-wasm-build
+      '@blue-quickjs/test-harness':
+        specifier: workspace:*
+        version: link:../../libs/test-harness
 
   libs/abi-manifest:
     dependencies:
@@ -137,6 +143,9 @@ importers:
       '@blue-quickjs/dv':
         specifier: workspace:*
         version: link:../dv
+      '@blue-quickjs/quickjs-wasm':
+        specifier: workspace:*
+        version: link:../quickjs-wasm
       tslib:
         specifier: ^2.3.0
         version: 2.8.1

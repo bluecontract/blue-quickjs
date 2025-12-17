@@ -1510,7 +1510,7 @@ Implement the host-side `host_call` function in TS, using embedder-provided dete
 ### T-062: Implement `quickjs-runtime` Wasm instantiation (Node + browser)
 
 **Phase:** P5 – TypeScript runtime SDK
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-052, T-061
 
 **Goal:**
@@ -1520,13 +1520,19 @@ Load the same wasm bytes everywhere and instantiate with the TS `host_call` adap
 
 **Detailed tasks:**
 
-- [ ] Load wasm bytes via `libs/quickjs-wasm` in Node and browser.
-- [ ] Instantiate wasm with imports including `host_call` per `docs/host-call-abi.md`.
-- [ ] Provide a `createRuntime()` API that prepares an instance for evaluation.
+- [x] Load wasm bytes via `libs/quickjs-wasm` in Node and browser.
+- [x] Instantiate wasm with imports including `host_call` per `docs/host-call-abi.md`.
+- [x] Provide a `createRuntime()` API that prepares an instance for evaluation.
 
 **Acceptance criteria:**
 
-- [ ] Node and browser can instantiate runtime successfully using the same wasm bytes.
+- [x] Node and browser can instantiate runtime successfully using the same wasm bytes.
+
+**Current state (P5 T-062):**
+
+- `createRuntime` in `libs/quickjs-runtime` loads artifacts from `@blue-quickjs/quickjs-wasm`, wires the manifest-backed host dispatcher into the wasm `host_call` import, and returns a ready module + dispatcher metadata. The smoke-web app now uses `createRuntime` with the Host.v1 fixture and mock handlers to exercise browser instantiation; runtime tests cover the Node path and host_call wiring.
+- wasm64 is explicitly rejected in `createRuntime` (host_call pointers are treated as 32-bit); wasm32 remains the canonical variant.
+- quickjs-wasm-build now exposes browser-safe constants via a dedicated `@blue-quickjs/quickjs-wasm-build/constants` entry to avoid node-only imports in browser bundles; quickjs-wasm consumes this subpath.
 
 ---
 

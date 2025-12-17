@@ -1,6 +1,7 @@
 import './app.element.css';
 
-import QuickJSGasWasm from '@blue-quickjs/quickjs-wasm-build/quickjs-eval';
+import { HOST_V1_MANIFEST } from '@blue-quickjs/test-harness';
+import { createRuntime } from '@blue-quickjs/quickjs-runtime';
 import { gasFixtures, type GasFixture } from './gas-fixtures';
 
 type HarnessResultKind = 'RESULT' | 'ERROR';
@@ -14,8 +15,6 @@ interface HarnessResult {
   trace?: string | null;
   raw: string;
 }
-
-const HOST_TRANSPORT_SENTINEL = 0xffffffff >>> 0;
 
 function parseHarnessOutput(raw: string): HarnessResult {
   const trimmed = raw.trim();
@@ -55,17 +54,24 @@ function resultsMatch(actual: HarnessResult, expected: HarnessResult): boolean {
 }
 
 async function createWasmRunner() {
-  const module = await QuickJSGasWasm({
-    host: {
-      host_call: () => HOST_TRANSPORT_SENTINEL,
+  const runtime = await createRuntime({
+    manifest: HOST_V1_MANIFEST,
+    handlers: {
+      document: {
+        get: (path: string) => ({ ok: { path }, units: 1 }),
+        getCanonical: (path: string) => ({ ok: { canonical: path }, units: 1 }),
+      },
+      emit: () => ({ ok: null, units: 0 }),
     },
   });
+  const module = runtime.module;
   const evalFn = module.cwrap('qjs_eval', 'number', ['string', 'bigint']);
   const freeFn = module.cwrap('qjs_free_output', null, ['number']);
   return (code: string, gasLimit: bigint) => {
     const ptr = evalFn(code, gasLimit);
-    const output = module.UTF8ToString(ptr);
-    freeFn(ptr);
+    const ptrNumber = normalizePtr(ptr);
+    const output = module.UTF8ToString(ptrNumber);
+    freeFn(ptrNumber);
     return output.trim();
   };
 }
@@ -254,6 +260,19 @@ export class AppElement extends HTMLElement {
       </main>
     `;
   }
+}
+
+function normalizePtr(value: unknown): number {
+  if (typeof value === 'number') {
+    return value;
+  }
+  if (typeof value === 'bigint') {
+    if (value > BigInt(Number.MAX_SAFE_INTEGER)) {
+      throw new Error('Pointer exceeds JS safe integer range');
+    }
+    return Number(value);
+  }
+  throw new Error(`Unexpected pointer type: ${typeof value}`);
 }
 
 customElements.define('blue-quickjs-root', AppElement);
