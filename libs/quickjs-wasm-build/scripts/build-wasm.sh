@@ -6,6 +6,7 @@ REPO_ROOT="$(cd -- "${SCRIPT_DIR}/../../.." && pwd)"
 PROJECT_ROOT="${REPO_ROOT}/libs/quickjs-wasm-build"
 QJS_DIR="${REPO_ROOT}/vendor/quickjs"
 OUT_DIR="${PROJECT_ROOT}/dist"
+METADATA_BASENAME="quickjs-wasm-build.metadata.json"
 VARIANTS_RAW="${WASM_VARIANTS:-wasm32}"
 
 ENV_SCRIPT="${REPO_ROOT}/tools/emsdk/emsdk_env.sh"
@@ -61,8 +62,10 @@ COMMON_EMCC_FLAGS=(
   -sEXPORT_NAME=QuickJSGasWasm
   -sWASM_BIGINT=1
   "-sEXPORTED_FUNCTIONS=['_qjs_eval','_qjs_free_output','_malloc','_free']"
-  "-sEXPORTED_RUNTIME_METHODS=['cwrap','ccall','UTF8ToString','lengthBytesUTF8']"
+"-sEXPORTED_RUNTIME_METHODS=['cwrap','ccall','UTF8ToString','lengthBytesUTF8']"
 )
+
+BUILT_VARIANTS=()
 
 inject_host_imports() {
   local js_file="$1"
@@ -117,7 +120,92 @@ for variant in "${REQUESTED_VARIANTS[@]}"; do
   emcc "${emcc_args[@]}" -o "${OUT_DIR}/quickjs-eval${suffix}.js"
   inject_host_imports "${OUT_DIR}/quickjs-eval${suffix}.js"
 
+  BUILT_VARIANTS+=("${normalized_variant}:${OUT_DIR}/quickjs-eval${suffix}.wasm:${OUT_DIR}/quickjs-eval${suffix}.js")
   echo "Built QuickJS wasm harness (${normalized_variant}):"
   echo "  JS:   ${OUT_DIR}/quickjs-eval${suffix}.js"
   echo "  Wasm: ${OUT_DIR}/quickjs-eval${suffix}.wasm"
 done
+
+if [[ ${#BUILT_VARIANTS[@]} -eq 0 ]]; then
+  echo "No wasm variants built; cannot write metadata." >&2
+  exit 1
+fi
+
+node - "${OUT_DIR}" "${QJS_DIR}" "${REPO_ROOT}/tools/scripts/emsdk-version.txt" "${METADATA_BASENAME}" "${BUILT_VARIANTS[@]}" <<'NODE'
+const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
+const { execFileSync } = require('child_process');
+
+const [outDir, qjsDir, emsdkVersionFile, metadataBasename, ...variantArgs] = process.argv.slice(2);
+if (variantArgs.length === 0) {
+  throw new Error('No variant arguments passed to metadata writer.');
+}
+
+const readTrim = (filePath) => fs.readFileSync(filePath, 'utf8').trim();
+const sha256File = (filePath) =>
+  crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
+
+const statSize = (filePath) => fs.statSync(filePath).size;
+const quickjsVersion = readTrim(path.join(qjsDir, 'VERSION'));
+let quickjsCommit = null;
+try {
+  quickjsCommit = execFileSync('git', ['-C', qjsDir, 'rev-parse', 'HEAD'], {
+    encoding: 'utf8',
+  }).trim();
+} catch {
+  quickjsCommit = null;
+}
+
+const variants = variantArgs
+  .map((entry) => {
+    const [variant, wasmPath, loaderPath] = entry.split(':');
+    if (!variant || !wasmPath || !loaderPath) {
+      throw new Error(`Invalid variant entry: ${entry}`);
+    }
+    return { variant, wasmPath, loaderPath };
+  })
+  .sort((a, b) => a.variant.localeCompare(b.variant));
+
+const variantsMeta = {};
+for (const entry of variants) {
+  const wasm = {
+    filename: path.basename(entry.wasmPath),
+    sha256: sha256File(entry.wasmPath),
+    size: statSize(entry.wasmPath),
+  };
+  const loader = {
+    filename: path.basename(entry.loaderPath),
+    sha256: sha256File(entry.loaderPath),
+    size: statSize(entry.loaderPath),
+  };
+  variantsMeta[entry.variant] = {
+    engineBuildHash: wasm.sha256,
+    wasm,
+    loader,
+  };
+}
+
+let engineBuildHash = null;
+if (variantsMeta.wasm32?.engineBuildHash) {
+  engineBuildHash = variantsMeta.wasm32.engineBuildHash;
+} else if (variantsMeta.wasm64?.engineBuildHash) {
+  engineBuildHash = variantsMeta.wasm64.engineBuildHash;
+} else if (variants.length > 0) {
+  engineBuildHash = variantsMeta[variants[0].variant].engineBuildHash;
+}
+
+const metadata = {
+  quickjsVersion,
+  quickjsCommit,
+  emscriptenVersion: readTrim(emsdkVersionFile),
+  engineBuildHash,
+  variants: variantsMeta,
+};
+
+const outPath = path.join(outDir, metadataBasename);
+fs.writeFileSync(outPath, `${JSON.stringify(metadata, null, 2)}\n`, 'utf8');
+console.log(`Wrote metadata: ${outPath}`);
+NODE
+
+echo "  Metadata: ${OUT_DIR}/${METADATA_BASENAME}"

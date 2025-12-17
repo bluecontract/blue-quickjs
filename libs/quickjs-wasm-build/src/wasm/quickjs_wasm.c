@@ -82,7 +82,7 @@ char *qjs_eval(const char *code, uint64_t gas_limit) {
   JSRuntime *rt = NULL;
   JSContext *ctx = NULL;
   char *output = NULL;
-  JSGasTrace trace;
+  JSGasTrace trace = {0};
   int trace_enabled = 0;
 
   if (JS_NewDeterministicRuntime(&rt, &ctx) != 0) {

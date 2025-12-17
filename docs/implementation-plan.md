@@ -1294,7 +1294,7 @@ Provide deterministic audit traces (request/response hashes, fn_id, gas breakdow
 ### T-050: Implement `libs/quickjs-wasm-build` pipeline scaffolding
 
 **Phase:** P4 – Emscripten build and deterministic artifacts
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-003, T-004, T-002, T-029
 
 **Goal:**
@@ -1304,13 +1304,18 @@ Compile the forked QuickJS to Wasm using pinned Emscripten.
 
 **Detailed tasks:**
 
-- [ ] Add Nx build target invoking emcc on QuickJS sources + fork changes.
-- [ ] Emit `.wasm` + loader/glue into deterministic `dist/` paths.
-- [ ] Emit build metadata (engine build hash placeholder).
+- [x] Add Nx build target invoking emcc on QuickJS sources + fork changes.
+- [x] Emit `.wasm` + loader/glue into deterministic `dist/` paths.
+- [x] Emit build metadata (engine build hash placeholder).
 
 **Acceptance criteria:**
 
-- [ ] `pnpm nx build quickjs-wasm-build` produces wasm + JS glue outputs.
+- [x] `pnpm nx build quickjs-wasm-build` produces wasm + JS glue outputs.
+
+**Current state (P4 T-050):**
+
+- `pnpm nx build quickjs-wasm-build` calls `scripts/build-wasm.sh` (emscripten 3.1.56) to emit `quickjs-eval{,-wasm64}.{js,wasm}` into `libs/quickjs-wasm-build/dist/` alongside compiled TS outputs.
+- Builds now emit `quickjs-wasm-build.metadata.json` capturing QuickJS version/commit, pinned emscripten version, per-variant artifact sizes and SHA-256 hashes, and a placeholder `engineBuildHash` (currently the wasm hash); helpers `getQuickjsWasmMetadataPath`/`readQuickjsWasmMetadata` expose the metadata.
 
 ---
 
