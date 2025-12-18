@@ -1,6 +1,5 @@
 import './app.element.css';
 
-import { encodeDv } from '@blue-quickjs/dv';
 import {
   SMOKE_BASELINE,
   SMOKE_GAS_LIMIT,
@@ -8,18 +7,14 @@ import {
   SMOKE_MANIFEST,
   SMOKE_PROGRAM,
   createSmokeHost,
-  serializeHostTape,
 } from '@blue-quickjs/test-harness';
-import {
-  type EvaluateResult,
-  evaluate,
-  type HostTapeRecord,
-} from '@blue-quickjs/quickjs-runtime';
+import { type EvaluateResult, evaluate } from '@blue-quickjs/quickjs-runtime';
 import {
   loadQuickjsWasmBinary,
   loadQuickjsWasmMetadata,
   type QuickjsWasmBuildMetadata,
 } from '@blue-quickjs/quickjs-wasm';
+import { hashDv, hashTape, sha256Hex } from './hash-utils.js';
 
 type RunState = 'idle' | 'running' | 'done' | 'error';
 
@@ -413,47 +408,6 @@ export class AppElement extends HTMLElement {
       </main>
     `;
   }
-}
-
-async function hashDv(value: unknown): Promise<string> {
-  const encoded = encodeDv(value);
-  return sha256Hex(encoded);
-}
-
-async function hashTape(tape: HostTapeRecord[]): Promise<string | null> {
-  if (tape.length === 0) {
-    return null;
-  }
-  return sha256Hex(serializeHostTape(tape));
-}
-
-async function sha256Hex(input: Uint8Array | string): Promise<string> {
-  const bytes =
-    typeof input === 'string' ? new TextEncoder().encode(input) : input;
-  if (!globalThis.crypto?.subtle) {
-    throw new Error('crypto.subtle is not available for hashing');
-  }
-  const hashInput =
-    bytes.buffer instanceof ArrayBuffer
-      ? bytes.buffer.slice(
-          bytes.byteOffset,
-          bytes.byteOffset + bytes.byteLength,
-        )
-      : (() => {
-          const copy = new Uint8Array(bytes.byteLength);
-          copy.set(bytes);
-          return copy.buffer;
-        })();
-  const digest = await globalThis.crypto.subtle.digest('SHA-256', hashInput);
-  return bufferToHex(new Uint8Array(digest));
-}
-
-function bufferToHex(bytes: Uint8Array): string {
-  let hex = '';
-  for (const byte of bytes) {
-    hex += byte.toString(16).padStart(2, '0');
-  }
-  return hex;
 }
 
 customElements.define('blue-quickjs-root', AppElement);

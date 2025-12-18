@@ -1719,7 +1719,7 @@ Run the same fixtures in browser and show stable results and wasm hash.
 ### T-080: Cross-environment determinism harness (Node vs headless browser)
 
 **Phase:** P7 – Determinism & CI
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-071, T-028, T-064
 
 **Goal:**
@@ -1727,19 +1727,21 @@ Prove Baseline determinism: same `(P, I, G)` yields identical outputs and OOG po
 
 **Baseline references:** Baseline #1 §1–§2; Baseline #2 §0.3
 
+**Current state:** Playwright runs smoke-web headlessly; determinism and gas fixtures live in `libs/test-harness` and are asserted in `apps/smoke-node` + `apps/smoke-web/tests` with cross-env equality (DV hash, errors, gas, tape).
+
 **Detailed tasks:**
 
-- [ ] Set up Playwright to run `smoke-web` headlessly or run a direct test page.
-- [ ] Create fixtures in `libs/test-harness`: P, I, G, manifest bytes + expected hashes.
-- [ ] Compare Node vs browser outputs:
-  - [ ] returned DV bytes hash,
-  - [ ] error code/tag (if any),
-  - [ ] gas used/remaining,
-  - [ ] tape hash (if enabled).
+- [x] Set up Playwright to run `smoke-web` headlessly or run a direct test page.
+- [x] Create fixtures in `libs/test-harness`: P, I, G, manifest bytes + expected hashes.
+- [x] Compare Node vs browser outputs:
+  - [x] returned DV bytes hash,
+  - [x] error code/tag (if any),
+  - [x] gas used/remaining,
+  - [x] tape hash (if enabled).
 
 **Acceptance criteria:**
 
-- [ ] At least 5 fixtures pass cross-env with exact equality of compared fields.
+- [x] At least 5 fixtures pass cross-env with exact equality of compared fields.
 
 ---
 
