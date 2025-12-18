@@ -6,6 +6,11 @@ This file is the “source of truth” execution plan for Codex (Cursor IDE) to 
 - A **manifest-locked, numeric-ID, single-dispatcher host ABI** (Baseline #2),
 - A **read-only Blue-style JS context** (`document()`, `event`, `steps`, `canon`) intended to be embedded by Blue’s external `document-processor`.
 
+Baseline anchors:
+
+- Baseline #1: `docs/baseline-1.md`
+- Baseline #2: `docs/baseline-2.md`
+
 This repo intentionally does **not** implement document overlay/commit logic. That remains the responsibility of `document-processor`.
 However, Baseline #2 still applies: even read-only `document(path)` is a host capability and must be exposed through the syscall/manifest/DV model.
 
@@ -1210,16 +1215,16 @@ Provide `document()`, `event`, `steps`, and `canon` helpers consistent with Blue
 
 **Detailed tasks:**
 
- - [x] Implement `document(path)` as a wrapper calling `Host.v1.document.get(path)`.
- - [x] Implement `document.canonical(path)` calling `Host.v1.document.getCanonical(path)`.
- - [x] Accept injected DV values for `event`, `eventCanonical`, `steps` from input envelope `I` (wired later).
- - [x] Implement `canon.unwrap` and `canon.at` as pure JS helpers (loaded deterministically by init).
- - [x] Freeze/lock `document`, `event`, `eventCanonical`, `steps`, `canon`.
+- [x] Implement `document(path)` as a wrapper calling `Host.v1.document.get(path)`.
+- [x] Implement `document.canonical(path)` calling `Host.v1.document.getCanonical(path)`.
+- [x] Accept injected DV values for `event`, `eventCanonical`, `steps` from input envelope `I` (wired later).
+- [x] Implement `canon.unwrap` and `canon.at` as pure JS helpers (loaded deterministically by init).
+- [x] Freeze/lock `document`, `event`, `eventCanonical`, `steps`, `canon`.
 
 **Acceptance criteria:**
 
- - [x] A test script can call `document("x")` and read `event`/`steps`.
- - [x] Helpers behave deterministically and cannot be overridden by user code.
+- [x] A test script can call `document("x")` and read `event`/`steps`.
+- [x] Helpers behave deterministically and cannot be overridden by user code.
 
 **Current state (P3 T-041):**
 
@@ -1306,7 +1311,7 @@ Compile the forked QuickJS to Wasm using pinned Emscripten.
 
 - [x] Add Nx build target invoking emcc on QuickJS sources + fork changes.
 - [x] Emit `.wasm` + loader/glue into deterministic `dist/` paths.
-- [x] Emit build metadata (engine build hash placeholder).
+- [x] Emit build metadata (engine build hash).
 
 **Acceptance criteria:**
 
@@ -1315,7 +1320,7 @@ Compile the forked QuickJS to Wasm using pinned Emscripten.
 **Current state (P4 T-050):**
 
 - `pnpm nx build quickjs-wasm-build` calls `scripts/build-wasm.sh` (emscripten 3.1.56) to emit `quickjs-eval{,-wasm64}.{js,wasm}` into `libs/quickjs-wasm-build/dist/` alongside compiled TS outputs.
-- Builds now emit `quickjs-wasm-build.metadata.json` capturing QuickJS version/commit, pinned emscripten version, per-variant artifact sizes and SHA-256 hashes, and a placeholder `engineBuildHash` (currently the wasm hash); helpers `getQuickjsWasmMetadataPath`/`readQuickjsWasmMetadata` expose the metadata.
+- Builds now emit `quickjs-wasm-build.metadata.json` capturing QuickJS version/commit, pinned emscripten version, per-variant artifact sizes and SHA-256 hashes, plus `engineBuildHash` (sha256 of wasm bytes, with the top-level hash pointing at wasm32 release when present); helpers `getQuickjsWasmMetadataPath`/`readQuickjsWasmMetadata` expose the metadata.
 
 ---
 
@@ -1856,7 +1861,7 @@ Update docs to match implementation and tests.
 ### T-085: Release packaging strategy (pin engine + ABI)
 
 **Phase:** P7 – Determinism & CI
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-053, T-064
 
 **Goal:**
@@ -1866,14 +1871,47 @@ Define versioning/publishing so consumers can pin engine/ABI reliably.
 
 **Detailed tasks:**
 
-- [ ] Define publishing for `quickjs-wasm`, `quickjs-runtime`, `dv`, `abi-manifest`.
-- [ ] Define how `engine_build_hash` is computed and exposed.
-- [ ] Define semver policy: what changes require new engine hash, new manifest, or new fn_id.
-- [ ] Add release checklist doc.
+- [x] Define publishing for `quickjs-wasm`, `quickjs-runtime`, `dv`, `abi-manifest`.
+- [x] Define how `engine_build_hash` is computed and exposed.
+- [x] Define semver policy: what changes require new engine hash, new manifest, or new fn_id.
+- [x] Add release checklist doc.
 
 **Acceptance criteria:**
 
-- [ ] Release policy is documented and aligns with P pinning requirements.
+- [x] Release policy is documented and aligns with P pinning requirements.
+
+**Current state (P7 T-085):**
+
+- Added `docs/release-policy.md` covering published packages, engine/manifest hash definitions, and semver/hash/fn_id policy.
+- Added `docs/release-checklist.md` with preflight, build, hash verification, and publishing steps.
+
+---
+
+# Phase P8 — Legacy wasm harness cleanup
+
+### T-090: Retire legacy wasm JSON gas harness and consolidate docs
+
+**Phase:** P8 – Legacy wasm harness cleanup
+**Status:** TODO
+**Depends on:** T-053, T-063, T-064
+
+**Goal:**
+Remove the pre-ABI `qjs_eval`/`qjs_free_output` JSON harness, move wasm consumers/tests to the deterministic ABI path, and fold any still-relevant notes into canonical docs so `docs/wasm-gas-harness.md` can be deleted.
+
+**Current state:**
+Wasm build still exports `qjs_eval` for gas fixtures; tests in `libs/test-harness`, `libs/quickjs-wasm`, and `libs/quickjs-runtime` parse the legacy `RESULT|ERROR … GAS …` output. The temporary doc `docs/wasm-gas-harness.md` is the only place this legacy contract is described.
+
+**Detailed tasks:**
+
+- [ ] Update wasm-facing tests to use the deterministic ABI entrypoints: drive `qjs_det_init`/`qjs_det_eval` with the manifest + DV payloads in `libs/test-harness/src/lib/gas-equivalence.spec.ts`, `libs/quickjs-wasm/src/lib/quickjs-wasm.spec.ts`, and `libs/quickjs-runtime/src/lib/runtime.spec.ts`; rebaseline gas expectations from the ABI path.
+- [ ] Remove legacy exports from the wasm harness: drop `qjs_eval`/`qjs_free_output` from `libs/quickjs-wasm-build/src/wasm/quickjs_wasm.c` and from the exported symbols list in `libs/quickjs-wasm-build/scripts/build-wasm.sh`; update `libs/quickjs-wasm-build/README.md` to describe only the deterministic ABI entrypoints.
+- [ ] Consolidate documentation: migrate any persistent artifact path/metadata notes from `docs/wasm-gas-harness.md` into the appropriate canonical doc (`docs/toolchain.md` or this plan’s P4 state) and remove `docs/wasm-gas-harness.md` plus its reference in this file.
+
+**Acceptance criteria:**
+
+- [ ] No tests or harnesses call `qjs_eval` or parse the legacy `RESULT|ERROR … GAS …` format; ABI/DV-based entrypoints are used instead.
+- [ ] Wasm build outputs expose only the deterministic ABI exports, and README/build scripts match.
+- [ ] `docs/wasm-gas-harness.md` is deleted and any needed stable details live in existing canonical docs.
 
 ---
 
