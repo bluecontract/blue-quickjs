@@ -163,8 +163,6 @@ describe('evaluate', () => {
       handlers,
     });
 
-    console.log(result);
-
     expect(result.ok).toBe(false);
     if (result.ok) {
       throw new Error('expected host transport error');
