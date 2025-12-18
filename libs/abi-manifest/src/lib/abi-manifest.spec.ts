@@ -164,6 +164,22 @@ describe('abi-manifest', () => {
     expect(() => validateAbiManifest(manifest)).toThrow(AbiManifestError);
   });
 
+  it('rejects reserved host error codes', () => {
+    const manifest: AbiManifest = {
+      ...HOST_V1_MANIFEST,
+      functions: [
+        {
+          ...HOST_V1_MANIFEST.functions[0],
+          error_codes: [
+            { code: 'HOST_ENVELOPE_INVALID', tag: 'host/envelope_invalid' },
+          ],
+        },
+      ],
+    };
+
+    expect(() => validateAbiManifest(manifest)).toThrow(AbiManifestError);
+  });
+
   it('rejects forbidden js_path segments', () => {
     const manifest: AbiManifest = {
       ...HOST_V1_MANIFEST,
