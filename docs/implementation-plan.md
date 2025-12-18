@@ -1807,7 +1807,7 @@ Ensure ABI pinning is enforced deterministically.
 ### T-083: CI pipeline (build, test, wasm build, browser tests)
 
 **Phase:** P7 – Determinism & CI
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-080, T-004
 
 **Goal:**
@@ -1815,14 +1815,19 @@ Add CI that builds and tests everything including headless browser determinism a
 
 **Detailed tasks:**
 
-- [ ] Add CI workflow steps: install, lint, unit tests, native harness tests, wasm build, Playwright tests.
-- [ ] Cache pnpm store and emsdk.
-- [ ] Upload wasm artifacts as CI artifacts (optional).
+- [x] Add CI workflow steps: install, lint, unit tests, native harness tests, wasm build, Playwright tests.
+- [x] Cache pnpm store and emsdk.
+- [x] Upload wasm artifacts as CI artifacts (optional).
 
 **Acceptance criteria:**
 
-- [ ] CI passes from a clean checkout.
-- [ ] Determinism tests are not flaky.
+- [x] CI passes from a clean checkout.
+- [x] Determinism tests are not flaky.
+
+**Current state (P7 T-083):**
+
+- CI runs lint/typecheck/test/build across all projects, installs/caches emsdk, executes Playwright smoke tests, and uploads wasm artifacts from `libs/quickjs-wasm-build/dist`.
+- Node version is sourced from `.nvmrc`, with pnpm caching enabled.
 
 ---
 
