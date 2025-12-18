@@ -1778,7 +1778,7 @@ Verify host-call charging and deterministic behavior for document reads.
 ### T-082: Manifest pinning tests (wrong hash, wrong manifest, wrong fn_id mapping)
 
 **Phase:** P7 – Determinism & CI
-**Status:** TODO
+**Status:** DONE
 **Depends on:** T-036, T-064
 
 **Goal:**
@@ -1788,13 +1788,19 @@ Ensure ABI pinning is enforced deterministically.
 
 **Detailed tasks:**
 
-- [ ] Test: manifest hash mismatch fails deterministically.
-- [ ] Test: manifest entry order changes but canonical serialization yields same hash (if canonicalized).
-- [ ] Test: unknown fn_id invoked fails deterministically.
+- [x] Test: manifest hash mismatch fails deterministically.
+- [x] Test: manifest entry order changes but canonical serialization yields same hash (if canonicalized).
+- [x] Test: unknown fn_id invoked fails deterministically.
 
 **Acceptance criteria:**
 
-- [ ] All ABI mismatch scenarios are deterministic and code/tag stable.
+- [x] All ABI mismatch scenarios are deterministic and code/tag stable.
+
+**Current state (P7 T-082):**
+
+- Manifest hash mismatch is covered in `libs/quickjs-runtime/src/lib/deterministic-init.spec.ts`.
+- Canonicalization parity (hash stable under key reordering) is covered in `libs/abi-manifest/src/lib/abi-manifest.spec.ts`.
+- Unknown `fn_id` dispatch is covered in `libs/quickjs-runtime/src/lib/host-dispatcher.spec.ts` and surfaced as `HOST_TRANSPORT` in `libs/quickjs-runtime/src/lib/evaluate.spec.ts`.
 
 ---
 
