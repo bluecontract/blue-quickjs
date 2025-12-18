@@ -21,8 +21,29 @@ export async function sha256Hex(input: Uint8Array | string): Promise<string> {
   if (!globalThis.crypto?.subtle) {
     throw new Error('crypto.subtle is not available for hashing');
   }
-  const digest = await globalThis.crypto.subtle.digest('SHA-256', bytes);
+  // WebCrypto expects a BufferSource backed by an ArrayBuffer. When `@types/node`
+  // is in play, `Uint8Array` is typed as potentially backed by `SharedArrayBuffer`
+  // which doesn't satisfy the DOM `BufferSource` type. Convert to `ArrayBuffer`
+  // deterministically (copying only when needed).
+  const digest = await globalThis.crypto.subtle.digest(
+    'SHA-256',
+    bytesToArrayBuffer(bytes),
+  );
   return bufferToHex(new Uint8Array(digest));
+}
+
+function bytesToArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  const { buffer, byteOffset, byteLength } = bytes;
+  if (buffer instanceof ArrayBuffer) {
+    if (byteOffset === 0 && byteLength === buffer.byteLength) {
+      return buffer;
+    }
+    return buffer.slice(byteOffset, byteOffset + byteLength);
+  }
+
+  // `buffer` is some other `ArrayBufferLike` (e.g. SharedArrayBuffer). Copy the
+  // view into a fresh `ArrayBuffer`.
+  return new Uint8Array(bytes).buffer;
 }
 
 function bufferToHex(bytes: Uint8Array): string {
