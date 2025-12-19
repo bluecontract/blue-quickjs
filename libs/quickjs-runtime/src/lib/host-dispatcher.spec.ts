@@ -1,5 +1,5 @@
 import { encodeDv, decodeDv } from '@blue-quickjs/dv';
-import { HOST_V1_MANIFEST } from '@blue-quickjs/test-harness';
+import { HOST_V1_MANIFEST } from '@blue-quickjs/abi-manifest';
 import {
   type DocumentHostHandlers,
   type EmitHostHandler,

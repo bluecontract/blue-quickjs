@@ -288,10 +288,12 @@ Reference details: [Host call ABI](./host-call-abi.md), [DV wire format](./dv-wi
 - `libs/abi-manifest/`
   - schema validation
   - canonical manifest encoding and hashing
+  - public Host.v1 manifest fixtures (`HOST_V1_*`)
 - `libs/dv/`
   - DV reference encode/decode used by the host dispatcher and tests
 - `libs/test-harness/`
-  - fixtures (Host.v1 manifest, determinism inputs, gas samples)
+  - fixtures (determinism inputs, gas samples)
+  - re-exports Host.v1 manifest fixtures for internal tests
   - output parsing utilities
 - `libs/quickjs-wasm-build/` + `libs/quickjs-wasm/`
   - deterministic wasm build pipeline and artifact metadata
@@ -381,4 +383,3 @@ Details: [ABI manifest](./abi-manifest.md), [Host call ABI](./host-call-abi.md),
 - Wasm memory is configured for determinism (fixed sizing; no growth). See [Toolchain](./toolchain.md).
 - The determinism profile is intentionally restrictive; many JS APIs are not available. See [Determinism profile](./determinism-profile.md).
 - “Gas trace” attributes only VM-internal categories; host-call gas is billed but not counted inside trace totals. See [Gas schedule](./gas-schedule.md) and [Observability](./observability.md).
-

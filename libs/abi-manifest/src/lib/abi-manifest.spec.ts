@@ -1,45 +1,25 @@
-import { Buffer } from 'node:buffer';
-import { readFileSync } from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { bytesToHex } from '@noble/hashes/utils';
 import {
-  AbiManifest,
   AbiManifestError,
   encodeAbiManifest,
   hashAbiManifest,
   hashAbiManifestBytes,
   validateAbiManifest,
 } from './abi-manifest.js';
-
-const here = path.dirname(fileURLToPath(import.meta.url));
-const fixturesDir = path.resolve(
-  here,
-  '../../../test-harness/fixtures/abi-manifest',
-);
-
-const HOST_V1_MANIFEST_PATH = path.join(fixturesDir, 'host-v1.json');
-const HOST_V1_BYTES_HEX = readText('host-v1.bytes.hex');
-const HOST_V1_HASH = readText('host-v1.hash');
-
-const HOST_V1_MANIFEST: AbiManifest = JSON.parse(
-  readFileSync(HOST_V1_MANIFEST_PATH, 'utf8'),
-);
-const HOST_V1_BYTES = new Uint8Array(Buffer.from(HOST_V1_BYTES_HEX, 'hex'));
-
-function hex(bytes: Uint8Array): string {
-  return Buffer.from(bytes).toString('hex');
-}
-
-function readText(filename: string): string {
-  return readFileSync(path.join(fixturesDir, filename), 'utf8').trim();
-}
+import type { AbiManifest } from './abi-manifest.js';
+import {
+  HOST_V1_BYTES,
+  HOST_V1_BYTES_HEX,
+  HOST_V1_HASH,
+  HOST_V1_MANIFEST,
+} from './host-v1-manifest.js';
 
 describe('abi-manifest', () => {
   it('produces canonical bytes and hash for the Host.v1 manifest', () => {
     const { bytes, hash, manifest } = hashAbiManifest(HOST_V1_MANIFEST);
     expect(manifest).toEqual(validateAbiManifest(HOST_V1_MANIFEST));
     expect(new Uint8Array(bytes)).toEqual(HOST_V1_BYTES);
-    expect(hex(bytes)).toEqual(HOST_V1_BYTES_HEX);
+    expect(bytesToHex(bytes)).toEqual(HOST_V1_BYTES_HEX);
     expect(hash).toEqual(HOST_V1_HASH);
   });
 

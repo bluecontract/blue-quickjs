@@ -1,8 +1,7 @@
 import { decodeDv, encodeDv } from '@blue-quickjs/dv';
+import { HOST_V1_HASH, HOST_V1_MANIFEST } from '@blue-quickjs/abi-manifest';
 import {
   DETERMINISM_INPUT,
-  HOST_V1_HASH,
-  HOST_V1_MANIFEST,
   hexToBytes,
   parseDeterministicOutput,
 } from '@blue-quickjs/test-harness';
