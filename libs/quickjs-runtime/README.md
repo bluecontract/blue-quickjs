@@ -17,7 +17,7 @@ If you are looking for the conceptual architecture and contracts, start with:
 
 ```ts
 import { evaluate } from '@blue-quickjs/quickjs-runtime';
-import { HOST_V1_MANIFEST, HOST_V1_HASH } from '@blue-quickjs/test-harness';
+import { HOST_V1_MANIFEST, HOST_V1_HASH } from '@blue-quickjs/abi-manifest';
 
 const result = await evaluate({
   program: {
@@ -80,4 +80,3 @@ This library is part of an Nx workspace.
 
 - Build: `pnpm nx build quickjs-runtime`
 - Test: `pnpm nx test quickjs-runtime`
-

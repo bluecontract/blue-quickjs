@@ -1,4 +1,4 @@
-import { HOST_V1_HASH, HOST_V1_MANIFEST } from '@blue-quickjs/test-harness';
+import { HOST_V1_HASH, HOST_V1_MANIFEST } from '@blue-quickjs/abi-manifest';
 import { vi } from 'vitest';
 import { evaluate } from './evaluate.js';
 import type { HostDispatcherHandlers } from './host-dispatcher.js';

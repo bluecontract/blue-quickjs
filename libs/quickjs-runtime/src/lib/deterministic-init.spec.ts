@@ -1,5 +1,5 @@
 import { decodeDv } from '@blue-quickjs/dv';
-import { HOST_V1_HASH, HOST_V1_MANIFEST } from '@blue-quickjs/test-harness';
+import { HOST_V1_HASH, HOST_V1_MANIFEST } from '@blue-quickjs/abi-manifest';
 import { initializeDeterministicVm } from './deterministic-init.js';
 import type { HostDispatcherHandlers } from './host-dispatcher.js';
 import { parseHexToBytes } from './hex-utils.js';

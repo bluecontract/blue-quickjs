@@ -86,7 +86,7 @@ This repo ensures:
 # Current repo snapshot (kickoff)
 
 - Nx 22.2 workspace scaffold exists with pnpm (`nx.json`, `tsconfig.base.json`, `package.json`, `pnpm-workspace.yaml`).
-- Publishable libs are scaffolded (`dv`, `abi-manifest`, `quickjs-wasm-build`, `quickjs-wasm`, `quickjs-runtime`, `test-harness`) plus smoke apps (`smoke-node`, `smoke-web`) with placeholder src/tests and passing build/test targets.
+- Publishable libs are scaffolded (`dv`, `abi-manifest`, `quickjs-wasm`, `quickjs-runtime`), with internal libs (`quickjs-wasm-build`, `test-harness`) plus smoke apps (`smoke-node`, `smoke-web`) and placeholder src/tests passing build/test targets.
 - Lint/format configs and root scripts are in place; `README.md` still contains the Nx placeholder.
 - Docs folder currently only has this plan; toolchain/docs stubs are missing.
 
@@ -1039,7 +1039,7 @@ Lock down the minimal host ABI surface required by the read-only evaluator.
 
 **Current state (P3 T-035):**
 
-- Added `Host.v1` manifest fixture at `libs/test-harness/fixtures/abi-manifest/host-v1.json` with `document.get`, `document.getCanonical`, and `emit`; canonical DV bytes and SHA-256 hash are pinned alongside in `.bytes.hex`/`.hash` with a TS loader exported from `@blue-quickjs/test-harness`.
+- Added `Host.v1` manifest fixture at `libs/test-harness/fixtures/abi-manifest/host-v1.json` with `document.get`, `document.getCanonical`, and `emit`; canonical DV bytes and SHA-256 hash are pinned alongside in `.bytes.hex`/`.hash` with a TS loader exported from `@blue-quickjs/abi-manifest` (and re-exported by `@blue-quickjs/test-harness`).
 - `libs/abi-manifest` tests now consume the fixture to assert canonical bytes/hash parity via `hashAbiManifest`/`hashAbiManifestBytes`, locking in the reproducible manifest encoding.
 
 ---

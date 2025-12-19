@@ -36,5 +36,13 @@
   "devDependencies": {
     "@blue-quickjs/dv": "workspace:*",
     "@blue-quickjs/test-harness": "workspace:*"
+  },
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bluecontract/blue-quickjs.git"
   }
 }

@@ -20,7 +20,7 @@ Scope: steps to publish deterministic engine + ABI packages.
 
 - If the manifest changed:
   - Re-encode + hash with `@blue-quickjs/abi-manifest`.
-  - Update `libs/test-harness/fixtures/abi-manifest/*` and any tests that pin `HOST_V1_HASH`.
+  - Update `libs/test-harness/fixtures/abi-manifest/*`, the public `HOST_V1_*` exports in `libs/abi-manifest/src/lib/host-v1-manifest.ts`, and any tests that pin `HOST_V1_HASH`.
 
 ## Versioning
 

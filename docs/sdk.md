@@ -18,7 +18,7 @@ The easiest path is the one-shot convenience API:
 
 ```ts
 import { evaluate } from '@blue-quickjs/quickjs-runtime';
-import { HOST_V1_MANIFEST } from '@blue-quickjs/test-harness';
+import { HOST_V1_MANIFEST } from '@blue-quickjs/abi-manifest';
 
 // Your program artifact (code + ABI pinning metadata)
 const program = {
