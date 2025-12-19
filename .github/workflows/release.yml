@@ -61,5 +61,5 @@ jobs:
         shell: bash
 
       - name: Release
-        run: pnpm exec nx release --skip-publish
+        run: pnpm exec nx release --skip-publish --first-release
         shell: bash
