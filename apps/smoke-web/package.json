@@ -13,9 +13,12 @@
     "name": "smoke-web",
     "targets": {
       "e2e": {
+        "dependsOn": [
+          "^build"
+        ],
         "executor": "nx:run-commands",
         "options": {
-          "command": "pnpm nx run-many -t build --projects=quickjs-wasm-build,test-harness && pnpm playwright test apps/smoke-web/tests --config apps/smoke-web/playwright.config.cts",
+          "command": "pnpm playwright test apps/smoke-web/tests --config apps/smoke-web/playwright.config.cts",
           "cwd": "."
         }
       }
