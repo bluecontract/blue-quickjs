@@ -24,7 +24,7 @@ jobs:
         with:
           fetch-depth: 0
           submodules: recursive
-          ref: ${{ inputs.branch || github.ref }}
+          ref: ${{ github.ref }}
           token: ${{ secrets.RELEASE_PAT }}
 
       - uses: pnpm/action-setup@v4
