@@ -209,6 +209,9 @@ importers:
       '@blue-quickjs/quickjs-wasm-build':
         specifier: workspace:*
         version: link:../quickjs-wasm-build
+      '@blue-quickjs/quickjs-wasm-constants':
+        specifier: workspace:*
+        version: link:../quickjs-wasm-constants
 
 packages:
 
