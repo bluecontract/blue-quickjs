@@ -1378,7 +1378,7 @@ Publish Wasm bytes + loader and metadata in a consumable library.
 **Current state (P4 T-052):**
 
 - `@blue-quickjs/quickjs-wasm` packages `quickjs-eval{,-debug}{,-wasm64}.{js,wasm}` and `quickjs-wasm-build.metadata.json` under `dist/wasm`, exporting them in `package.json`.
-- Public helpers (`loadQuickjsWasmMetadata`, `getQuickjsWasmArtifact`, `loadQuickjsWasmBinary`, `loadQuickjsWasmLoaderSource`) resolve artifacts in Node (file URLs) and browser/bundler contexts; constants/types come from `@blue-quickjs/quickjs-wasm-build`, and helpers accept both `variant` and `buildType`.
+- Public helpers (`loadQuickjsWasmMetadata`, `getQuickjsWasmArtifact`, `loadQuickjsWasmBinary`, `loadQuickjsWasmLoaderSource`) resolve artifacts in Node (file URLs) and browser/bundler contexts; constants/types come from `@blue-quickjs/quickjs-wasm-constants`, and helpers accept both `variant` and `buildType`.
 - Vite build copies artifacts from `quickjs-wasm-build/dist` into the package; tests assert metadata presence and successful wasm/loader loading (magic header, host_call marker). `quickjs-wasm-build` remains the build-only/private producer of artifacts.
 
 ---
@@ -1536,7 +1536,7 @@ Load the same wasm bytes everywhere and instantiate with the TS `host_call` adap
 
 - `createRuntime` in `libs/quickjs-runtime` loads artifacts from `@blue-quickjs/quickjs-wasm`, wires the manifest-backed host dispatcher into the wasm `host_call` import, and returns a ready module + dispatcher metadata. The smoke-web app now uses `createRuntime` with the Host.v1 fixture and mock handlers to exercise browser instantiation; runtime tests cover the Node path and host_call wiring.
 - wasm64 is explicitly rejected in `createRuntime` (host_call pointers are treated as 32-bit); wasm32 remains the canonical variant.
-- quickjs-wasm-build now exposes browser-safe constants via a dedicated `@blue-quickjs/quickjs-wasm-build/constants` entry to avoid node-only imports in browser bundles; quickjs-wasm consumes this subpath.
+- Browser-safe constants now live in `@blue-quickjs/quickjs-wasm-constants` to avoid node-only imports in browser bundles; quickjs-wasm consumes this package.
 
 ---
 

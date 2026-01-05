@@ -1,7 +1,6 @@
 {
-  "name": "@blue-quickjs/test-harness",
-  "version": "0.0.1",
-  "private": true,
+  "name": "@blue-quickjs/quickjs-wasm-constants",
+  "version": "0.1.0",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -17,23 +16,20 @@
   },
   "files": [
     "dist",
-    "fixtures",
     "!**/*.tsbuildinfo"
   ],
   "nx": {
-    "name": "test-harness",
-    "implicitDependencies": [
-      "quickjs-native-harness",
-      "quickjs-wasm-build"
-    ]
-  },
-  "devDependencies": {
-    "@blue-quickjs/quickjs-wasm-build": "workspace:*",
-    "@blue-quickjs/quickjs-wasm-constants": "workspace:*"
+    "name": "quickjs-wasm-constants"
   },
   "dependencies": {
-    "@blue-quickjs/abi-manifest": "workspace:*",
-    "@blue-quickjs/dv": "workspace:*",
     "tslib": "^2.3.0"
+  },
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bluecontract/blue-quickjs.git"
   }
 }

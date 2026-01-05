@@ -12,7 +12,7 @@ import {
   type QuickjsWasmBuildVariantMetadata,
   type QuickjsWasmBuildType,
   type QuickjsWasmVariant,
-} from '@blue-quickjs/quickjs-wasm-build/constants';
+} from '@blue-quickjs/quickjs-wasm-constants';
 
 export interface QuickjsWasmArtifact {
   variant: QuickjsWasmVariant;
@@ -28,7 +28,7 @@ export type {
   QuickjsWasmBuildVariantMetadata,
   QuickjsWasmBuildType,
   QuickjsWasmVariant,
-} from '@blue-quickjs/quickjs-wasm-build';
+} from '@blue-quickjs/quickjs-wasm-constants';
 
 const PACKAGE_WASM_DIR = './wasm';
 const FALLBACK_BUILD_DIR = '../../../quickjs-wasm-build/dist';

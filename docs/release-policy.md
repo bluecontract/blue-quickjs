@@ -6,6 +6,7 @@ Scope: define publishing and versioning policy so consumers can pin engine + ABI
 
 - `@blue-quickjs/dv`: DV encode/decode + validation (pure TS).
 - `@blue-quickjs/abi-manifest`: manifest schema + canonical DV encoding + hashing (depends on DV).
+- `@blue-quickjs/quickjs-wasm-constants`: shared wasm artifact constants + metadata types.
 - `@blue-quickjs/quickjs-wasm`: packaged wasm + loader + build metadata (`quickjs-wasm-build.metadata.json`).
 - `@blue-quickjs/quickjs-runtime`: SDK to evaluate `(P, I, G)` with manifest-backed host dispatch.
 
@@ -64,6 +65,11 @@ Semver communicates JS/TS API compatibility; engine/ABI pinning is done via hash
   - Minor: additive APIs or new Host.v1 functions (new `fn_id`) that do not invalidate
     existing programs.
   - Patch: bugfixes or packaging changes that do not change deterministic outputs.
+
+- `@blue-quickjs/quickjs-wasm-constants`:
+  - Major: breaking type/constant changes.
+  - Minor: additive types/constants.
+  - Patch: packaging or doc-only changes.
 
 - `@blue-quickjs/dv`:
   - Major: wire-format changes, numeric rules/limits changes.

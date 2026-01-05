@@ -4,11 +4,11 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { describe, expect, test, beforeAll } from 'vitest';
 import { decodeDv, encodeDv } from '@blue-quickjs/dv';
-import {
-  type QuickjsWasmBuildType,
-  type QuickjsWasmVariant,
-  getQuickjsWasmArtifacts,
-} from '@blue-quickjs/quickjs-wasm-build';
+import { getQuickjsWasmArtifacts } from '@blue-quickjs/quickjs-wasm-build';
+import type {
+  QuickjsWasmBuildType,
+  QuickjsWasmVariant,
+} from '@blue-quickjs/quickjs-wasm-constants';
 import { HOST_V1_BYTES, HOST_V1_HASH } from './abi-manifest-fixtures.js';
 import { DETERMINISM_INPUT } from './determinism-fixtures.js';
 import {
