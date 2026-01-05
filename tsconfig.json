@@ -26,6 +26,9 @@
     },
     {
       "path": "./apps/smoke-node"
+    },
+    {
+      "path": "./libs/quickjs-wasm-constants"
     }
   ]
 }

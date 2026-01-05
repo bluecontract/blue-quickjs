@@ -31,7 +31,7 @@
     "name": "quickjs-wasm"
   },
   "dependencies": {
-    "@blue-quickjs/quickjs-wasm-build": "workspace:*"
+    "@blue-quickjs/quickjs-wasm-constants": "workspace:*"
   },
   "devDependencies": {
     "@blue-quickjs/dv": "workspace:*",

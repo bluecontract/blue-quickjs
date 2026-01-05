@@ -92,7 +92,7 @@ The TypeScript SDK loads the prebuilt wasm artifact(s) and wires the imported `h
 Code pointers:
 - Runtime loader: `libs/quickjs-runtime/src/lib/runtime.ts`
 - Host dispatcher: `libs/quickjs-runtime/src/lib/host-dispatcher.ts`
-- Wasm artifacts packaging: `libs/quickjs-wasm/` and `libs/quickjs-wasm-build/`
+- Wasm artifacts packaging: `libs/quickjs-wasm/`, `libs/quickjs-wasm-build/`, and `libs/quickjs-wasm-constants/`
 
 Build determinism details: [Toolchain](./toolchain.md).
 

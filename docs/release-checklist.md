@@ -28,10 +28,11 @@ Scope: steps to publish deterministic engine + ABI packages.
 - Update versions in:
   - `libs/dv/package.json`
   - `libs/abi-manifest/package.json`
+  - `libs/quickjs-wasm-constants/package.json`
   - `libs/quickjs-wasm/package.json`
   - `libs/quickjs-runtime/package.json`
 
 ## Publish
 
-- Publish the four packages from their package roots after build (dist/ is included in `files`).
+- Publish the five packages from their package roots after build (dist/ is included in `files`).
 - Tag the release and record the engine build hash + manifest hash in the release notes.

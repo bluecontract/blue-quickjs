@@ -51,6 +51,7 @@ Most people end up reading some docs and then jumping into these locations:
 - **TypeScript libraries**
   - DV reference implementation: `libs/dv/`
   - Manifest schema + canonical encoding/hashing: `libs/abi-manifest/`
+  - Wasm constants + metadata types: `libs/quickjs-wasm-constants/`
   - Wasm build pipeline + metadata: `libs/quickjs-wasm-build/`
   - Packaged wasm artifacts: `libs/quickjs-wasm/`
   - Runtime SDK (evaluate / init / dispatcher): `libs/quickjs-runtime/`
@@ -62,4 +63,3 @@ Most people end up reading some docs and then jumping into these locations:
 
 - **Native harness (golden tests & debugging)**
   - `tools/quickjs-native-harness/`
-

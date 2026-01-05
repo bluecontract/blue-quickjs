@@ -14,7 +14,7 @@ import {
   type QuickjsWasmBuildMetadata,
   type QuickjsWasmBuildType,
   type QuickjsWasmVariant,
-} from './quickjs-wasm-constants.js';
+} from '@blue-quickjs/quickjs-wasm-constants';
 
 function resolveArtifactDir(): string {
   const baseUrl = new URL('../..', import.meta.url);

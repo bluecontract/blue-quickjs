@@ -14,12 +14,6 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
-    "./constants": {
-      "@blue-quickjs/source": "./src/lib/quickjs-wasm-constants.ts",
-      "types": "./dist/lib/quickjs-wasm-constants.d.ts",
-      "import": "./dist/lib/quickjs-wasm-constants.js",
-      "default": "./dist/lib/quickjs-wasm-constants.js"
-    },
     "./quickjs-eval-debug.wasm": "./dist/quickjs-eval-debug.wasm",
     "./quickjs-eval-debug": "./dist/quickjs-eval-debug.js",
     "./quickjs-eval-wasm64.wasm": "./dist/quickjs-eval-wasm64.wasm",
@@ -34,6 +28,7 @@
     "!**/*.tsbuildinfo"
   ],
   "dependencies": {
+    "@blue-quickjs/quickjs-wasm-constants": "workspace:*",
     "tslib": "^2.3.0"
   }
 }
