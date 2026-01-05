@@ -1,3 +1,10 @@
+## 0.2.0 (2026-01-05)
+
+### 🚀 Features
+
+- **quickjs-wasm:** extract wasm artifact constants into new package ([f3d2595](https://github.com/bluecontract/blue-quickjs/commit/f3d2595))
+- **workflow:** add manual trigger for publishing with tag input ([c19e7ca](https://github.com/bluecontract/blue-quickjs/commit/c19e7ca))
+
 ## 0.1.0 (2025-12-19)
 
 ### 🚀 Features
