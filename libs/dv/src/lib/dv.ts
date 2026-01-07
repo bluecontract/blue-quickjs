@@ -198,6 +198,19 @@ function dvError(code: DvErrorCode, message: string): DvError {
   return new DvError(code, message);
 }
 
+function describeUnsupportedType(value: unknown): string {
+  if (value === undefined) {
+    return 'undefined';
+  }
+  if (value === null) {
+    return 'null';
+  }
+  if (Array.isArray(value)) {
+    return 'array';
+  }
+  return typeof value;
+}
+
 function encodeValue(
   value: unknown,
   builder: ByteBuilder,
@@ -209,7 +222,7 @@ function encodeValue(
     return;
   }
 
-  const type = typeof value;
+  const type = describeUnsupportedType(value);
   if (type === 'boolean') {
     builder.pushByte(value ? 0xf5 : 0xf4);
     return;
