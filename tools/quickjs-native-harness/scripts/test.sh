@@ -293,11 +293,15 @@ EOF
 
 canon_unwrap_depth_js="$(cat <<'EOF'
 (() => {
-  const inner = { value: -0, child: { leaf: 1 } };
-  const root = { inner, list: [inner] };
-  const shallow = canon.unwrap(root, false);
+  const wrappedValue = { value: { foo: { value: 1 } }, extra: 9 };
+  const wrappedItems = { items: [{ value: 2 }, { items: [3] }], extra: 8 };
+  const root = { wrappedValue, wrappedItems, plain: { a: { value: 4 } } };
+  const shallowRoot = canon.unwrap(root, false);
+  const deepRoot = canon.unwrap(root, true);
   const deepDefault = canon.unwrap(root);
-  const deep = canon.unwrap(root, true);
+  const shallowValue = canon.unwrap(wrappedValue, false);
+  const deepValue = canon.unwrap(wrappedValue, true);
+  const shallowItems = canon.unwrap(wrappedItems, false);
   const badType = (() => {
     try {
       canon.unwrap(root, "nope");
@@ -315,20 +319,25 @@ canon_unwrap_depth_js="$(cat <<'EOF'
     }
   })();
   return {
-    shallowFrozen: Object.isFrozen(shallow),
-    shallowInnerSame: shallow.inner === inner,
-    shallowInnerFrozen: Object.isFrozen(shallow.inner),
-    deepDefaultInnerSame: deepDefault.inner === inner,
-    deepDefaultInnerFrozen: Object.isFrozen(deepDefault.inner),
-    deepDefaultChildSame: deepDefault.inner.child === inner.child,
-    deepDefaultChildFrozen: Object.isFrozen(deepDefault.inner.child),
-    deepInnerSame: deep.inner === inner,
-    deepInnerFrozen: Object.isFrozen(deep.inner),
-    deepChildSame: deep.inner.child === inner.child,
-    deepChildFrozen: Object.isFrozen(deep.inner.child),
-    shallowNegZero: 1 / shallow.inner.value === -Infinity,
-    deepDefaultNegZero: 1 / deepDefault.inner.value === -Infinity,
-    deepNegZero: 1 / deep.inner.value === -Infinity,
+    shallowRootFrozen: Object.isFrozen(shallowRoot),
+    shallowRootValueWrapper: Object.prototype.hasOwnProperty.call(shallowRoot.wrappedValue, "value"),
+    shallowRootItemsWrapper: Object.prototype.hasOwnProperty.call(shallowRoot.wrappedItems, "items"),
+    shallowRootValueNested: shallowRoot.wrappedValue.value.foo.value,
+    shallowRootItemsNested: shallowRoot.wrappedItems.items[0].value,
+    shallowValueFooIsWrapper: Object.prototype.hasOwnProperty.call(shallowValue.foo, "value"),
+    shallowItemsSecondHasItems: Object.prototype.hasOwnProperty.call(shallowItems[1], "items"),
+    deepRootValueFoo: deepRoot.wrappedValue.foo,
+    deepRootValueHasValueProp: Object.prototype.hasOwnProperty.call(deepRoot.wrappedValue, "value"),
+    deepRootItemsFirst: deepRoot.wrappedItems[0],
+    deepRootItemsSecond: deepRoot.wrappedItems[1][0],
+    deepRootPlainA: deepRoot.plain.a,
+    deepRootFrozen: Object.isFrozen(deepRoot),
+    deepRootItemsFrozen: Object.isFrozen(deepRoot.wrappedItems),
+    deepRootItemsNestedFrozen: Object.isFrozen(deepRoot.wrappedItems[1]),
+    deepDefaultValueFoo: deepDefault.wrappedValue.foo,
+    deepDefaultItemsSecond: deepDefault.wrappedItems[1][0],
+    deepDefaultPlainA: deepDefault.plain.a,
+    deepValueFoo: deepValue.foo,
     badType,
     badNumber
   };
@@ -376,7 +385,7 @@ assert_output "Host.v1 document missing" "Host.v1.document.get('missing')" "ERRO
 assert_output "Host.v1 document arg type" "Host.v1.document.get(123)" "ERROR TypeError: Host.v1.document.get argument 1 must be a string"
 assert_output "Host.v1 document arg utf8 limit" "Host.v1.document.get('x'.repeat(2050))" "ERROR TypeError: Host.v1.document.get argument 1 exceeds utf8 limit (2050 > 2048)"
 assert_output "canon helpers" "${canon_helpers_js}" "RESULT {\"keys\":[\"a\",\"b\",\"a/b\",\"list\",\"til~de\"],\"rootNested\":9,\"nested\":9,\"listName\":\"one\",\"escapedSlash\":7,\"escapedTilde\":5,\"missing\":null,\"badPointer\":\"TypeError: canon.at path must be a JSON Pointer string\",\"badFragment\":\"TypeError: canon.at JSON Pointer fragment form is not supported\",\"badEscape\":\"TypeError: canon.at JSON Pointer contains invalid escape sequence\",\"badArrayPath\":\"TypeError: canon.at path must be a JSON Pointer string (array paths are no longer supported)\",\"badArrayIndex\":\"TypeError: canon.at path index is out of range\",\"badDash\":\"TypeError: canon.at path index '-' is not allowed\",\"frozen\":true}" --context-blob-hex "${CONTEXT_BLOB_HEX}"
-assert_output "canon unwrap depth" "${canon_unwrap_depth_js}" "RESULT {\"shallowFrozen\":true,\"shallowInnerSame\":true,\"shallowInnerFrozen\":false,\"deepDefaultInnerSame\":false,\"deepDefaultInnerFrozen\":true,\"deepDefaultChildSame\":false,\"deepDefaultChildFrozen\":true,\"deepInnerSame\":false,\"deepInnerFrozen\":true,\"deepChildSame\":false,\"deepChildFrozen\":true,\"shallowNegZero\":true,\"deepDefaultNegZero\":false,\"deepNegZero\":false,\"badType\":\"TypeError: canon.unwrap deep must be a boolean\",\"badNumber\":\"TypeError: canon.unwrap deep must be a boolean\"}" --context-blob-hex "${CONTEXT_BLOB_HEX}"
+assert_output "canon unwrap depth" "${canon_unwrap_depth_js}" "RESULT {\"shallowRootFrozen\":true,\"shallowRootValueWrapper\":true,\"shallowRootItemsWrapper\":true,\"shallowRootValueNested\":1,\"shallowRootItemsNested\":2,\"shallowValueFooIsWrapper\":true,\"shallowItemsSecondHasItems\":true,\"deepRootValueFoo\":1,\"deepRootValueHasValueProp\":false,\"deepRootItemsFirst\":2,\"deepRootItemsSecond\":3,\"deepRootPlainA\":4,\"deepRootFrozen\":true,\"deepRootItemsFrozen\":true,\"deepRootItemsNestedFrozen\":true,\"deepDefaultValueFoo\":1,\"deepDefaultItemsSecond\":3,\"deepDefaultPlainA\":4,\"deepValueFoo\":1,\"badType\":\"TypeError: canon.unwrap deep must be a boolean\",\"badNumber\":\"TypeError: canon.unwrap deep must be a boolean\"}" --context-blob-hex "${CONTEXT_BLOB_HEX}"
 assert_host_call "host_call echo" "HOSTCALL 0a0b0c GAS remaining=100 used=0" --host-call "0a0b0c" --gas-limit 100 --report-gas
 assert_host_call "host_call request limit" "ERROR TypeError: host_call request exceeds max_request_bytes" --host-call "010203" --host-max-request 2
 assert_host_call "host_call response limit" "ERROR HostError: host/transport" --host-call "0a0b0c" --host-max-request 3 --host-max-response 2
