@@ -227,7 +227,9 @@ When a context blob is supplied, `JS_InitErgonomicGlobals` installs:
 
 - `document(path)` and `document.canonical(path)` wrappers around `Host.v1.document.get` and `Host.v1.document.getCanonical`. The function objects are non-extensible.
 - `event`, `eventCanonical`, `steps`: DV values decoded from the context blob. Values are deep-frozen; missing keys default to `null`.
-- `canon.unwrap(value)`: DV-encodes and decodes `value` and returns a deep-frozen clone.
+- `canon.unwrap(value, deep = true)`: DV-encodes and decodes `value` and returns a frozen clone.
+  - `deep` is a boolean. `false` returns a shallow clone (only the outer value is cloned/frozen);
+    `true` returns a deep clone (nested values are unwrapped and deep-frozen).
 - `canon.at(value, pointer)`: `pointer` must be a JSON Pointer string (RFC 6901). `""` returns the root value; otherwise it must start with `/` (fragment `#...` form is rejected).
   - Tokens split on `/` with `~1` -> `/` and `~0` -> `~`; any other `~` escape throws deterministic `TypeError`.
   - Object tokens are property names (limited to DV max string bytes).
