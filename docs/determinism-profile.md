@@ -230,6 +230,9 @@ When a context blob is supplied, `JS_InitErgonomicGlobals` installs:
 - `canon.unwrap(value, deep = true)`: DV-encodes and decodes `value` and returns a frozen clone.
   - `deep` is a boolean. `false` returns a shallow clone (only the outer value is cloned/frozen);
     `true` returns a deep clone (nested values are unwrapped and deep-frozen).
+  - Objects with an own `value` property unwrap to that value; objects with an `items` array unwrap
+    to that array. For other objects/arrays, unwrapping clones the container and (when `deep`) recurses
+    into children.
 - `canon.at(value, pointer)`: `pointer` must be a JSON Pointer string (RFC 6901). `""` returns the root value; otherwise it must start with `/` (fragment `#...` form is rejected).
   - Tokens split on `/` with `~1` -> `/` and `~0` -> `~`; any other `~` escape throws deterministic `TypeError`.
   - Object tokens are property names (limited to DV max string bytes).
