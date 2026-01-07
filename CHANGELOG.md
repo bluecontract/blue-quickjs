@@ -1,3 +1,10 @@
+## 0.2.1 (2026-01-07)
+
+### 🚀 Features
+
+- **native-harness:** document `canon.unwrap` deep flag and add coverage for shallow vs deep ([b30cead](https://github.com/bluecontract/blue-quickjs/commit/b30cead))
+- **vendor:** update quickjs submodule to latest commit 82af2dd ([cc31f75](https://github.com/bluecontract/blue-quickjs/commit/cc31f75))
+
 ## 0.2.0 (2026-01-05)
 
 ### 🚀 Features
