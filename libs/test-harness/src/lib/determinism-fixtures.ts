@@ -273,9 +273,9 @@ export const DETERMINISM_FIXTURES: DeterminismFixture[] = [
       ...BASE_PROGRAM,
       code: `
         (() => {
-          const payloadId = canon.at(event, ["payload", "id"]);
-          const mode = canon.at(eventCanonical, ["payload", "mode"]);
-          const stepName = canon.at(steps, [1, "name"]);
+          const payloadId = canon.at(event, "/payload/id");
+          const mode = canon.at(eventCanonical, "/payload/mode");
+          const stepName = canon.at(steps, "/1/name");
           const cloned = canon.unwrap(event);
           return {
             marker: "det-canon",
@@ -296,8 +296,8 @@ export const DETERMINISM_FIXTURES: DeterminismFixture[] = [
         'b19cd2f9dc8d93cb259a85f365378dd4e5b97f0a93adff0ac7d3f0b89c10ac2f',
       errorCode: null,
       errorTag: null,
-      gasUsed: 1932n,
-      gasRemaining: 48068n,
+      gasUsed: 1824n,
+      gasRemaining: 48176n,
       tapeHash: null,
       tapeLength: 0,
     },

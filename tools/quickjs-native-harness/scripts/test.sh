@@ -222,15 +222,65 @@ EOF
 
 canon_helpers_js="$(cat <<'EOF'
 (() => {
-  const value = canon.unwrap({ b: 2, a: { z: 9 } });
+  const value = canon.unwrap({
+    b: 2,
+    a: { z: 9 },
+    list: [{ name: 'zero' }, { name: 'one' }],
+    'a/b': 7,
+    'til~de': 5
+  });
   return {
     keys: Object.keys(value),
-    nested: canon.at(value, ['a', 'z']),
-    missing: canon.at(value, ['missing']) ?? null,
-    badPath: (() => {
+    rootNested: canon.at(value, "").a.z,
+    nested: canon.at(value, "/a/z"),
+    listName: canon.at(value, "/list/1/name"),
+    escapedSlash: canon.at(value, "/a~1b"),
+    escapedTilde: canon.at(value, "/til~0de"),
+    missing: canon.at(value, "/missing") ?? null,
+    badPointer: (() => {
       try {
-        canon.at(value, 'oops');
-        return 'no error';
+        canon.at(value, "oops");
+        return "no error";
+      } catch (e) {
+        return String(e);
+      }
+    })(),
+    badFragment: (() => {
+      try {
+        canon.at(value, "#/a");
+        return "no error";
+      } catch (e) {
+        return String(e);
+      }
+    })(),
+    badEscape: (() => {
+      try {
+        canon.at(value, "/~2");
+        return "no error";
+      } catch (e) {
+        return String(e);
+      }
+    })(),
+    badArrayPath: (() => {
+      try {
+        canon.at(value, ["a"]);
+        return "no error";
+      } catch (e) {
+        return String(e);
+      }
+    })(),
+    badArrayIndex: (() => {
+      try {
+        canon.at(value, "/list/65535");
+        return "no error";
+      } catch (e) {
+        return String(e);
+      }
+    })(),
+    badDash: (() => {
+      try {
+        canon.at(value, "/list/-");
+        return "no error";
       } catch (e) {
         return String(e);
       }
@@ -280,7 +330,7 @@ assert_output "Host.v1 emit" "Host.v1.emit({ a: 1 })" "RESULT null"
 assert_output "Host.v1 document missing" "Host.v1.document.get('missing')" "ERROR HostError: host/not_found"
 assert_output "Host.v1 document arg type" "Host.v1.document.get(123)" "ERROR TypeError: Host.v1.document.get argument 1 must be a string"
 assert_output "Host.v1 document arg utf8 limit" "Host.v1.document.get('x'.repeat(2050))" "ERROR TypeError: Host.v1.document.get argument 1 exceeds utf8 limit (2050 > 2048)"
-assert_output "canon helpers" "${canon_helpers_js}" "RESULT {\"keys\":[\"a\",\"b\"],\"nested\":9,\"missing\":null,\"badPath\":\"TypeError: canon.at path must be an array\",\"frozen\":true}" --context-blob-hex "${CONTEXT_BLOB_HEX}"
+assert_output "canon helpers" "${canon_helpers_js}" "RESULT {\"keys\":[\"a\",\"b\",\"a/b\",\"list\",\"til~de\"],\"rootNested\":9,\"nested\":9,\"listName\":\"one\",\"escapedSlash\":7,\"escapedTilde\":5,\"missing\":null,\"badPointer\":\"TypeError: canon.at path must be a JSON Pointer string\",\"badFragment\":\"TypeError: canon.at JSON Pointer fragment form is not supported\",\"badEscape\":\"TypeError: canon.at JSON Pointer contains invalid escape sequence\",\"badArrayPath\":\"TypeError: canon.at path must be a JSON Pointer string (array paths are no longer supported)\",\"badArrayIndex\":\"TypeError: canon.at path index is out of range\",\"badDash\":\"TypeError: canon.at path index '-' is not allowed\",\"frozen\":true}" --context-blob-hex "${CONTEXT_BLOB_HEX}"
 assert_host_call "host_call echo" "HOSTCALL 0a0b0c GAS remaining=100 used=0" --host-call "0a0b0c" --gas-limit 100 --report-gas
 assert_host_call "host_call request limit" "ERROR TypeError: host_call request exceeds max_request_bytes" --host-call "010203" --host-max-request 2
 assert_host_call "host_call response limit" "ERROR HostError: host/transport" --host-call "0a0b0c" --host-max-request 3 --host-max-response 2
