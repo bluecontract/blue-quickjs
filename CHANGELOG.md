@@ -1,3 +1,9 @@
+## 0.2.2 (2026-01-07)
+
+### 🚀 Features
+
+- **quickjs:** bump vendor submodule and update canon.unwrap expectations ([13c6c8a](https://github.com/bluecontract/blue-quickjs/commit/13c6c8a))
+
 ## 0.2.1 (2026-01-07)
 
 ### 🚀 Features
