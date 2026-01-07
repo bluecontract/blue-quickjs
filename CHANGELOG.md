@@ -1,3 +1,9 @@
+## 0.2.3 (2026-01-07)
+
+### 🩹 Fixes
+
+- **dv:** improve unsupported type descriptions in encoder ([2799f5a](https://github.com/bluecontract/blue-quickjs/commit/2799f5a))
+
 ## 0.2.2 (2026-01-07)
 
 ### 🚀 Features
