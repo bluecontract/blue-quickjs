@@ -11,7 +11,7 @@
       "dependsOn": ["^build"],
       "inputs": [
         "default",
-        "{workspaceRoot}/vendor/quickjs/**",
+        "quickjsSubmodule",
         "{workspaceRoot}/tools/scripts/emsdk-version.txt",
         {
           "env": "WASM_VARIANTS"
