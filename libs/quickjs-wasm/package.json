@@ -1,6 +1,6 @@
 {
   "name": "@blue-quickjs/quickjs-wasm",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -29,7 +29,9 @@
   ],
   "nx": {
     "name": "quickjs-wasm",
-    "implicitDependencies": ["quickjs-wasm-build"]
+    "implicitDependencies": [
+      "quickjs-wasm-build"
+    ]
   },
   "dependencies": {
     "@blue-quickjs/quickjs-wasm-constants": "workspace:*"

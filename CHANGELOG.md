@@ -1,3 +1,9 @@
+## 0.2.4 (2026-01-08)
+
+### 🩹 Fixes
+
+- update vendor/quickjs submodule ([b2b361c](https://github.com/bluecontract/blue-quickjs/commit/b2b361c))
+
 ## 0.2.3 (2026-01-07)
 
 ### 🩹 Fixes
