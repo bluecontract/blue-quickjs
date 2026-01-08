@@ -17,6 +17,10 @@
       "!{projectRoot}/.eslintrc.json",
       "!{projectRoot}/eslint.config.mjs"
     ],
+    "quickjsSubmodule": [
+      "{workspaceRoot}/vendor/quickjs",
+      "{workspaceRoot}/vendor/quickjs/**"
+    ],
     "sharedGlobals": ["{workspaceRoot}/.github/workflows/ci.yml"]
   },
   "workspaceLayout": {
