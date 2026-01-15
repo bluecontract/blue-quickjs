@@ -13,6 +13,8 @@ export interface SmokeInputEnvelope {
   event: DV;
   eventCanonical: DV;
   steps: DV;
+  currentContract: DV;
+  currentContractCanonical: DV;
 }
 
 export const SMOKE_PROGRAM: SmokeProgramArtifact = {
@@ -42,6 +44,8 @@ export const SMOKE_INPUT: SmokeInputEnvelope = {
     { name: 'ingest', status: 'done' },
     { name: 'analyze', status: 'pending' },
   ],
+  currentContract: { id: 'contract-1', kind: 'smoke' },
+  currentContractCanonical: { id: { value: 'contract-1' }, kind: 'smoke' },
 };
 
 export const SMOKE_GAS_LIMIT = 50_000n;

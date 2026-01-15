@@ -14,6 +14,8 @@ export interface DeterminismInputEnvelope {
   event: DV;
   eventCanonical: DV;
   steps: DV;
+  currentContract: DV;
+  currentContractCanonical: DV;
 }
 
 export const DETERMINISM_INPUT: DeterminismInputEnvelope = {
@@ -24,6 +26,11 @@ export const DETERMINISM_INPUT: DeterminismInputEnvelope = {
     { name: 'review', status: 'queued' },
     { name: 'publish', status: 'pending' },
   ],
+  currentContract: { id: 'contract-42', kind: 'determinism-fixture' },
+  currentContractCanonical: {
+    id: { value: 'contract-42' },
+    kind: 'determinism-fixture',
+  },
 };
 
 export const DETERMINISM_GAS_LIMIT = 50_000n;

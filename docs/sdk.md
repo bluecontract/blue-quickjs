@@ -37,6 +37,8 @@ const input = {
   event: { type: 'example', payload: { id: 42 } },
   eventCanonical: { type: 'example', payload: { id: 42 } },
   steps: [{ name: 'start', status: 'done' }],
+  currentContract: { id: 'contract-42' },
+  currentContractCanonical: { id: { value: 'contract-42' } },
 };
 
 // Your host implementation (handlers matching the manifest)
@@ -124,8 +126,10 @@ The canonical shape used by this repo’s fixtures includes:
 - `event`
 - `eventCanonical`
 - `steps`
+- `currentContract`
+- `currentContractCanonical`
 
-Additional keys are rejected by validation; the input envelope is limited to the event payloads + steps that are injected as ergonomic globals.
+Additional keys are rejected by validation; the input envelope is limited to the event payloads, steps, and current contract values that are injected as ergonomic globals.
 
 Reference: [Determinism profile](./determinism-profile.md) (Injected globals).
 

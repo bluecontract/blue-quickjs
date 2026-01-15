@@ -27,6 +27,8 @@ const CONTEXT_BLOB = encodeDv({
   event: DETERMINISM_INPUT.event,
   eventCanonical: DETERMINISM_INPUT.eventCanonical,
   steps: DETERMINISM_INPUT.steps,
+  currentContract: DETERMINISM_INPUT.currentContract,
+  currentContractCanonical: DETERMINISM_INPUT.currentContractCanonical,
 });
 
 type HarnessResultKind = 'RESULT' | 'ERROR';

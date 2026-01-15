@@ -227,7 +227,7 @@ When a context blob is supplied, `JS_InitErgonomicGlobals` installs:
 
 - `document(path)` and `document.canonical(path)` wrappers around `Host.v1.document.get` and `Host.v1.document.getCanonical`. The function objects are non-extensible.
 - `emit(value)`: wrapper around `Host.v1.emit` when available. The function object is non-extensible.
-- `event`, `eventCanonical`, `steps`: DV values decoded from the context blob. Values are deep-frozen; missing keys default to `null`.
+- `event`, `eventCanonical`, `steps`, `currentContract`, `currentContractCanonical`: DV values decoded from the context blob. Values are deep-frozen; missing keys default to `null`.
 - `canon.unwrap(value, deep = true)`: DV-encodes and decodes `value` and returns a frozen clone.
   - `deep` is a boolean. `false` returns a shallow clone (only the outer value is cloned/frozen);
     `true` returns a deep clone (nested values are unwrapped and deep-frozen).

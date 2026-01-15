@@ -120,8 +120,7 @@ The VM projects the manifest into JS as:
 
 - `Host` and `Host.v1` namespaces created with null prototypes,
 - namespace objects are non-extensible; function properties are non-writable and non-configurable,
-- ergonomic globals may be installed (`document`, `event`, `steps`, `canon`) but must be deterministic and pinned by the deterministic init contract.
+- ergonomic globals may be installed (`document`, `event`, `eventCanonical`, `steps`, `currentContract`, `currentContractCanonical`, `canon`) but must be deterministic and pinned by the deterministic init contract.
 
 The current manifest ABI id/version is `Host.v1` (see `docs/abi-manifest.md` and `docs/determinism-profile.md`).
-
 
