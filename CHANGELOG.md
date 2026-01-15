@@ -1,3 +1,9 @@
+## 0.3.0 (2026-01-15)
+
+### 🚀 Features
+
+- **quickjs-runtime:** inject currentContract globals into deterministic context ([35e77c5](https://github.com/bluecontract/blue-quickjs/commit/35e77c5))
+
 ## 0.2.4 (2026-01-08)
 
 ### 🩹 Fixes
