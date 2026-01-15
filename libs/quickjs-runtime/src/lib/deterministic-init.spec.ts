@@ -18,6 +18,8 @@ const BASE_INPUT: InputEnvelope = {
   event: { type: 'create', payload: { id: 1 } },
   eventCanonical: { type: 'create', payload: { id: 1 } },
   steps: [{ name: 'first' }],
+  currentContract: { id: 'contract-1', kind: 'workflow' },
+  currentContractCanonical: { id: { value: 'contract-1' }, kind: 'workflow' },
 };
 
 describe('initializeDeterministicVm', () => {
@@ -44,6 +46,10 @@ describe('initializeDeterministicVm', () => {
             canonExtensible: Object.isExtensible(canon),
             eventFrozen: Object.isFrozen(event),
             stepsFrozen: Object.isFrozen(steps),
+            currentContractFrozen: Object.isFrozen(currentContract),
+            currentContractCanonicalFrozen: Object.isFrozen(currentContractCanonical),
+            currentContract,
+            currentContractCanonical,
             docResult
           };
         })()
@@ -61,6 +67,13 @@ describe('initializeDeterministicVm', () => {
         canonExtensible: false,
         eventFrozen: true,
         stepsFrozen: true,
+        currentContractFrozen: true,
+        currentContractCanonicalFrozen: true,
+        currentContract: { id: 'contract-1', kind: 'workflow' },
+        currentContractCanonical: {
+          id: { value: 'contract-1' },
+          kind: 'workflow',
+        },
         docResult: { path: 'path/to/doc' },
       });
     } finally {

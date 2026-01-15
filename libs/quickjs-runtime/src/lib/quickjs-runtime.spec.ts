@@ -65,6 +65,8 @@ describe('validateInputEnvelope', () => {
     event: { type: 'create', payload: { id: 1 } },
     eventCanonical: { type: 'create', payload: { id: 1 } },
     steps: [],
+    currentContract: { id: 'contract-1' },
+    currentContractCanonical: { id: { value: 'contract-1' } },
   };
 
   it('accepts a well-formed input envelope', () => {
@@ -100,6 +102,26 @@ describe('validateInputEnvelope', () => {
         extra: 123 as unknown as InputEnvelope['steps'],
       }),
     ).toThrow(RuntimeValidationError);
+  });
+
+  it('defaults currentContractCanonical to currentContract when missing', () => {
+    const result = validateInputEnvelope({
+      ...baseInput,
+      currentContractCanonical: undefined,
+    });
+
+    expect(result.currentContractCanonical).toEqual(result.currentContract);
+  });
+
+  it('defaults missing contract fields to null', () => {
+    const result = validateInputEnvelope({
+      event: baseInput.event,
+      eventCanonical: baseInput.eventCanonical,
+      steps: baseInput.steps,
+    });
+
+    expect(result.currentContract).toBeNull();
+    expect(result.currentContractCanonical).toBeNull();
   });
 
   it('provides DvError as the cause for DV failures', () => {
