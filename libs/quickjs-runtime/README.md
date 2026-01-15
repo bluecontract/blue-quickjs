@@ -30,6 +30,8 @@ const result = await evaluate({
     event: { type: 'example' },
     eventCanonical: { type: 'example' },
     steps: [],
+    currentContract: { id: 'contract-1' },
+    currentContractCanonical: { id: { value: 'contract-1' } },
   },
   gasLimit: 50_000n,
   manifest: HOST_V1_MANIFEST,

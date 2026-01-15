@@ -23,7 +23,7 @@ HOST_UNITS_FLOAT_HEX="a2626f6b0165756e697473fb3ff8000000000000"
 HOST_ERR_CODE_NUMBER_HEX="a263657272a164636f6465187b65756e69747300"
 HOST_UNITS_ZERO_HEX="a2626f6b0065756e69747300"
 HOST_UNITS_ONE_HEX="a2626f6b0065756e69747301"
-CONTEXT_BLOB_HEX="a3656576656e74a163666f6f01657374657073826273316273326e6576656e7443616e6f6e6963616ca163626172f5"
+CONTEXT_BLOB_HEX="a5656576656e74a163666f6f01657374657073826273316273326e6576656e7443616e6f6e6963616ca163626172f56f63757272656e74436f6e7472616374a16269646a636f6e74726163742d31781863757272656e74436f6e747261637443616e6f6e6963616ca1626964a16576616c75656a636f6e74726163742d31"
 
 assert_output() {
   local name="$1"
@@ -209,10 +209,14 @@ ergonomic_globals_js="$(cat <<'EOF'
       event,
       eventCanonical,
       steps,
+      currentContract,
+      currentContractCanonical,
       frozen: {
         event: Object.isFrozen(event),
         eventCanonical: Object.isFrozen(eventCanonical),
-        steps: Object.isFrozen(steps)
+        steps: Object.isFrozen(steps),
+        currentContract: Object.isFrozen(currentContract),
+        currentContractCanonical: Object.isFrozen(currentContractCanonical)
       }
     }
   };
@@ -377,7 +381,7 @@ assert_output "Promise disabled" "Promise.resolve(1)" "ERROR TypeError: Promise 
 assert_output "queueMicrotask missing" "typeof queueMicrotask" "RESULT \"undefined\""
 assert_output "Host descriptor" "${host_descriptor_js}" "RESULT {\"configurable\":false,\"enumerable\":false,\"writable\":false,\"hostType\":\"object\",\"v1Type\":\"object\",\"v1NullProto\":true}"
 assert_output "capability snapshot" "${capability_snapshot_js}" "RESULT {\"eval\":{\"ok\":false,\"error\":\"TypeError: eval is disabled in deterministic mode\"},\"Function\":{\"ok\":false,\"error\":\"TypeError: Function is disabled in deterministic mode\"},\"RegExp\":{\"ok\":false,\"error\":\"TypeError: RegExp is disabled in deterministic mode\"},\"Proxy\":{\"ok\":false,\"error\":\"TypeError: Proxy is disabled in deterministic mode\"},\"Promise\":{\"ok\":false,\"error\":\"TypeError: Promise is disabled in deterministic mode\"},\"MathRandom\":{\"ok\":false,\"error\":\"TypeError: Math.random is disabled in deterministic mode\"},\"Date\":{\"ok\":true,\"value\":\"undefined\"},\"setTimeout\":{\"ok\":true,\"value\":\"undefined\"},\"ArrayBuffer\":{\"ok\":false,\"error\":\"TypeError: ArrayBuffer is disabled in deterministic mode\"},\"SharedArrayBuffer\":{\"ok\":false,\"error\":\"TypeError: SharedArrayBuffer is disabled in deterministic mode\"},\"DataView\":{\"ok\":false,\"error\":\"TypeError: DataView is disabled in deterministic mode\"},\"Uint8Array\":{\"ok\":false,\"error\":\"TypeError: Typed arrays are disabled in deterministic mode\"},\"Atomics\":{\"ok\":false,\"error\":\"TypeError: Atomics is disabled in deterministic mode\"},\"WebAssembly\":{\"ok\":false,\"error\":\"TypeError: WebAssembly is disabled in deterministic mode\"},\"consoleLog\":{\"ok\":false,\"error\":\"TypeError: console is disabled in deterministic mode\"},\"print\":{\"ok\":false,\"error\":\"TypeError: print is disabled in deterministic mode\"},\"globalOrder\":{\"ok\":true,\"value\":[\"console\",\"print\",\"Host\"]},\"hostImmutable\":{\"ok\":true,\"value\":{\"sameRef\":true,\"hasV1\":true,\"added\":false,\"desc\":{\"value\":{},\"writable\":false,\"enumerable\":false,\"configurable\":false},\"protoNull\":true,\"v1ProtoNull\":true,\"hostIsExtensible\":false,\"hostV1Extensible\":false,\"overwrite\":{\"same\":true,\"threw\":true,\"writable\":false,\"configurable\":false}}}}"
-assert_output "ergonomic globals" "${ergonomic_globals_js}" "RESULT {\"document\":{\"value\":\"foo\",\"canonical\":\"bar\",\"desc\":{\"writable\":false,\"enumerable\":false,\"configurable\":false},\"canonicalDesc\":{\"writable\":false,\"enumerable\":false,\"configurable\":false},\"extensible\":false},\"context\":{\"event\":{\"foo\":1},\"eventCanonical\":{\"bar\":true},\"steps\":[\"s1\",\"s2\"],\"frozen\":{\"event\":true,\"eventCanonical\":true,\"steps\":true}}}" --context-blob-hex "${CONTEXT_BLOB_HEX}"
+assert_output "ergonomic globals" "${ergonomic_globals_js}" "RESULT {\"document\":{\"value\":\"foo\",\"canonical\":\"bar\",\"desc\":{\"writable\":false,\"enumerable\":false,\"configurable\":false},\"canonicalDesc\":{\"writable\":false,\"enumerable\":false,\"configurable\":false},\"extensible\":false},\"context\":{\"event\":{\"foo\":1},\"eventCanonical\":{\"bar\":true},\"steps\":[\"s1\",\"s2\"],\"currentContract\":{\"id\":\"contract-1\"},\"currentContractCanonical\":{\"id\":{\"value\":\"contract-1\"}},\"frozen\":{\"event\":true,\"eventCanonical\":true,\"steps\":true,\"currentContract\":true,\"currentContractCanonical\":true}}}" --context-blob-hex "${CONTEXT_BLOB_HEX}"
 assert_output "Host.v1 document.get ok" "Host.v1.document.get('foo')" "RESULT \"foo\""
 assert_output "Host.v1 document.getCanonical ok" "Host.v1.document.getCanonical('bar')" "RESULT \"bar\""
 assert_output "Host.v1 emit" "Host.v1.emit({ a: 1 })" "RESULT null"

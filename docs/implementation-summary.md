@@ -19,7 +19,7 @@ At a high level, the repo provides a deterministic evaluator:
 Where:
 
 - **P** is a *program artifact* (JS code plus ABI identity/pinning metadata).
-- **I** is a *deterministic input envelope* injected into the VM (event, eventCanonical, steps).
+- **I** is a *deterministic input envelope* injected into the VM (event, eventCanonical, steps, currentContract, currentContractCanonical).
 - **G** is a *gas limit* (uint64).
 - **Host** is a *manifest-backed set of synchronous host functions* exposed through a single ABI syscall.
 
@@ -102,7 +102,7 @@ Before evaluating user code, the VM is initialized with:
 
 - **Manifest bytes** (canonical encoding)
 - **Manifest hash** (from `P.abiManifestHash`) for pinning/anti-confusion
-- **Context blob** (DV-encoded `I.event`, `I.eventCanonical`, `I.steps`)
+- **Context blob** (DV-encoded `I.event`, `I.eventCanonical`, `I.steps`, `I.currentContract`, `I.currentContractCanonical`)
 - **Gas limit** `G`
 
 If the expected hash does not match the bytes, initialization fails deterministically.
@@ -122,7 +122,7 @@ Reference spec: [Determinism profile](./determinism-profile.md).
 
 ### 4) Host API surface is installed from the manifest
 
-From the manifest, the VM installs a frozen, read-only namespace (e.g. `Host.v1.*`) and optionally ergonomic globals (`document`, `document.canonical`, `canon`, `event`, `steps`) that map to those host functions.
+From the manifest, the VM installs a frozen, read-only namespace (e.g. `Host.v1.*`) and optionally ergonomic globals (`document`, `document.canonical`, `canon`, `event`, `eventCanonical`, `steps`, `currentContract`, `currentContractCanonical`) that map to those host functions.
 
 Reference spec: [Baseline #2](./baseline-2.md) and [Host call ABI](./host-call-abi.md).  
 Ergonomics and injected globals: [Determinism profile](./determinism-profile.md).

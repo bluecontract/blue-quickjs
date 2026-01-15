@@ -4,7 +4,7 @@ This file is the “source of truth” execution plan for Codex (Cursor IDE) to 
 
 - **Canonical gas metering inside QuickJS** (Baseline #1),
 - A **manifest-locked, numeric-ID, single-dispatcher host ABI** (Baseline #2),
-- A **read-only Blue-style JS context** (`document()`, `event`, `steps`, `canon`) intended to be embedded by Blue’s external `document-processor`.
+- A **read-only Blue-style JS context** (`document()`, `event`, `eventCanonical`, `steps`, `currentContract`, `currentContractCanonical`, `canon`) intended to be embedded by Blue’s external `document-processor`.
 
 Baseline anchors:
 
@@ -24,7 +24,7 @@ However, Baseline #2 still applies: even read-only `document(path)` is a host ca
 - **Canonical gas** is implemented inside QuickJS: opcode metering, metered C builtins, allocation charges, deterministic GC checkpoints (Baseline #1 §2B).
 - **Single syscall ABI (`host_call`)** for all host capabilities: `fn_id + request_bytes -> response_bytes`, with **manifest mapping**, **manifest hash validation**, and **DV canonical encoding** (Baseline #2 §1.1–§1.4, §2).
 - VM exposes a frozen **`Host.v1`** namespace generated from the manifest, and provides ergonomic globals:
-  `document(path)`, `document.canonical(path)`, `event`, `eventCanonical`, `steps`, `canon.unwrap`, `canon.at` (Baseline #2 §1.5, §6.4, §9).
+  `document(path)`, `document.canonical(path)`, `event`, `eventCanonical`, `steps`, `currentContract`, `currentContractCanonical`, `canon.unwrap`, `canon.at` (Baseline #2 §1.5, §6.4, §9).
 - **Host implementation is provided by the embedder** (e.g., `document-processor`) via a JS-side dispatcher used to implement `host_call`. No overlay/commit logic exists here.
 - **Emscripten build pipeline** produces deterministic Wasm with fixed memory sizing (Baseline #1 §2C) in `libs/quickjs-wasm-build`, packaged in `libs/quickjs-wasm`.
 - **SDK** in `libs/quickjs-runtime` loads the same Wasm bytes in Node and browsers, initializes `(P, I, G)`, wires host dispatch, evaluates JS deterministically, and returns DV output + gas used + optional tape.
@@ -1217,9 +1217,9 @@ Provide `document()`, `event`, `steps`, and `canon` helpers consistent with Blue
 
 - [x] Implement `document(path)` as a wrapper calling `Host.v1.document.get(path)`.
 - [x] Implement `document.canonical(path)` calling `Host.v1.document.getCanonical(path)`.
-- [x] Accept injected DV values for `event`, `eventCanonical`, `steps` from input envelope `I` (wired later).
+- [x] Accept injected DV values for `event`, `eventCanonical`, `steps`, `currentContract`, `currentContractCanonical` from input envelope `I` (wired later).
 - [x] Implement `canon.unwrap` and `canon.at` as pure JS helpers (loaded deterministically by init).
-- [x] Freeze/lock `document`, `event`, `eventCanonical`, `steps`, `canon`.
+- [x] Freeze/lock `document`, `event`, `eventCanonical`, `steps`, `currentContract`, `currentContractCanonical`, `canon`.
 
 **Acceptance criteria:**
 
@@ -1229,7 +1229,7 @@ Provide `document()`, `event`, `steps`, and `canon` helpers consistent with Blue
 **Current state (P3 T-041):**
 
 - Deterministic init now installs ergonomic globals once the manifest is loaded: `document` calls `Host.v1.document.get`, `document.canonical` calls `Host.v1.document.getCanonical`, and helpers are non-extensible.
-- Context blob DV decoding clones and deep-freezes `event`, `eventCanonical`, and `steps` before exposing them on the global.
+- Context blob DV decoding clones and deep-freezes `event`, `eventCanonical`, `steps`, `currentContract`, and `currentContractCanonical` before exposing them on the global.
 - Added pure C `canon.unwrap` (DV roundtrip + freeze) and `canon.at` (safe path walker with deterministic errors and bounds) under a frozen `canon` object.
 - Native harness tests now cover ergonomic globals + canon helpers using the pinned context blob fixture; full harness suite passes.
 
@@ -1461,7 +1461,7 @@ Make `(P, I, G)` explicit and version-pin critical ABI/engine fields.
   - [x] optional `engine_build_hash`.
 
 - [x] Define `I` structure in TS including:
-  - [x] `event` DV, `eventCanonical` DV, `steps` DV,
+  - [x] `event` DV, `eventCanonical` DV, `steps` DV, `currentContract` DV, `currentContractCanonical` DV,
   - [x] enforce rejection of unknown fields (no document snapshot/host metadata carried in the envelope).
 
 - [x] Add validation helpers.
@@ -1933,7 +1933,7 @@ Ergonomic aliases:
 
 - `document(path)` calls `Host.v1.document.get(path)`
 - `document.canonical(path)` calls `Host.v1.document.getCanonical(path)`
-- `event`, `eventCanonical`, `steps` injected from input envelope `I`
+- `event`, `eventCanonical`, `steps`, `currentContract`, `currentContractCanonical` injected from input envelope `I`
 - `canon.unwrap` and `canon.at` are pure JS helpers installed by init
 
 ---

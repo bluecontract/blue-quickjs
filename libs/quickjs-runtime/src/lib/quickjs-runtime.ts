@@ -35,6 +35,8 @@ export interface InputEnvelope {
   event: DV;
   eventCanonical: DV;
   steps: DV;
+  currentContract?: DV;
+  currentContractCanonical?: DV;
 }
 
 export interface InputValidationOptions {
@@ -115,7 +117,17 @@ export function validateInputEnvelope(
 ): InputEnvelope {
   const dvLimits = normalizeDvLimits(options?.dvLimits);
   const input = expectPlainObject(value, 'input');
-  enforceExactKeys(input, ['event', 'eventCanonical', 'steps'], 'input');
+  enforceExactKeys(
+    input,
+    [
+      'event',
+      'eventCanonical',
+      'steps',
+      'currentContract',
+      'currentContractCanonical',
+    ],
+    'input',
+  );
 
   const event = validateDvField(input.event, dvLimits, 'input.event');
   const eventCanonical = validateDvField(
@@ -124,11 +136,29 @@ export function validateInputEnvelope(
     'input.eventCanonical',
   );
   const steps = validateDvField(input.steps, dvLimits, 'input.steps');
+  const currentContract =
+    input.currentContract === undefined
+      ? null
+      : validateDvField(
+          input.currentContract,
+          dvLimits,
+          'input.currentContract',
+        );
+  const currentContractCanonical =
+    input.currentContractCanonical === undefined
+      ? currentContract
+      : validateDvField(
+          input.currentContractCanonical,
+          dvLimits,
+          'input.currentContractCanonical',
+        );
 
   return {
     event,
     eventCanonical,
     steps,
+    currentContract,
+    currentContractCanonical,
   };
 }
 

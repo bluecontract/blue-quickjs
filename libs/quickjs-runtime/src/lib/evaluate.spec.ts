@@ -17,6 +17,8 @@ const BASE_INPUT: InputEnvelope = {
   event: { type: 'create', payload: { id: 1 } },
   eventCanonical: { type: 'create', payload: { id: 1 } },
   steps: [{ name: 'first' }],
+  currentContract: { id: 'contract-1' },
+  currentContractCanonical: { id: { value: 'contract-1' } },
 };
 
 describe('evaluate', () => {

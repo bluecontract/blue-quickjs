@@ -64,6 +64,8 @@ export function initializeDeterministicVm(
     event: validatedInput.event,
     eventCanonical: validatedInput.eventCanonical,
     steps: validatedInput.steps,
+    currentContract: validatedInput.currentContract ?? null,
+    currentContractCanonical: validatedInput.currentContractCanonical ?? null,
   });
 
   const ffi = createDeterministicExports(runtime.module);
