@@ -1,3 +1,9 @@
+## 0.3.1 (2026-01-19)
+
+### 🩹 Fixes
+
+- **quickjs-wasm-build:** avoid -sDETERMINISTIC host clock patching ([02f922d](https://github.com/bluecontract/blue-quickjs/commit/02f922d))
+
 ## 0.3.0 (2026-01-15)
 
 ### 🚀 Features
