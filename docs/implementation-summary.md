@@ -305,7 +305,7 @@ Reference details: [Host call ABI](./host-call-abi.md), [DV wire format](./dv-wi
 The wasm engine bytes are part of the deterministic surface, so builds are treated as reproducible, pinned artifacts:
 
 - **Pinned toolchain**: Emscripten/emsdk is locked (see `docs/toolchain.md`).
-- **Deterministic build flags**: wasm output is built with `-sDETERMINISTIC=1` and a pinned `SOURCE_DATE_EPOCH`.
+- **Deterministic build flags**: wasm output pins `SOURCE_DATE_EPOCH` (we intentionally avoid `-sDETERMINISTIC` because it patches host `Date.now`/`Math.random`).
 - **Fixed memory model**: wasm memory is fixed (no growth), with a fixed stack size and no table growth.
 - **No ambient host APIs**: the Emscripten filesystem is disabled; the module is built for `node,web`.
 - **Auditable metadata**: build outputs record hashes, sizes, and flags in `quickjs-wasm-build.metadata.json`.

@@ -1349,7 +1349,7 @@ Freeze memory growth and remove nondeterministic runtime features.
 
 **Current state (P4 T-051):**
 
-- `scripts/build-wasm.sh` now builds with `-sDETERMINISTIC=1`, `-sFILESYSTEM=0`, `-sALLOW_MEMORY_GROWTH=0`, `-sALLOW_TABLE_GROWTH=0`, fixed memory (`INITIAL_MEMORY=MAXIMUM_MEMORY=32 MiB`) and a 1 MiB stack; SOURCE_DATE_EPOCH is pinned (override via env) to strip timestamps.
+- `scripts/build-wasm.sh` now builds with `-sFILESYSTEM=0`, `-sALLOW_MEMORY_GROWTH=0`, `-sALLOW_TABLE_GROWTH=0`, fixed memory (`INITIAL_MEMORY=MAXIMUM_MEMORY=32 MiB`) and a 1 MiB stack; `SOURCE_DATE_EPOCH` is pinned (override via env) to strip timestamps, and we intentionally avoid `-sDETERMINISTIC` because it patches host `Date.now`/`Math.random`.
 - Memory/flag settings are exported into `quickjs-wasm-build.metadata.json` under `build.memory` and `build.determinism` for audit, and `docs/toolchain.md` documents the deterministic flags/memory choices.
 - `pnpm nx build quickjs-wasm-build` and `pnpm nx test quickjs-wasm-build` pass with the deterministic settings; wasm/hash metadata reflects stable builds given identical inputs.
 
