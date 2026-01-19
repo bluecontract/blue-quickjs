@@ -114,7 +114,7 @@ describe('metadata helpers', () => {
         },
         determinism: {
           sourceDateEpoch: 1704067200,
-          flags: ['-sDETERMINISTIC=1', '-sFILESYSTEM=0'],
+          flags: ['-sFILESYSTEM=0'],
         },
       },
       variants: {
