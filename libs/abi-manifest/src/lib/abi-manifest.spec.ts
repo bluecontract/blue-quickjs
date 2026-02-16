@@ -1,4 +1,5 @@
 import { bytesToHex } from '@noble/hashes/utils';
+import { DV_LIMIT_DEFAULTS } from '@blue-quickjs/dv';
 import {
   AbiManifestError,
   encodeAbiManifest,
@@ -212,8 +213,8 @@ describe('abi-manifest', () => {
             k_units: 0xffffffff,
           },
           limits: {
-            max_request_bytes: 1_048_576,
-            max_response_bytes: 1_048_576,
+            max_request_bytes: DV_LIMIT_DEFAULTS.maxEncodedBytes,
+            max_response_bytes: DV_LIMIT_DEFAULTS.maxEncodedBytes,
             max_units: 0xffffffff,
           },
           error_codes: [],
