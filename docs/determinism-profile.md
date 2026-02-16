@@ -11,7 +11,7 @@ Scope: capture the deterministic VM configuration required by Baseline #1 for bo
   - requires manifest bytes and a lowercase hex hash; size limit 1 MiB (`JS_DETERMINISTIC_MAX_MANIFEST_BYTES`)
   - validates `sha256(manifest_bytes)` against the provided hash and throws `ManifestError` with code `ABI_MANIFEST_HASH_MISMATCH` on mismatch
   - copies manifest bytes into the context and installs `Host.v1` functions from the manifest
-  - optionally copies a context blob (max 1 MiB) and installs ergonomic globals
+  - optionally copies a context blob (max 5 MiB) and installs ergonomic globals
   - sets the gas limit to `options.gas_limit`
 
 ## Enabled intrinsics

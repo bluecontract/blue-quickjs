@@ -174,7 +174,7 @@ When canonically DV-encoded, these bytes are hashed with SHA-256 to produce the 
 - Reject manifests that include unknown keys, out-of-range integers (including `-0`), unsorted `functions`/`error_codes`, or duplicate `fn_id`/`code`.
 - Reject `js_path` collisions: no two entries may share the same `js_path`, and no `js_path` may be a prefix of another.
 - Enforce `arity === arg_schema.length` and (if present) `arg_utf8_max.length === arity`; if provided, `arg_utf8_max[i]` requires `arg_schema[i].type` to be `"string"`. Because `arg_utf8_max` must cover every argument, manifests may only include it when **all** arguments are strings.
-- `max_request_bytes`/`max_response_bytes` MUST be <= DV global max (1 MiB encoded) and non-zero; they apply to the fully encoded request array / response envelope bytes.
+- `max_request_bytes`/`max_response_bytes` MUST be <= DV global max (5 MiB encoded) and non-zero; they apply to the fully encoded request array / response envelope bytes.
 - Gas parameters must be non-negative integers; `schedule_id` is an opaque identifier and is not validated by the VM. Gas arithmetic MUST be performed with explicit overflow checks (e.g., 64-bit intermediates); overflow during manifest validation invalidates the manifest.
 - `error_codes` is a set of allowed host error variants represented as an array sorted by `code` for canonical encoding.
 - Responses must obey the envelope rules above: exactly one of `ok`/`err`, `units` within bounds, no extra keys, and `err.code` MUST exist in `error_codes` (tag is derived from the manifest mapping).

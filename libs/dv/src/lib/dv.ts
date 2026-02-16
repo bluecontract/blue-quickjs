@@ -26,7 +26,7 @@ export interface DvLimits {
 
 export const DV_LIMIT_DEFAULTS: Readonly<DvLimits> = {
   maxDepth: 64,
-  maxEncodedBytes: 1_048_576,
+  maxEncodedBytes: 5_242_880,
   maxStringBytes: 262_144,
   maxArrayLength: 65_535,
   maxMapLength: 65_535,

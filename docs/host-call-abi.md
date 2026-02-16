@@ -31,7 +31,7 @@ Params are wasm `i32` values (module/name as shown above) and MUST be interprete
 ### Request bytes
 
 - `request_bytes` is a contiguous region `[req_ptr, req_ptr + req_len)`.
-- The VM guarantees `req_len` is within the global DV limit (1 MiB) and the manifest `max_request_bytes` for the target `fn_id`.
+- The VM guarantees `req_len` is within the global DV limit (5 MiB) and the manifest `max_request_bytes` for the target `fn_id`.
 - The slice is **read-only** for the host and is only valid for the duration of the call.
 - The bytes are the canonical DV encoding of the args array; see `docs/abi-manifest.md` for arg validation rules.
 
@@ -48,7 +48,7 @@ Params are wasm `i32` values (module/name as shown above) and MUST be interprete
 ### Limits and validity
 
 - `req_len` and the encoded response length must both respect:
-  - the global DV encoded-byte cap (1 MiB; see `docs/dv-wire-format.md`), **and**
+  - the global DV encoded-byte cap (5 MiB; see `docs/dv-wire-format.md`), **and**
   - the per-function `max_request_bytes` / `max_response_bytes` declared in the manifest.
 - The response envelope must follow the manifest contract (`ok`/`err` + `units`; see `docs/abi-manifest.md`). Unknown keys, missing `units`, codes not listed in `error_codes`, or lengths greater than `resp_capacity` are deterministic VM errors.
 - The host import itself must never trap; all host-side failures should result in either a valid `err` envelope or the fatal `UINT32_MAX` sentinel.
