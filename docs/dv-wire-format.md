@@ -48,7 +48,7 @@ Forbidden: CBOR tags (`0xc0`…), indefinite lengths (`0x5f/0x7f/0x9f/0xbf`), si
 - **Arrays/objects:** Length is the element count/entry count, not byte length. Map keys are text only; reject duplicates and out-of-order keys. A map’s key order is determined by the deterministic CBOR ordering of the key encodings (length-first, then bytewise).
 - **Depth/size limits (global defaults):**
   - Maximum container nesting depth: 64 (arrays/maps increment depth).
-  - Maximum encoded byte length of a single DV value: 1 MiB.
+  - Maximum encoded byte length of a single DV value: 5 MiB.
   - Maximum string byte length: 256 KiB.
   - Maximum array items: 65,535; maximum map entries: 65,535.
   - Implementations may impose stricter per-call limits (e.g., manifest-bound request/response sizes) but must not exceed these without an explicit opt-in.
@@ -69,7 +69,7 @@ Forbidden: CBOR tags (`0xc0`…), indefinite lengths (`0x5f/0x7f/0x9f/0xbf`), si
 
 ## Implementation notes (TS `libs/dv`)
 
-- `encodeDv` and `decodeDv` enforce `DV_LIMIT_DEFAULTS` (maxDepth 64, maxEncodedBytes 1 MiB, maxStringBytes 256 KiB, maxArrayLength/maxMapLength 65,535) unless overridden per call.
+- `encodeDv` and `decodeDv` enforce `DV_LIMIT_DEFAULTS` (maxDepth 64, maxEncodedBytes 5 MiB, maxStringBytes 256 KiB, maxArrayLength/maxMapLength 65,535) unless overridden per call.
 - `validateDv(value)` is currently implemented by calling `encodeDv(value)` (encoding performs full validation and limit checks).
 
 ## Encoding examples

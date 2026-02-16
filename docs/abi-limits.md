@@ -142,7 +142,7 @@ DV uses a single shared default limits profile across the repo (both the C imple
 The default DV limits are:
 
 - `maxDepth`: **64**
-- `maxEncodedBytes`: **1,048,576** (1 MiB)
+- `maxEncodedBytes`: **5,242,880** (5 MiB)
 - `maxStringBytes`: **262,144** (256 KiB)
 - `maxArrayLength`: **65,535**
 - `maxMapLength`: **65,535**
@@ -162,7 +162,7 @@ Reference (canonical): [DV wire format](./dv-wire-format.md).
 These are not per-function manifest fields, but they matter for the “shape” of the system and show up as hard caps in the VM:
 
 - **Max manifest bytes**: **1,048,576** (1 MiB)
-- **Max context blob bytes**: **1,048,576** (1 MiB)
+- **Max context blob bytes**: **5,242,880** (5 MiB)
 - **Host-call tape capacity**: max **1,024** records (bounded ring buffer)
 - **Wasm memory configuration** (build-time):
   - initial/maximum wasm memory: **33,554,432** bytes (32 MiB)
@@ -222,4 +222,3 @@ References:
 - Transport details: [Host call ABI](./host-call-abi.md)
 - Host-call gas billing: [Gas schedule](./gas-schedule.md)
 - Compatibility: [Release policy](./release-policy.md)
-
