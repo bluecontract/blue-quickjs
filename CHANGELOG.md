@@ -1,3 +1,9 @@
+## 0.4.0 (2026-02-16)
+
+### 🚀 Features
+
+- **dv:** increase maxEncodedBytes default from 1 MiB to 5 MiB ([fd2182b](https://github.com/bluecontract/blue-quickjs/commit/fd2182b))
+
 ## 0.3.1 (2026-01-19)
 
 ### 🩹 Fixes
