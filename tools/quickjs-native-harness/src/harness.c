@@ -594,12 +594,29 @@ static void print_trace_suffix(const HarnessOptions *options, const HarnessSnaps
           " TRACE {\"opcodeCount\":%" PRIu64 ",\"opcodeGas\":%" PRIu64
           ",\"arrayCbBase\":{\"count\":%" PRIu64 ",\"gas\":%" PRIu64
           "},\"arrayCbPerEl\":{\"count\":%" PRIu64 ",\"gas\":%" PRIu64
-          "},\"alloc\":{\"count\":%" PRIu64 ",\"bytes\":%" PRIu64 ",\"gas\":%" PRIu64 "}",
+          "},\"alloc\":{\"count\":%" PRIu64 ",\"bytes\":%" PRIu64 ",\"gas\":%" PRIu64
+          "},\"jsonParse\":{\"count\":%" PRIu64 ",\"gas\":%" PRIu64
+          ",\"inputBytes\":%" PRIu64 ",\"values\":%" PRIu64
+          ",\"objectEntries\":%" PRIu64 ",\"arrayElements\":%" PRIu64
+          "},\"jsonStringify\":{\"count\":%" PRIu64 ",\"gas\":%" PRIu64
+          ",\"outputBytes\":%" PRIu64 ",\"values\":%" PRIu64
+          ",\"objectEntries\":%" PRIu64 ",\"arrayElements\":%" PRIu64
+          ",\"sortComparisons\":%" PRIu64 "}",
           snapshot->trace.opcode_count, snapshot->trace.opcode_gas,
           snapshot->trace.builtin_array_cb_base_count, snapshot->trace.builtin_array_cb_base_gas,
           snapshot->trace.builtin_array_cb_per_element_count,
           snapshot->trace.builtin_array_cb_per_element_gas, snapshot->trace.allocation_count,
-          snapshot->trace.allocation_bytes, snapshot->trace.allocation_gas);
+          snapshot->trace.allocation_bytes, snapshot->trace.allocation_gas,
+          snapshot->trace.json_parse_count, snapshot->trace.json_parse_gas,
+          snapshot->trace.json_parse_input_bytes, snapshot->trace.json_parse_value_count,
+          snapshot->trace.json_parse_object_entry_count,
+          snapshot->trace.json_parse_array_element_count,
+          snapshot->trace.json_stringify_count, snapshot->trace.json_stringify_gas,
+          snapshot->trace.json_stringify_output_bytes,
+          snapshot->trace.json_stringify_value_count,
+          snapshot->trace.json_stringify_object_entry_count,
+          snapshot->trace.json_stringify_array_element_count,
+          snapshot->trace.json_stringify_sort_comparison_count);
 
   fputc('}', stdout);
 }

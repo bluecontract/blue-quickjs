@@ -6,7 +6,7 @@ Scope: define canonical gas units for QuickJS execution and host calls per Basel
 
 ## Gas version and limits
 
-- `JS_GAS_VERSION_LATEST = 1`
+- `JS_GAS_VERSION_LATEST = 2`
 - Gas amounts are uint64.
 - `JS_GAS_UNLIMITED` disables charging and reports gas used as 0.
 - `JS_UseGas` subtracts from `gas_remaining`; if `amount > gas_remaining`, it sets `gas_remaining = 0` and throws an uncatchable `OutOfGas: out of gas` error.
@@ -38,6 +38,55 @@ Formula:
 
 - `JS_GAS_ALLOC_BASE + ceil(size / 16)` where `size` is the requested allocation size.
 
+## Deterministic JSON builtin gas
+
+Deterministic mode exposes metered `JSON.parse` / `JSON.stringify` built-ins. These
+charges apply only to those deterministic wrappers; they do **not** change the behavior
+of the public C APIs `JS_ParseJSON*` / `JS_JSONStringify` used by non-deterministic
+contexts or host-side helpers.
+
+### `JSON.parse`
+
+Charges:
+
+- Base: `JS_GAS_JSON_PARSE_BASE = 8`
+- Input bytes: `JS_GAS_JSON_PARSE_INPUT_BYTE = 1`
+- Value visit: `JS_GAS_JSON_PARSE_VALUE = 3`
+- Object entry: `JS_GAS_JSON_PARSE_OBJECT_ENTRY = 2`
+- Array element: `JS_GAS_JSON_PARSE_ARRAY_ELEMENT = 2`
+
+Interpretation:
+
+- Base is charged once per call, before deterministic argument validation finishes.
+- Input-byte gas is charged on the UTF-8 byte length of the input string before the
+  parser runs.
+- The deterministic wrapper performs a metered structural preflight on the JSON text
+  before calling `JS_ParseJSON`, charging `VALUE`, `OBJECT_ENTRY`, and
+  `ARRAY_ELEMENT` as it validates the deterministic subset and size limits.
+- Limit/type/syntax failures consume the work charged before the failure point; the
+  full native parse does not run after a failing preflight.
+
+### `JSON.stringify`
+
+Charges:
+
+- Base: `JS_GAS_JSON_STRINGIFY_BASE = 8`
+- Value visit: `JS_GAS_JSON_STRINGIFY_VALUE = 3`
+- Object entry: `JS_GAS_JSON_STRINGIFY_OBJECT_ENTRY = 2`
+- Array element: `JS_GAS_JSON_STRINGIFY_ARRAY_ELEMENT = 2`
+- Output bytes: `JS_GAS_JSON_STRINGIFY_OUTPUT_BYTE = 1`
+- Key sort comparison: `JS_GAS_JSON_STRINGIFY_SORT_COMPARISON = 1`
+
+Interpretation:
+
+- Base is charged once per call, before deterministic option validation finishes.
+- `VALUE`, `OBJECT_ENTRY`, and `ARRAY_ELEMENT` are charged during the recursive walk.
+- `OUTPUT_BYTE` is charged on emitted UTF-8 bytes of the final JSON string.
+- `SORT_COMPARISON` is charged for each comparison performed by the deterministic key
+  sorter used for canonical object key ordering.
+- Unsupported values/options and cycle errors still consume the work charged before the
+  failure point.
+
 ## Garbage collection (GC) checkpoints
 
 - Automatic GC heuristics are disabled in deterministic mode (`js_trigger_gc` is a no-op and GC threshold is set to `-1`).
@@ -64,5 +113,11 @@ Overflow during charge throws `TypeError: host_call gas overflow`. OOG on pre-ch
 
 ## Gas trace (optional)
 
-- `JS_EnableGasTrace` reports aggregate counts for opcode gas, array callback gas, and allocation gas.
-- Host-call gas is billed but not included in the trace totals; tests compute host gas as `gasUsed - (opcode + array + allocation)`.
+- `JS_EnableGasTrace` reports aggregate counts for:
+  - opcode gas,
+  - array callback gas,
+  - allocation gas,
+  - deterministic `JSON.parse` gas,
+  - deterministic `JSON.stringify` gas.
+- Host-call gas is billed but not included in the trace totals; tests compute host gas as:
+  - `gasUsed - (opcode + array + allocation + jsonParse + jsonStringify)`

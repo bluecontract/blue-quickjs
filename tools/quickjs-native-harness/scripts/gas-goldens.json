@@ -33,7 +33,31 @@
     "name": "addition-trace",
     "fixture": "gas/addition.js",
     "args": ["--gas-limit", "154", "--report-gas", "--gas-trace"],
-    "expected": "RESULT 3 GAS remaining=0 used=154 TRACE {\"opcodeCount\":5,\"opcodeGas\":5,\"arrayCbBase\":{\"count\":0,\"gas\":0},\"arrayCbPerEl\":{\"count\":0,\"gas\":0},\"alloc\":{\"count\":19,\"bytes\":1336,\"gas\":149}}"
+    "expected": "RESULT 3 GAS remaining=0 used=154 TRACE {\"opcodeCount\":5,\"opcodeGas\":5,\"arrayCbBase\":{\"count\":0,\"gas\":0},\"arrayCbPerEl\":{\"count\":0,\"gas\":0},\"alloc\":{\"count\":19,\"bytes\":1336,\"gas\":149},\"jsonParse\":{\"count\":0,\"gas\":0,\"inputBytes\":0,\"values\":0,\"objectEntries\":0,\"arrayElements\":0},\"jsonStringify\":{\"count\":0,\"gas\":0,\"outputBytes\":0,\"values\":0,\"objectEntries\":0,\"arrayElements\":0,\"sortComparisons\":0}}"
+  },
+  {
+    "name": "json-parse-small",
+    "fixture": "gas/json-parse-small.js",
+    "args": ["--gas-limit", "281", "--report-gas", "--gas-trace"],
+    "expected": "RESULT {\"aa\":1,\"b\":2} GAS remaining=0 used=281 TRACE {\"opcodeCount\":6,\"opcodeGas\":6,\"arrayCbBase\":{\"count\":0,\"gas\":0},\"arrayCbPerEl\":{\"count\":0,\"gas\":0},\"alloc\":{\"count\":34,\"bytes\":1994,\"gas\":240},\"jsonParse\":{\"count\":1,\"gas\":35,\"inputBytes\":14,\"values\":3,\"objectEntries\":2,\"arrayElements\":0},\"jsonStringify\":{\"count\":0,\"gas\":0,\"outputBytes\":0,\"values\":0,\"objectEntries\":0,\"arrayElements\":0,\"sortComparisons\":0}}"
+  },
+  {
+    "name": "json-parse-oog",
+    "fixture": "gas/json-parse-oog.js",
+    "args": ["--gas-limit", "280", "--report-gas", "--gas-trace"],
+    "expected": "ERROR OutOfGas: out of gas GAS remaining=0 used=280 TRACE {\"opcodeCount\":6,\"opcodeGas\":6,\"arrayCbBase\":{\"count\":0,\"gas\":0},\"arrayCbPerEl\":{\"count\":0,\"gas\":0},\"alloc\":{\"count\":33,\"bytes\":1976,\"gas\":235},\"jsonParse\":{\"count\":1,\"gas\":35,\"inputBytes\":14,\"values\":3,\"objectEntries\":2,\"arrayElements\":0},\"jsonStringify\":{\"count\":0,\"gas\":0,\"outputBytes\":0,\"values\":0,\"objectEntries\":0,\"arrayElements\":0,\"sortComparisons\":0}}"
+  },
+  {
+    "name": "json-stringify-small",
+    "fixture": "gas/json-stringify-small.js",
+    "args": ["--gas-limit", "304", "--report-gas", "--gas-trace"],
+    "expected": "RESULT \"{\\\"b\\\":2,\\\"aa\\\":1}\" GAS remaining=0 used=304 TRACE {\"opcodeCount\":10,\"opcodeGas\":10,\"arrayCbBase\":{\"count\":0,\"gas\":0},\"arrayCbPerEl\":{\"count\":0,\"gas\":0},\"alloc\":{\"count\":37,\"bytes\":2078,\"gas\":258},\"jsonParse\":{\"count\":0,\"gas\":0,\"inputBytes\":0,\"values\":0,\"objectEntries\":0,\"arrayElements\":0},\"jsonStringify\":{\"count\":1,\"gas\":36,\"outputBytes\":14,\"values\":3,\"objectEntries\":2,\"arrayElements\":0,\"sortComparisons\":1}}"
+  },
+  {
+    "name": "json-stringify-oog",
+    "fixture": "gas/json-stringify-oog.js",
+    "args": ["--gas-limit", "302", "--report-gas", "--gas-trace"],
+    "expected": "ERROR OutOfGas: out of gas GAS remaining=0 used=302 TRACE {\"opcodeCount\":10,\"opcodeGas\":10,\"arrayCbBase\":{\"count\":0,\"gas\":0},\"arrayCbPerEl\":{\"count\":0,\"gas\":0},\"alloc\":{\"count\":36,\"bytes\":2039,\"gas\":252},\"jsonParse\":{\"count\":0,\"gas\":0,\"inputBytes\":0,\"values\":0,\"objectEntries\":0,\"arrayElements\":0},\"jsonStringify\":{\"count\":1,\"gas\":36,\"outputBytes\":14,\"values\":3,\"objectEntries\":2,\"arrayElements\":0,\"sortComparisons\":1}}"
   },
   {
     "name": "loop-oog",
@@ -51,7 +75,7 @@
     "name": "array-map-single-trace",
     "fixture": "gas/array-map-single.js",
     "args": ["--gas-limit", "900", "--report-gas", "--gas-trace", "--dump-global", "__calls"],
-    "expected": "RESULT 1 GAS remaining=154 used=746 STATE 1 TRACE {\"opcodeCount\":21,\"opcodeGas\":21,\"arrayCbBase\":{\"count\":1,\"gas\":5},\"arrayCbPerEl\":{\"count\":1,\"gas\":2},\"alloc\":{\"count\":73,\"bytes\":7552,\"gas\":718}}"
+    "expected": "RESULT 1 GAS remaining=154 used=746 STATE 1 TRACE {\"opcodeCount\":21,\"opcodeGas\":21,\"arrayCbBase\":{\"count\":1,\"gas\":5},\"arrayCbPerEl\":{\"count\":1,\"gas\":2},\"alloc\":{\"count\":73,\"bytes\":7552,\"gas\":718},\"jsonParse\":{\"count\":0,\"gas\":0,\"inputBytes\":0,\"values\":0,\"objectEntries\":0,\"arrayElements\":0},\"jsonStringify\":{\"count\":0,\"gas\":0,\"outputBytes\":0,\"values\":0,\"objectEntries\":0,\"arrayElements\":0,\"sortComparisons\":0}}"
   },
   {
     "name": "array-map-multi",
@@ -81,7 +105,7 @@
     "name": "gc-pending-trace",
     "fixture": "gas/gc-pending.js",
     "args": ["--gas-limit", "40000", "--report-gas", "--gas-trace"],
-    "expected": "RESULT 1200000 GAS remaining=2111 used=37889 TRACE {\"opcodeCount\":18,\"opcodeGas\":18,\"arrayCbBase\":{\"count\":0,\"gas\":0},\"arrayCbPerEl\":{\"count\":0,\"gas\":0},\"alloc\":{\"count\":47,\"bytes\":603355,\"gas\":37871}}"
+    "expected": "RESULT 1200000 GAS remaining=2111 used=37889 TRACE {\"opcodeCount\":18,\"opcodeGas\":18,\"arrayCbBase\":{\"count\":0,\"gas\":0},\"arrayCbPerEl\":{\"count\":0,\"gas\":0},\"alloc\":{\"count\":47,\"bytes\":603355,\"gas\":37871},\"jsonParse\":{\"count\":0,\"gas\":0,\"inputBytes\":0,\"values\":0,\"objectEntries\":0,\"arrayElements\":0},\"jsonStringify\":{\"count\":0,\"gas\":0,\"outputBytes\":0,\"values\":0,\"objectEntries\":0,\"arrayElements\":0,\"sortComparisons\":0}}"
   },
   {
     "name": "string-repeat",

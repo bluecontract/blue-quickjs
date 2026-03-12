@@ -79,6 +79,26 @@ const cases = [
     fixture: 'string-repeat.js',
     gasLimit: 5000n,
   },
+  {
+    name: 'json-parse',
+    fixture: 'json-parse-small.js',
+    gasLimit: 217n,
+  },
+  {
+    name: 'json-parse-oog',
+    fixture: 'json-parse-oog.js',
+    gasLimit: 216n,
+  },
+  {
+    name: 'json-stringify',
+    fixture: 'json-stringify-small.js',
+    gasLimit: 241n,
+  },
+  {
+    name: 'json-stringify-oog',
+    fixture: 'json-stringify-oog.js',
+    gasLimit: 240n,
+  },
 ];
 
 const wasmVariantEnv = process.env.QJS_WASM_VARIANT?.toLowerCase();
@@ -141,6 +161,32 @@ const wasm32Expectations: Record<string, ExpectedResult> = {
     value: 32768,
     gasRemaining: 2687n,
     gasUsed: 2313n,
+  },
+  'json-parse': {
+    kind: 'RESULT',
+    payload: 'a261620262616101',
+    value: { b: 2, aa: 1 },
+    gasRemaining: 0n,
+    gasUsed: 217n,
+  },
+  'json-parse-oog': {
+    kind: 'ERROR',
+    payload: 'OutOfGas: out of gas',
+    gasRemaining: 0n,
+    gasUsed: 216n,
+  },
+  'json-stringify': {
+    kind: 'RESULT',
+    payload: '6e7b2262223a322c226161223a317d',
+    value: '{"b":2,"aa":1}',
+    gasRemaining: 0n,
+    gasUsed: 241n,
+  },
+  'json-stringify-oog': {
+    kind: 'ERROR',
+    payload: 'OutOfGas: out of gas',
+    gasRemaining: 0n,
+    gasUsed: 240n,
   },
 };
 

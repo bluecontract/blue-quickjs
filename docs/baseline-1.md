@@ -48,7 +48,8 @@ Determinism depends on a strict JS surface:
 - **No async scheduling**: Promises/microtasks/timers are disabled or absent; evaluation is run-to-completion.
 - **No low-level byte/NaN observability**: typed arrays / `ArrayBuffer` / `DataView` / `WebAssembly` are disabled.
 - **No dynamic code generation**: `eval` and `Function` are disabled.
-- **No unmetered heavy builtins**: selected high-risk APIs (e.g. `JSON.parse`, `JSON.stringify`, `Array.prototype.sort`) are deterministically disabled.
+- **No unmetered heavy builtins**: selected high-risk APIs are either deterministically metered
+  (e.g. deterministic-mode `JSON.parse` / `JSON.stringify`) or disabled (`Array.prototype.sort`).
 
 The exact list and the required deterministic error messages are specified in `docs/determinism-profile.md`.
 
