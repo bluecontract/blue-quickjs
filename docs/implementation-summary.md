@@ -155,6 +155,12 @@ Why DV instead of JSON?
 - JSON has multiple valid serializations for the same data (key order, float formatting).
 - We need *canonical bytes* for hashing, reproducible fixtures, and cross-language parity (C ↔ TS).
 
+Deterministic mode does expose **metered `JSON.parse` / `JSON.stringify` built-ins** for
+internal VM ergonomics, but those do **not** replace DV at the boundary. The rule is:
+
+- use deterministic JSON built-ins for JSON work **inside** the VM,
+- use DV for anything that must cross the VM boundary or be hashed/pinned canonically.
+
 ---
 
 ## Gas and host-call metering
@@ -167,6 +173,7 @@ The VM charges gas for:
 
 - **Interpreter opcodes** (flat cost per step)
 - **Certain builtins** (notably array callbacks) to avoid “free” work inside C loops
+- **Deterministic JSON built-ins** (`JSON.parse` / `JSON.stringify`)
 - **Memory allocations** (scaled by bytes) to bound allocation-heavy attacks
 - **GC checkpoints** (a fixed cost) at deterministic points
 - **Host calls** via manifest-defined parameters
@@ -223,7 +230,8 @@ Deterministic systems are hard to debug because “printing” can itself introd
 
 This repo provides two deterministic observability tools:
 
-- **Gas trace**: aggregate counters attributing VM gas to opcodes, array callback builtins, and allocations.
+- **Gas trace**: aggregate counters attributing VM gas to opcodes, array callback builtins,
+  allocations, and deterministic JSON built-ins.
 - **Host-call tape**: bounded per-call records including hashes of the encoded request/response bytes and the gas breakdown.
 
 How to enable and interpret: [Observability](./observability.md).

@@ -5,8 +5,11 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd -- "${SCRIPT_DIR}/../../.." && pwd)"
 BIN="${REPO_ROOT}/tools/quickjs-native-harness/dist/quickjs-native-harness"
 
-# Ensure build is present.
-"${SCRIPT_DIR}/build.sh" >/dev/null
+# Nx already runs the build target before this test target. Rebuild only when
+# the harness binary is missing so CI logs keep the actual test failure visible.
+if [[ ! -x "${BIN}" ]]; then
+  "${SCRIPT_DIR}/build.sh" >/dev/null
+fi
 
 HOST_MANIFEST_HEX="$(tr -d '\r\n' < "${REPO_ROOT}/libs/test-harness/fixtures/abi-manifest/host-v1.bytes.hex")"
 HOST_MANIFEST_HASH="$(tr -d '\r\n' < "${REPO_ROOT}/libs/test-harness/fixtures/abi-manifest/host-v1.hash")"
@@ -372,8 +375,22 @@ assert_output "Atomics disabled" "Atomics()" "ERROR TypeError: Atomics is disabl
 assert_output "WebAssembly disabled" "WebAssembly()" "ERROR TypeError: WebAssembly is disabled in deterministic mode"
 assert_output "console disabled" "console.log('x')" "ERROR TypeError: console is disabled in deterministic mode"
 assert_output "print disabled" "print('x')" "ERROR TypeError: print is disabled in deterministic mode"
-assert_output "JSON.parse disabled" "JSON.parse('[]')" "ERROR TypeError: JSON.parse is disabled in deterministic mode"
-assert_output "JSON.stringify disabled" "JSON.stringify({ a: 1 })" "ERROR TypeError: JSON.stringify is disabled in deterministic mode"
+assert_output "JSON.parse success" "JSON.parse('{\"aa\":1,\"b\":2}')" "RESULT {\"aa\":1,\"b\":2}"
+assert_output "JSON.parse syntax error" "JSON.parse('[')" "ERROR SyntaxError: Unexpected end of JSON input"
+assert_output "JSON.parse reviver unsupported" "JSON.parse('[]', () => 1)" "ERROR TypeError: JSON.parse reviver is not supported in deterministic mode"
+assert_output "JSON.parse invalid string" "JSON.parse('\"\\ud800\"')" "ERROR TypeError: JSON.parse string contains lone surrogate code points"
+assert_output "JSON.parse invalid key" "JSON.parse('{\"\\ud800\":1}')" "ERROR TypeError: JSON.parse key contains lone surrogate code points"
+assert_output "JSON.parse deep nesting limit" "JSON.parse('['.repeat(10000) + '0' + ']'.repeat(10000))" "ERROR TypeError: JSON.parse maxDepth 64 exceeded"
+assert_output "JSON.stringify canonical key order" "JSON.stringify({ aa: 1, b: 2 })" "RESULT \"{\\\"b\\\":2,\\\"aa\\\":1}\""
+assert_output "JSON.stringify replacer unsupported" "JSON.stringify({ aa: 1, b: 2 }, [])" "ERROR TypeError: JSON.stringify replacer is not supported in deterministic mode"
+assert_output "JSON.stringify space unsupported" "JSON.stringify({ aa: 1, b: 2 }, null, 2)" "ERROR TypeError: JSON.stringify space is not supported in deterministic mode"
+assert_output "JSON.stringify cycle error" "(() => { const x = {}; x.self = x; return JSON.stringify(x); })()" "ERROR TypeError: JSON.stringify does not support circular references"
+assert_output "JSON.stringify accessor unsupported" "JSON.stringify({ get a() { return 1; } })" "ERROR TypeError: JSON.stringify does not support accessor properties"
+assert_output "JSON.stringify array accessor unsupported" "(() => { const arr = [1]; Object.defineProperty(arr, 0, { get() { return 1; }, enumerable: true }); return JSON.stringify(arr); })()" "ERROR TypeError: JSON.stringify does not support accessor properties"
+assert_output "JSON.stringify invalid string" "JSON.stringify('\\ud800')" "ERROR TypeError: JSON.stringify string contains lone surrogate code points"
+assert_output "JSON.stringify invalid key" "(() => { const key = '\\ud800'; return JSON.stringify({ [key]: 1 }); })()" "ERROR TypeError: JSON.stringify key contains lone surrogate code points"
+assert_output "JSON.stringify unsupported type" "JSON.stringify({ x: undefined })" "ERROR TypeError: JSON.stringify only supports null, booleans, strings, finite numbers, arrays, and plain objects"
+assert_output "JSON.stringify sparse array ignores prototype getters" "(() => { let getterCalls = 0; Object.defineProperty(Array.prototype, 0, { get() { getterCalls += 1; return 1; }, configurable: true }); try { return [JSON.stringify([,]), getterCalls]; } finally { delete Array.prototype[0]; } })()" "RESULT [\"[null]\",0]"
 assert_output "Array.sort disabled" "[3, 1, 2].sort()" "ERROR TypeError: Array.prototype.sort is disabled in deterministic mode"
 assert_output "Date missing" "typeof Date" "RESULT \"undefined\""
 assert_output "Timers missing" "typeof setTimeout" "RESULT \"undefined\""
@@ -404,8 +421,11 @@ assert_host_call "host_call max_units zero allowed" "HOSTRESP 0 UNITS 0" --host-
 assert_host_call "host_call units above max_units zero" "ERROR HostError: host/envelope_invalid" --host-call "${HOST_UNITS_ONE_HEX}" --host-parse-envelope --host-max-units 0
 assert_host_call "host_call ok envelope" "HOSTRESP {\"value\":\"hello\"} UNITS 5" --host-call "${HOST_OK_ENVELOPE_HEX}" --host-parse-envelope --host-max-units 10
 
+echo "Running gas golden suite"
 node "${SCRIPT_DIR}/gas-goldens.mjs"
+echo "Running host gas suite"
 node "${SCRIPT_DIR}/host-gas.mjs"
+echo "Running DV parity suite"
 node "${SCRIPT_DIR}/dv-parity.mjs"
 
 echo "quickjs-native-harness test passed"

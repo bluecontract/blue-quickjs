@@ -256,6 +256,268 @@ describe('evaluate', () => {
     expect(result.gasTrace).toBeDefined();
     expect((result.gasTrace?.opcodeCount ?? 0n) >= 0n).toBe(true);
     expect((result.gasTrace?.allocationBytes ?? 0n) >= 0n).toBe(true);
+    expect((result.gasTrace?.jsonParseCount ?? 0n) >= 0n).toBe(true);
+    expect((result.gasTrace?.jsonStringifyCount ?? 0n) >= 0n).toBe(true);
+  });
+
+  it('supports deterministic JSON parse and canonical stringify', async () => {
+    const result = await evaluate({
+      program: {
+        ...BASE_PROGRAM,
+        code: `JSON.stringify(JSON.parse('{"aa":1,"b":2}'))`,
+      },
+      input: BASE_INPUT,
+      gasLimit: TEST_GAS_LIMIT,
+      manifest: HOST_V1_MANIFEST,
+      handlers: createHandlers(),
+      gasTrace: true,
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error(result.message);
+    }
+
+    expect(result.value).toBe('{"b":2,"aa":1}');
+    expect((result.gasTrace?.jsonParseCount ?? 0n) > 0n).toBe(true);
+    expect((result.gasTrace?.jsonStringifyCount ?? 0n) > 0n).toBe(true);
+  });
+
+  it('rejects unsupported deterministic JSON options', async () => {
+    const cases = [
+      {
+        code: `JSON.parse('[]', () => 1)`,
+        message: /reviver is not supported/i,
+      },
+      {
+        code: `JSON.stringify({ aa: 1, b: 2 }, [])`,
+        message: /replacer is not supported/i,
+      },
+      {
+        code: `JSON.stringify({ aa: 1, b: 2 }, null, 2)`,
+        message: /space is not supported/i,
+      },
+    ];
+
+    for (const testCase of cases) {
+      const result = await evaluate({
+        program: { ...BASE_PROGRAM, code: testCase.code },
+        input: BASE_INPUT,
+        gasLimit: TEST_GAS_LIMIT,
+        manifest: HOST_V1_MANIFEST,
+        handlers: createHandlers(),
+      });
+
+      expect(result.ok).toBe(false);
+      if (result.ok) {
+        throw new Error('expected deterministic JSON option failure');
+      }
+      expect(result.type).toBe('vm-error');
+      expect(result.error.kind).toBe('js-exception');
+      expect(result.message).toMatch(testCase.message);
+    }
+  });
+
+  it('rejects malformed deterministic JSON strings and keys', async () => {
+    const cases = [
+      {
+        code: `JSON.parse('"\\ud800"')`,
+        message: /string contains lone surrogate code points/i,
+      },
+      {
+        code: `JSON.parse('{"\\ud800":1}')`,
+        message: /key contains lone surrogate code points/i,
+      },
+      {
+        code: `JSON.stringify('\\ud800')`,
+        message: /string contains lone surrogate code points/i,
+      },
+      {
+        code: `(() => {
+          const key = '\\ud800';
+          return JSON.stringify({ [key]: 1 });
+        })()`,
+        message: /key contains lone surrogate code points/i,
+      },
+    ];
+
+    for (const testCase of cases) {
+      const result = await evaluate({
+        program: { ...BASE_PROGRAM, code: testCase.code },
+        input: BASE_INPUT,
+        gasLimit: TEST_GAS_LIMIT,
+        manifest: HOST_V1_MANIFEST,
+        handlers: createHandlers(),
+      });
+
+      expect(result.ok).toBe(false);
+      if (result.ok) {
+        throw new Error('expected malformed deterministic JSON failure');
+      }
+      expect(result.type).toBe('vm-error');
+      expect(result.error.kind).toBe('js-exception');
+      expect(result.message).toMatch(testCase.message);
+    }
+  });
+
+  it('rejects deeply nested deterministic JSON before parser stack overflow', async () => {
+    const depth = 10_000;
+    const json = '['.repeat(depth) + '0' + ']'.repeat(depth);
+    const result = await evaluate({
+      program: {
+        ...BASE_PROGRAM,
+        code: `JSON.parse(${JSON.stringify(json)})`,
+      },
+      input: BASE_INPUT,
+      gasLimit: 200_000n,
+      manifest: HOST_V1_MANIFEST,
+      handlers: createHandlers(),
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      throw new Error('expected deterministic JSON depth failure');
+    }
+    expect(result.type).toBe('vm-error');
+    expect(result.error.kind).toBe('js-exception');
+    expect(result.message).toMatch(/maxDepth 64 exceeded/i);
+  });
+
+  it('rejects oversized deterministic JSON arrays before building the full parse result', async () => {
+    const length = 66_000;
+    const json = '[' + '0,'.repeat(length - 1) + '0]';
+    const result = await evaluate({
+      program: {
+        ...BASE_PROGRAM,
+        code: `JSON.parse(${JSON.stringify(json)})`,
+      },
+      input: BASE_INPUT,
+      gasLimit: 2_000_000n,
+      manifest: HOST_V1_MANIFEST,
+      handlers: createHandlers(),
+      gasTrace: true,
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      throw new Error('expected deterministic JSON array length failure');
+    }
+    expect(result.type).toBe('vm-error');
+    expect(result.error.kind).toBe('js-exception');
+    expect(result.message).toMatch(
+      /array length exceeds maxArrayLength \(\d+ > 65535\)/i,
+    );
+    expect((result.gasTrace?.allocationBytes ?? 0n) < 3_500_000n).toBe(true);
+  });
+
+  it('rejects oversized deterministic JSON strings before materializing full tokens', async () => {
+    const cases = [
+      {
+        code: `JSON.parse('"' + 'a'.repeat(262_145) + '"')`,
+        message: /string exceeds maxStringBytes \(\d+ > 262144\)/i,
+      },
+      {
+        code: `JSON.parse('{"' + 'a'.repeat(262_145) + '":1}')`,
+        message: /key exceeds maxStringBytes \(\d+ > 262144\)/i,
+      },
+    ];
+
+    for (const testCase of cases) {
+      const result = await evaluate({
+        program: {
+          ...BASE_PROGRAM,
+          code: testCase.code,
+        },
+        input: BASE_INPUT,
+        gasLimit: 2_000_000n,
+        manifest: HOST_V1_MANIFEST,
+        handlers: createHandlers(),
+        gasTrace: true,
+      });
+
+      expect(result.ok).toBe(false);
+      if (result.ok) {
+        throw new Error('expected deterministic JSON string length failure');
+      }
+      expect(result.type).toBe('vm-error');
+      expect(result.error.kind).toBe('js-exception');
+      expect(result.message).toMatch(testCase.message);
+      expect((result.gasTrace?.allocationBytes ?? 0n) < 1_800_000n).toBe(true);
+    }
+  });
+
+  it('rejects accessor properties during deterministic JSON stringify', async () => {
+    const cases = [
+      {
+        code: `JSON.stringify({ get a() { return 1; } })`,
+        message: /accessor properties/i,
+      },
+      {
+        code: `(() => {
+          const arr = [1];
+          Object.defineProperty(arr, 0, {
+            get() {
+              return 1;
+            },
+            enumerable: true,
+          });
+          return JSON.stringify(arr);
+        })()`,
+        message: /accessor properties/i,
+      },
+    ];
+
+    for (const testCase of cases) {
+      const result = await evaluate({
+        program: { ...BASE_PROGRAM, code: testCase.code },
+        input: BASE_INPUT,
+        gasLimit: TEST_GAS_LIMIT,
+        manifest: HOST_V1_MANIFEST,
+        handlers: createHandlers(),
+      });
+
+      expect(result.ok).toBe(false);
+      if (result.ok) {
+        throw new Error('expected deterministic JSON accessor failure');
+      }
+      expect(result.type).toBe('vm-error');
+      expect(result.error.kind).toBe('js-exception');
+      expect(result.message).toMatch(testCase.message);
+    }
+  });
+
+  it('serializes sparse arrays without consulting the prototype chain', async () => {
+    const result = await evaluate({
+      program: {
+        ...BASE_PROGRAM,
+        code: `(() => {
+          let getterCalls = 0;
+          Object.defineProperty(Array.prototype, 0, {
+            get() {
+              getterCalls += 1;
+              return 1;
+            },
+            configurable: true,
+          });
+          try {
+            return [JSON.stringify([,]), getterCalls];
+          } finally {
+            delete Array.prototype[0];
+          }
+        })()`,
+      },
+      input: BASE_INPUT,
+      gasLimit: TEST_GAS_LIMIT,
+      manifest: HOST_V1_MANIFEST,
+      handlers: createHandlers(),
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error(result.message);
+    }
+
+    expect(result.value).toEqual(['[null]', 0]);
   });
 });
 

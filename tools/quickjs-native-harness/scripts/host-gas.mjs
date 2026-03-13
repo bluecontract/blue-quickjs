@@ -112,7 +112,9 @@ function computeNonHostGas(trace) {
   const arrayBase = Number(trace.arrayCbBase?.gas || 0);
   const arrayPerEl = Number(trace.arrayCbPerEl?.gas || 0);
   const alloc = Number(trace.alloc?.gas || 0);
-  return opcode + arrayBase + arrayPerEl + alloc;
+  const jsonParse = Number(trace.jsonParse?.gas || 0);
+  const jsonStringify = Number(trace.jsonStringify?.gas || 0);
+  return opcode + arrayBase + arrayPerEl + alloc + jsonParse + jsonStringify;
 }
 
 const failures = [];
