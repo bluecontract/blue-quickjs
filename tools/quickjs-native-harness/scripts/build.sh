@@ -5,10 +5,16 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd -- "${SCRIPT_DIR}/../../.." && pwd)"
 QJS_DIR="${REPO_ROOT}/vendor/quickjs"
 OUT_DIR="${REPO_ROOT}/tools/quickjs-native-harness/dist"
-OBJ_DIR="${OUT_DIR}/obj"
 CC_BIN="${CC:-cc}"
 
 VERSION="$(cat "${QJS_DIR}/VERSION")"
+
+mkdir -p "${OUT_DIR}"
+
+BUILD_DIR="$(mktemp -d "${OUT_DIR}/.build.XXXXXX")"
+OBJ_DIR="${BUILD_DIR}/obj"
+BIN_PATH="${BUILD_DIR}/quickjs-native-harness"
+trap 'rm -rf "${BUILD_DIR}"' EXIT
 
 mkdir -p "${OBJ_DIR}"
 
@@ -57,6 +63,8 @@ for src in "${SRC_FILES[@]}"; do
   OBJ_FILES+=("${obj}")
 done
 
-"${CC_BIN}" -o "${OUT_DIR}/quickjs-native-harness" "${OBJ_FILES[@]}" "${LDFLAGS[@]}"
+"${CC_BIN}" -o "${BIN_PATH}" "${OBJ_FILES[@]}" "${LDFLAGS[@]}"
+
+mv "${BIN_PATH}" "${OUT_DIR}/quickjs-native-harness"
 
 echo "Built ${OUT_DIR}/quickjs-native-harness"
