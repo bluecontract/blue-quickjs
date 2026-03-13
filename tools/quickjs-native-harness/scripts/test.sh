@@ -5,8 +5,11 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd -- "${SCRIPT_DIR}/../../.." && pwd)"
 BIN="${REPO_ROOT}/tools/quickjs-native-harness/dist/quickjs-native-harness"
 
-# Ensure build is present.
-"${SCRIPT_DIR}/build.sh" >/dev/null
+# Nx already runs the build target before this test target. Rebuild only when
+# the harness binary is missing so CI logs keep the actual test failure visible.
+if [[ ! -x "${BIN}" ]]; then
+  "${SCRIPT_DIR}/build.sh" >/dev/null
+fi
 
 HOST_MANIFEST_HEX="$(tr -d '\r\n' < "${REPO_ROOT}/libs/test-harness/fixtures/abi-manifest/host-v1.bytes.hex")"
 HOST_MANIFEST_HASH="$(tr -d '\r\n' < "${REPO_ROOT}/libs/test-harness/fixtures/abi-manifest/host-v1.hash")"
@@ -418,8 +421,11 @@ assert_host_call "host_call max_units zero allowed" "HOSTRESP 0 UNITS 0" --host-
 assert_host_call "host_call units above max_units zero" "ERROR HostError: host/envelope_invalid" --host-call "${HOST_UNITS_ONE_HEX}" --host-parse-envelope --host-max-units 0
 assert_host_call "host_call ok envelope" "HOSTRESP {\"value\":\"hello\"} UNITS 5" --host-call "${HOST_OK_ENVELOPE_HEX}" --host-parse-envelope --host-max-units 10
 
+echo "Running gas golden suite"
 node "${SCRIPT_DIR}/gas-goldens.mjs"
+echo "Running host gas suite"
 node "${SCRIPT_DIR}/host-gas.mjs"
+echo "Running DV parity suite"
 node "${SCRIPT_DIR}/dv-parity.mjs"
 
 echo "quickjs-native-harness test passed"
