@@ -1,3 +1,14 @@
+## 0.4.1 (2026-03-13)
+
+### 🚀 Features
+
+- **det-json:** add metered deterministic JSON built-ins ([89ea2f3](https://github.com/bluecontract/blue-quickjs/commit/89ea2f3))
+
+### 🩹 Fixes
+
+- build native harness atomically and update gas fixture ([bd29c7f](https://github.com/bluecontract/blue-quickjs/commit/bd29c7f))
+- **native-harness:** snapshot gas before CLI formatting ([5714758](https://github.com/bluecontract/blue-quickjs/commit/5714758))
+
 ## 0.4.0 (2026-02-16)
 
 ### 🚀 Features
