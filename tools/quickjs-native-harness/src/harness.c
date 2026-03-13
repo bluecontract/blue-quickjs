@@ -521,6 +521,24 @@ static void free_runtime(HarnessRuntime *runtime) {
   }
 }
 
+static void capture_snapshot(JSContext *ctx,
+                             const HarnessOptions *options,
+                             HarnessSnapshot *snapshot) {
+  if (!snapshot) {
+    return;
+  }
+
+  memset(snapshot, 0, sizeof(*snapshot));
+  snapshot->gas_remaining = JS_GetGasRemaining(ctx);
+  if (options->report_trace) {
+    snapshot->has_trace = JS_ReadGasTrace(ctx, &snapshot->trace) == 0;
+  }
+}
+
+static void disable_gas_metering(JSContext *ctx) {
+  JS_SetGasLimit(ctx, JS_GAS_UNLIMITED);
+}
+
 static void print_gas_suffix(const HarnessOptions *options, const HarnessSnapshot *snapshot) {
   if (!options->report_gas || snapshot == NULL) {
     return;
@@ -624,11 +642,9 @@ static void print_trace_suffix(const HarnessOptions *options, const HarnessSnaps
 static int print_exception(JSContext *ctx, const HarnessOptions *options) {
   HarnessSnapshot snapshot = {0};
   JSValue exception = JS_GetException(ctx);
+  capture_snapshot(ctx, options, &snapshot);
+  disable_gas_metering(ctx);
   const char *msg = JS_ToCString(ctx, exception);
-  snapshot.gas_remaining = JS_GetGasRemaining(ctx);
-  if (options->report_trace) {
-    snapshot.has_trace = JS_ReadGasTrace(ctx, &snapshot.trace) == 0;
-  }
   if (msg) {
     fprintf(stdout, "ERROR %s", msg);
     print_gas_suffix(options, &snapshot);
@@ -688,10 +704,8 @@ static int encode_dv_source(JSContext *ctx, const HarnessOptions *options) {
   }
 
   HarnessSnapshot snapshot = {0};
-  snapshot.gas_remaining = JS_GetGasRemaining(ctx);
-  if (options->report_trace) {
-    snapshot.has_trace = JS_ReadGasTrace(ctx, &snapshot.trace) == 0;
-  }
+  capture_snapshot(ctx, options, &snapshot);
+  disable_gas_metering(ctx);
 
   fprintf(stdout, "DV ");
   print_hex_buffer(buffer.data, buffer.length);
@@ -725,6 +739,15 @@ static int decode_dv_hex(JSContext *ctx, const HarnessOptions *options) {
     return print_exception(ctx, options);
   }
 
+  if (run_gc_checkpoint(ctx, options) != 0) {
+    JS_FreeValue(ctx, decoded);
+    return 1;
+  }
+
+  HarnessSnapshot snapshot = {0};
+  capture_snapshot(ctx, options, &snapshot);
+  disable_gas_metering(ctx);
+
   JSValue json = JS_JSONStringify(ctx, decoded, JS_UNDEFINED, JS_UNDEFINED);
   JS_FreeValue(ctx, decoded);
 
@@ -740,18 +763,6 @@ static int decode_dv_hex(JSContext *ctx, const HarnessOptions *options) {
     JS_FreeValue(ctx, json);
     fprintf(stdout, "ERROR <stringify>\n");
     return 1;
-  }
-
-  if (run_gc_checkpoint(ctx, options) != 0) {
-    JS_FreeCString(ctx, json_str);
-    JS_FreeValue(ctx, json);
-    return 1;
-  }
-
-  HarnessSnapshot snapshot = {0};
-  snapshot.gas_remaining = JS_GetGasRemaining(ctx);
-  if (options->report_trace) {
-    snapshot.has_trace = JS_ReadGasTrace(ctx, &snapshot.trace) == 0;
   }
 
   fprintf(stdout, "DVRESULT %s", json_str);
@@ -844,10 +855,8 @@ static int run_host_call(HarnessRuntime *runtime, const HarnessOptions *options)
     }
 
     HarnessSnapshot snapshot = {0};
-    snapshot.gas_remaining = JS_GetGasRemaining(runtime->ctx);
-    if (options->report_trace) {
-      snapshot.has_trace = JS_ReadGasTrace(runtime->ctx, &snapshot.trace) == 0;
-    }
+    capture_snapshot(runtime->ctx, options, &snapshot);
+    disable_gas_metering(runtime->ctx);
 
     JSValue json = JS_JSONStringify(runtime->ctx, parsed.ok, JS_UNDEFINED, JS_UNDEFINED);
     if (JS_IsException(json)) {
@@ -885,10 +894,8 @@ static int run_host_call(HarnessRuntime *runtime, const HarnessOptions *options)
   }
 
   HarnessSnapshot snapshot = {0};
-  snapshot.gas_remaining = JS_GetGasRemaining(runtime->ctx);
-  if (options->report_trace) {
-    snapshot.has_trace = JS_ReadGasTrace(runtime->ctx, &snapshot.trace) == 0;
-  }
+  capture_snapshot(runtime->ctx, options, &snapshot);
+  disable_gas_metering(runtime->ctx);
 
   fprintf(stdout, "HOSTCALL ");
   print_hex_buffer(result.data, result.length);
@@ -915,6 +922,15 @@ static int eval_source(JSContext *ctx, const char *code, const HarnessOptions *o
     return print_exception(ctx, options);
   }
 
+  if (run_gc_checkpoint(ctx, options) != 0) {
+    JS_FreeValue(ctx, result);
+    return 1;
+  }
+
+  HarnessSnapshot snapshot = {0};
+  capture_snapshot(ctx, options, &snapshot);
+  disable_gas_metering(ctx);
+
   JSValue json = JS_JSONStringify(ctx, result, JS_UNDEFINED, JS_UNDEFINED);
   JS_FreeValue(ctx, result);
 
@@ -930,18 +946,6 @@ static int eval_source(JSContext *ctx, const char *code, const HarnessOptions *o
     JS_FreeValue(ctx, json);
     fprintf(stdout, "ERROR <stringify>\n");
     return 1;
-  }
-
-  if (run_gc_checkpoint(ctx, options) != 0) {
-    JS_FreeCString(ctx, json_str);
-    JS_FreeValue(ctx, json);
-    return 1;
-  }
-
-  HarnessSnapshot snapshot = {0};
-  snapshot.gas_remaining = JS_GetGasRemaining(ctx);
-  if (options->report_trace) {
-    snapshot.has_trace = JS_ReadGasTrace(ctx, &snapshot.trace) == 0;
   }
 
   fprintf(stdout, "RESULT %s", json_str);
