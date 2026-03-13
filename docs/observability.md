@@ -101,6 +101,7 @@ Note on types:
 Gas trace is an optional aggregate attribution structure recorded inside the VM. It helps answer:
 
 - “Was gas used mostly on opcodes, allocations, or builtin array callbacks?”
+- “Was gas used mostly on deterministic `JSON.parse` / `JSON.stringify` work?”
 - “Why did two scripts with the same output cost different gas?”
 
 It reports totals for:
@@ -108,6 +109,8 @@ It reports totals for:
 - opcode count and opcode gas
 - array callback “base” charges and per-element charges
 - allocation count, allocation bytes, and allocation gas
+- deterministic `JSON.parse` count/gas/input-bytes/value-entry counts
+- deterministic `JSON.stringify` count/gas/output-bytes/value-entry counts and sort comparisons
 
 Normative details: [Gas schedule](./gas-schedule.md) (Gas trace section).
 
@@ -130,7 +133,7 @@ The trace does **not** include host-call gas. Host calls are billed against the 
 If you want to estimate host-call gas from an `EvaluateResult` that includes a trace:
 
 ```
-hostCallGas ≈ gasUsed - (opcodeGas + arrayCbGas + allocationGas + gcCheckpointGas)
+hostCallGas ≈ gasUsed - (opcodeGas + arrayCbGas + allocationGas + jsonParseGas + jsonStringifyGas + gcCheckpointGas)
 ```
 
 The exact accounting and the checkpoint behavior are described in [Gas schedule](./gas-schedule.md).
@@ -142,6 +145,9 @@ Typical interpretations:
 - High `allocationBytes` / `allocationGas`: code is allocation-heavy (large strings/arrays/maps, repeated concatenations, etc.).
 - High `arrayCb*`: code is using `.map/.filter/.reduce`-style builtins (metered because they run loops in C).
 - High `opcodeGas`: code is mostly “pure interpreter steps” (loops, arithmetic, property access).
+- High `jsonParse*`: code is spending gas in the deterministic JSON parser/validator rather than in JS bytecode.
+- High `jsonStringifyOutputBytes`: the emitted JSON payload is large.
+- High `jsonStringifySortComparisons`: object canonicalization is dominated by key sorting work.
 
 ---
 

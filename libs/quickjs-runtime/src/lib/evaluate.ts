@@ -324,6 +324,19 @@ export interface GasTrace {
   allocationCount: bigint;
   allocationBytes: bigint;
   allocationGas: bigint;
+  jsonParseCount: bigint;
+  jsonParseGas: bigint;
+  jsonParseInputBytes: bigint;
+  jsonParseValues: bigint;
+  jsonParseObjectEntries: bigint;
+  jsonParseArrayElements: bigint;
+  jsonStringifyCount: bigint;
+  jsonStringifyGas: bigint;
+  jsonStringifyOutputBytes: bigint;
+  jsonStringifyValues: bigint;
+  jsonStringifyObjectEntries: bigint;
+  jsonStringifyArrayElements: bigint;
+  jsonStringifySortComparisons: bigint;
 }
 
 function parseGasTrace(raw: string): GasTrace {
@@ -359,6 +372,55 @@ function parseGasTrace(raw: string): GasTrace {
     allocationGas: expectBigIntString(
       obj.allocationGas,
       'gasTrace.allocationGas',
+    ),
+    jsonParseCount: expectBigIntString(
+      obj.jsonParseCount,
+      'gasTrace.jsonParseCount',
+    ),
+    jsonParseGas: expectBigIntString(obj.jsonParseGas, 'gasTrace.jsonParseGas'),
+    jsonParseInputBytes: expectBigIntString(
+      obj.jsonParseInputBytes,
+      'gasTrace.jsonParseInputBytes',
+    ),
+    jsonParseValues: expectBigIntString(
+      obj.jsonParseValues,
+      'gasTrace.jsonParseValues',
+    ),
+    jsonParseObjectEntries: expectBigIntString(
+      obj.jsonParseObjectEntries,
+      'gasTrace.jsonParseObjectEntries',
+    ),
+    jsonParseArrayElements: expectBigIntString(
+      obj.jsonParseArrayElements,
+      'gasTrace.jsonParseArrayElements',
+    ),
+    jsonStringifyCount: expectBigIntString(
+      obj.jsonStringifyCount,
+      'gasTrace.jsonStringifyCount',
+    ),
+    jsonStringifyGas: expectBigIntString(
+      obj.jsonStringifyGas,
+      'gasTrace.jsonStringifyGas',
+    ),
+    jsonStringifyOutputBytes: expectBigIntString(
+      obj.jsonStringifyOutputBytes,
+      'gasTrace.jsonStringifyOutputBytes',
+    ),
+    jsonStringifyValues: expectBigIntString(
+      obj.jsonStringifyValues,
+      'gasTrace.jsonStringifyValues',
+    ),
+    jsonStringifyObjectEntries: expectBigIntString(
+      obj.jsonStringifyObjectEntries,
+      'gasTrace.jsonStringifyObjectEntries',
+    ),
+    jsonStringifyArrayElements: expectBigIntString(
+      obj.jsonStringifyArrayElements,
+      'gasTrace.jsonStringifyArrayElements',
+    ),
+    jsonStringifySortComparisons: expectBigIntString(
+      obj.jsonStringifySortComparisons,
+      'gasTrace.jsonStringifySortComparisons',
     ),
   };
 }

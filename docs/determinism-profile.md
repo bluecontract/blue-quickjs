@@ -44,8 +44,6 @@ The following globals or methods exist but throw the exact TypeError shown:
 - `WebAssembly` -> `TypeError: WebAssembly is disabled in deterministic mode`
 - `console.log/info/warn/error/debug` -> `TypeError: console is disabled in deterministic mode`
 - `print` -> `TypeError: print is disabled in deterministic mode`
-- `JSON.parse` -> `TypeError: JSON.parse is disabled in deterministic mode`
-- `JSON.stringify` -> `TypeError: JSON.stringify is disabled in deterministic mode`
 - `Array.prototype.sort` -> `TypeError: Array.prototype.sort is disabled in deterministic mode`
 
 Notes:
@@ -164,19 +162,48 @@ Why:
 
 ### JSON.parse / JSON.stringify
 
-Disabled:
+Enabled in deterministic mode as **metered deterministic built-ins**.
 
-- `JSON.parse`
-- `JSON.stringify`
+These built-ins are intentionally **narrower than full ECMA JSON semantics** and are
+intended for work **inside the VM only**. They are **not** the canonical boundary format
+for VM ↔ host interchange; DV remains the only canonical/wire format for:
 
-Why:
+- host call arguments/responses,
+- context blobs,
+- result hashing/pinning,
+- manifest encoding/hashing.
 
-- **Non-canonical interchange:** JSON cannot represent many DV/JS values (e.g. `BigInt`, `NaN`,
-  `Infinity`, and it does not preserve `-0` reliably), which makes it a poor “canonical” format for
-  deterministic interchange.
-- **Cross-platform float conversions:** number parsing/printing is a common source of subtle
-  cross-toolchain differences if any part of the implementation delegates to platform conversion
-  routines. Deterministic mode prefers DV canonical encoding for interchange.
+Deterministic `JSON.parse(text[, reviver])`:
+
+- accepts standard JSON only (`ext_json` is off),
+- rejects `reviver` unless it is `undefined` or `null`,
+- returns ordinary mutable arrays/objects,
+- preserves parsed property insertion order in memory,
+- enforces deterministic size/depth limits aligned with DV defaults,
+- is metered explicitly in the VM gas schedule.
+
+Deterministic `JSON.stringify(value[, replacer[, space]])`:
+
+- rejects `replacer` unless it is `undefined` or `null`,
+- rejects `space` unless it is `undefined` or `null`,
+- does **not** call `toJSON`,
+- accepts only the deterministic JSON subset:
+  - `null`, `boolean`, `string`, finite `number`,
+  - arrays of supported values,
+  - plain objects with own enumerable string keys and supported values,
+- rejects cycles and unsupported values/types with stable `TypeError`s,
+- emits keys in **DV canonical key order** (shorter encoded key first, then bytewise lexicographic),
+- always emits the minimal form (no pretty-printing),
+- is metered explicitly in the VM gas schedule.
+
+Why this split exists:
+
+- **Internal ergonomics:** contracts sometimes need a deterministic JSON parser/canonicalizer inside
+  the VM.
+- **Boundary discipline:** JSON still is not expressive or canonical enough to replace DV at the
+  VM boundary.
+- **Metering:** deterministic-mode JSON work is now charged explicitly, instead of being an
+  unmetered native builtin.
 
 ### Engine-version-dependent behavior and performance cliffs
 

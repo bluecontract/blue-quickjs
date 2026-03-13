@@ -310,6 +310,31 @@ export const DETERMINISM_FIXTURES: DeterminismFixture[] = [
     },
   },
   {
+    name: 'json-builtins',
+    program: {
+      ...BASE_PROGRAM,
+      code: `
+        (() => {
+          return JSON.stringify(JSON.parse('{"aa":1,"b":2}'));
+        })()
+      `.trim(),
+    },
+    input: DETERMINISM_INPUT,
+    gasLimit: DETERMINISM_GAS_LIMIT,
+    manifest: HOST_V1_MANIFEST,
+    createHost: createDeterminismHost,
+    expected: {
+      resultHash:
+        'd3cabc4fcb3aaddef313e841cd56fec5936b96a44a7d45eff624b81dd9e221d8',
+      errorCode: null,
+      errorTag: null,
+      gasUsed: 599n,
+      gasRemaining: 49401n,
+      tapeHash: null,
+      tapeLength: 0,
+    },
+  },
+  {
     name: 'host-error-invalid',
     program: {
       ...BASE_PROGRAM,

@@ -433,9 +433,29 @@ char *qjs_det_read_trace(void)
       "\",\"arrayCbPerElCount\":\"%" PRIu64
       "\",\"arrayCbPerElGas\":\"%" PRIu64
       "\",\"allocationCount\":\"%" PRIu64 "\",\"allocationBytes\":\"%" PRIu64
-      "\",\"allocationGas\":\"%" PRIu64 "\"}",
+      "\",\"allocationGas\":\"%" PRIu64
+      "\",\"jsonParseCount\":\"%" PRIu64 "\",\"jsonParseGas\":\"%" PRIu64
+      "\",\"jsonParseInputBytes\":\"%" PRIu64
+      "\",\"jsonParseValues\":\"%" PRIu64
+      "\",\"jsonParseObjectEntries\":\"%" PRIu64
+      "\",\"jsonParseArrayElements\":\"%" PRIu64
+      "\",\"jsonStringifyCount\":\"%" PRIu64
+      "\",\"jsonStringifyGas\":\"%" PRIu64
+      "\",\"jsonStringifyOutputBytes\":\"%" PRIu64
+      "\",\"jsonStringifyValues\":\"%" PRIu64
+      "\",\"jsonStringifyObjectEntries\":\"%" PRIu64
+      "\",\"jsonStringifyArrayElements\":\"%" PRIu64
+      "\",\"jsonStringifySortComparisons\":\"%" PRIu64 "\"}",
       trace.opcode_count, trace.opcode_gas, trace.builtin_array_cb_base_count,
       trace.builtin_array_cb_base_gas, trace.builtin_array_cb_per_element_count,
       trace.builtin_array_cb_per_element_gas, trace.allocation_count,
-      trace.allocation_bytes, trace.allocation_gas);
+      trace.allocation_bytes, trace.allocation_gas, trace.json_parse_count,
+      trace.json_parse_gas, trace.json_parse_input_bytes,
+      trace.json_parse_value_count, trace.json_parse_object_entry_count,
+      trace.json_parse_array_element_count, trace.json_stringify_count,
+      trace.json_stringify_gas, trace.json_stringify_output_bytes,
+      trace.json_stringify_value_count,
+      trace.json_stringify_object_entry_count,
+      trace.json_stringify_array_element_count,
+      trace.json_stringify_sort_comparison_count);
 }
