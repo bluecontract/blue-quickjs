@@ -1,10 +1,12 @@
 # @blue-quickjs/deterministic-bundler
 
-Deterministic single-source bundling for `blue-quickjs` program artifacts.
+Deterministic build tooling for `blue-quickjs` artifacts.
 
-- Flattens static module graphs into one script string.
-- Produces stable SHA-256 content hashes.
-- Runs a deterministic compatibility scan for disabled runtime surfaces.
+- `bundleDeterministicProgram(...)` flattens static module graphs into one
+  script string for transitional script-mode execution.
+- `buildDeterministicModulePack(...)` emits canonical `ModulePack.v1` output,
+  compatibility diagnostics, and optional script artifacts.
+- Both APIs produce stable SHA-256 hashes and deterministic compatibility scans.
 
 Build/test:
 

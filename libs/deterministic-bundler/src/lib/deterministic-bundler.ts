@@ -39,6 +39,51 @@ export interface BundleDeterministicProgramResult {
   };
 }
 
+export interface ModulePackOriginMeta {
+  packageName?: string;
+  packageVersion?: string;
+  integrity?: string;
+  originalPath?: string;
+}
+
+export interface ModulePackModule {
+  specifier: string;
+  source: string;
+  sourceMap?: string;
+  originMeta?: ModulePackOriginMeta;
+}
+
+export interface ModulePackV1 {
+  version: 1;
+  entrySpecifier: string;
+  entryExport: string;
+  modules: ModulePackModule[];
+  graphHash: string;
+  builderVersion: string;
+  dependencyIntegrity: string;
+  diagnosticsMeta?: {
+    entryPath: string;
+    modulePaths: string[];
+  };
+}
+
+export interface BuildDeterministicModulePackOptions {
+  entryPath: string;
+  absWorkingDir?: string;
+  profile?: DeterministicExecutionProfile;
+  rejectIncompatible?: boolean;
+  entryExport?: string;
+  emitScriptArtifact?: boolean;
+  builderVersion?: string;
+  dependencyIntegrity?: string;
+}
+
+export interface BuildDeterministicModulePackResult {
+  modulePack: ModulePackV1;
+  compatibility: CompatibilityScanResult;
+  scriptArtifact?: BundleDeterministicProgramResult;
+}
+
 export class DeterministicBundlerError extends Error {
   constructor(
     message: string,
@@ -51,6 +96,9 @@ export class DeterministicBundlerError extends Error {
 
 const DEFAULT_PROFILE: DeterministicExecutionProfile = 'baseline-v1';
 const DEFAULT_GLOBAL_NAME = '__blueDeterministicBundle';
+const DEFAULT_ENTRY_EXPORT = 'default';
+const DEFAULT_BUILDER_VERSION = 'deterministic-builder-v1';
+const BUILDER_OUT_DIR = '__blue_deterministic_builder_out__';
 
 const NODE_BUILTINS = new Set(
   builtinModules.flatMap((name) =>
@@ -146,6 +194,105 @@ export async function bundleDeterministicProgram(
       profile,
       compatibility,
     },
+  };
+}
+
+export async function buildDeterministicModulePack(
+  options: BuildDeterministicModulePackOptions,
+): Promise<BuildDeterministicModulePackResult> {
+  const absWorkingDir = path.resolve(options.absWorkingDir ?? process.cwd());
+  const absEntryPath = path.resolve(absWorkingDir, options.entryPath);
+  const profile = options.profile ?? DEFAULT_PROFILE;
+  const rejectIncompatible = options.rejectIncompatible ?? true;
+  const entryExport = options.entryExport ?? DEFAULT_ENTRY_EXPORT;
+  const builderVersion = options.builderVersion ?? DEFAULT_BUILDER_VERSION;
+  const outputDir = path.join(absWorkingDir, BUILDER_OUT_DIR);
+  const dependencyIntegrity =
+    options.dependencyIntegrity ?? computeDependencyIntegrity(absWorkingDir);
+
+  const result = await build({
+    absWorkingDir,
+    entryPoints: [absEntryPath],
+    bundle: true,
+    splitting: true,
+    write: false,
+    outdir: BUILDER_OUT_DIR,
+    format: 'esm',
+    platform: 'neutral',
+    mainFields: ['module', 'main'],
+    target: 'es2020',
+    legalComments: 'none',
+    sourcemap: 'external',
+    metafile: true,
+    charset: 'utf8',
+  });
+
+  const outputMetaByAbsolutePath = buildOutputMetadataLookup(
+    result.metafile?.outputs ?? {},
+    absWorkingDir,
+  );
+  const sourceMapBySpecifier = collectOutputMaps(result.outputFiles ?? [], {
+    absWorkingDir,
+  });
+  const modules = collectModulePackModules(result.outputFiles ?? [], {
+    absWorkingDir,
+    outputDir,
+    outputMetaByAbsolutePath,
+    sourceMapBySpecifier,
+    dependencyIntegrity,
+  });
+  const entrySpecifier = resolveEntrySpecifier(
+    result.metafile?.outputs ?? {},
+    absWorkingDir,
+    absEntryPath,
+  );
+
+  const sourceByPath = Object.fromEntries(
+    modules.map((module) => [module.specifier, module.source]),
+  );
+  const compatibility = scanCompatibility({
+    sourceByPath,
+    profile,
+  });
+
+  if (rejectIncompatible && !compatibility.ok) {
+    throw new DeterministicBundlerError(
+      formatCompatibilityMessage(compatibility.diagnostics),
+      compatibility.diagnostics,
+    );
+  }
+
+  const modulePackWithoutHash = {
+    version: 1 as const,
+    entrySpecifier,
+    entryExport,
+    modules,
+    builderVersion,
+    dependencyIntegrity,
+    diagnosticsMeta: {
+      entryPath: normalizePath(absEntryPath),
+      modulePaths: modules.map((module) => module.specifier),
+    },
+  };
+  const graphHash = computeModulePackGraphHash(modulePackWithoutHash);
+  const modulePack: ModulePackV1 = {
+    ...modulePackWithoutHash,
+    graphHash,
+  };
+
+  const scriptArtifact = options.emitScriptArtifact
+    ? await bundleDeterministicProgram({
+        entryPath: options.entryPath,
+        absWorkingDir,
+        profile,
+        rejectIncompatible,
+      })
+    : undefined;
+
+  return {
+    modulePack,
+    compatibility,
+    ...(scriptArtifact ? { scriptArtifact } : {}),
   };
 }
 
@@ -389,6 +536,310 @@ function collectNormalizedModulePaths(
     return normalizePath(absolute);
   });
   return [...new Set(paths)].sort();
+}
+
+function buildOutputMetadataLookup(
+  outputs: Record<string, { inputs?: Record<string, unknown> }>,
+  absWorkingDir: string,
+): Map<string, { inputs?: Record<string, unknown> }> {
+  const lookup = new Map<string, { inputs?: Record<string, unknown> }>();
+  for (const [outputPath, meta] of Object.entries(outputs)) {
+    const absolutePath = path.isAbsolute(outputPath)
+      ? outputPath
+      : path.resolve(absWorkingDir, outputPath);
+    lookup.set(normalizePath(absolutePath), meta);
+  }
+  return lookup;
+}
+
+function collectOutputMaps(
+  outputFiles: Array<{ path: string; text: string }>,
+  options: { absWorkingDir: string },
+): Map<string, string> {
+  const bySpecifier = new Map<string, string>();
+  const maps = outputFiles.filter((file) => file.path.endsWith('.map'));
+  for (const mapFile of maps) {
+    const mapPath = mapFile.path.slice(0, -'.map'.length);
+    const specifier = toModuleSpecifier(mapPath, {
+      absWorkingDir: options.absWorkingDir,
+      outputDir: path.join(options.absWorkingDir, BUILDER_OUT_DIR),
+    });
+    bySpecifier.set(
+      specifier,
+      sanitizeSourceMap(mapFile.text, {
+        absWorkingDir: options.absWorkingDir,
+      }),
+    );
+  }
+  return bySpecifier;
+}
+
+function collectModulePackModules(
+  outputFiles: Array<{ path: string; text: string }>,
+  options: {
+    absWorkingDir: string;
+    outputDir: string;
+    outputMetaByAbsolutePath: Map<string, { inputs?: Record<string, unknown> }>;
+    sourceMapBySpecifier: Map<string, string>;
+    dependencyIntegrity: string;
+  },
+): ModulePackModule[] {
+  const jsFiles = outputFiles.filter((file) => /\.m?js$/.test(file.path));
+  const modules = jsFiles.map((file) => {
+    const specifier = toModuleSpecifier(file.path, {
+      absWorkingDir: options.absWorkingDir,
+      outputDir: options.outputDir,
+    });
+    const normalizedSource = `${normalizeLineEndings(file.text).trimEnd()}\n`;
+    const meta = options.outputMetaByAbsolutePath.get(normalizePath(file.path));
+
+    const module: ModulePackModule = {
+      specifier,
+      source: normalizedSource,
+    };
+
+    const sourceMap = options.sourceMapBySpecifier.get(specifier);
+    if (sourceMap) {
+      module.sourceMap = sourceMap;
+    }
+
+    const originMeta = resolveOriginMeta(
+      meta?.inputs ? Object.keys(meta.inputs) : [],
+      {
+        absWorkingDir: options.absWorkingDir,
+        dependencyIntegrity: options.dependencyIntegrity,
+      },
+    );
+    if (originMeta) {
+      module.originMeta = originMeta;
+    }
+
+    return module;
+  });
+
+  return modules.sort((a, b) => a.specifier.localeCompare(b.specifier));
+}
+
+function resolveEntrySpecifier(
+  outputs: Record<string, { entryPoint?: string }>,
+  absWorkingDir: string,
+  absEntryPath: string,
+): string {
+  const normalizedEntry = normalizePath(absEntryPath);
+  const entryOutputPath = Object.entries(outputs)
+    .map(([outputPath, meta]) => {
+      const absoluteOutput = path.isAbsolute(outputPath)
+        ? outputPath
+        : path.resolve(absWorkingDir, outputPath);
+      const absoluteEntry = meta.entryPoint
+        ? path.resolve(absWorkingDir, meta.entryPoint)
+        : null;
+      return {
+        absoluteOutput,
+        absoluteEntry: absoluteEntry ? normalizePath(absoluteEntry) : null,
+      };
+    })
+    .find((candidate) => candidate.absoluteEntry === normalizedEntry)
+    ?.absoluteOutput;
+
+  if (!entryOutputPath) {
+    throw new Error(
+      `Unable to resolve entry output for ${normalizePath(absEntryPath)}`,
+    );
+  }
+
+  return toModuleSpecifier(entryOutputPath, {
+    absWorkingDir,
+    outputDir: path.join(absWorkingDir, BUILDER_OUT_DIR),
+  });
+}
+
+function toModuleSpecifier(
+  outputPath: string,
+  options: { absWorkingDir: string; outputDir: string },
+): string {
+  const absoluteOutputPath = path.isAbsolute(outputPath)
+    ? outputPath
+    : path.resolve(options.absWorkingDir, outputPath);
+  const relative = normalizePath(path.relative(options.outputDir, absoluteOutputPath));
+  return relative.startsWith('.') ? relative : `./${relative}`;
+}
+
+function sanitizeSourceMap(
+  sourceMap: string,
+  options: { absWorkingDir: string },
+): string {
+  const parsed = JSON.parse(sourceMap) as Record<string, unknown>;
+  if (Array.isArray(parsed.sources)) {
+    parsed.sources = parsed.sources.map((source) => {
+      if (typeof source !== 'string') {
+        return source;
+      }
+      const normalized = normalizePath(source);
+      if (path.isAbsolute(source)) {
+        return normalizePath(path.relative(options.absWorkingDir, source));
+      }
+      return normalized;
+    });
+  }
+  if (typeof parsed.sourceRoot === 'string' && path.isAbsolute(parsed.sourceRoot)) {
+    parsed.sourceRoot = normalizePath(
+      path.relative(options.absWorkingDir, parsed.sourceRoot),
+    );
+  }
+  if (typeof parsed.file === 'string' && path.isAbsolute(parsed.file)) {
+    parsed.file = normalizePath(path.relative(options.absWorkingDir, parsed.file));
+  }
+  return stableStringify(parsed);
+}
+
+function resolveOriginMeta(
+  inputPaths: string[],
+  options: { absWorkingDir: string; dependencyIntegrity: string },
+): ModulePackOriginMeta | undefined {
+  if (inputPaths.length === 0) {
+    return undefined;
+  }
+  const normalizedInputs = inputPaths
+    .map((inputPath) =>
+      path.isAbsolute(inputPath)
+        ? inputPath
+        : path.resolve(options.absWorkingDir, inputPath),
+    )
+    .map((inputPath) => normalizePath(inputPath))
+    .sort();
+  const selectedInputPath =
+    normalizedInputs.find((inputPath) => inputPath.includes('/node_modules/')) ??
+    normalizedInputs[0];
+
+  const originMeta: ModulePackOriginMeta = {
+    originalPath: normalizePath(path.relative(options.absWorkingDir, selectedInputPath)),
+  };
+
+  const packageInfo = resolvePackageInfoFromInputPath(selectedInputPath);
+  if (packageInfo) {
+    originMeta.packageName = packageInfo.packageName;
+    originMeta.packageVersion = packageInfo.packageVersion;
+    originMeta.integrity = options.dependencyIntegrity;
+  }
+
+  return originMeta;
+}
+
+function resolvePackageInfoFromInputPath(
+  inputPath: string,
+): { packageName: string; packageVersion?: string } | null {
+  const marker = '/node_modules/';
+  const markerIndex = inputPath.lastIndexOf(marker);
+  if (markerIndex < 0) {
+    return null;
+  }
+  const fromNodeModules = inputPath.slice(markerIndex + marker.length);
+  const segments = fromNodeModules.split('/').filter(Boolean);
+  if (segments.length === 0) {
+    return null;
+  }
+
+  let packageName: string;
+  if (segments[0].startsWith('@')) {
+    if (segments.length < 2) {
+      return null;
+    }
+    packageName = `${segments[0]}/${segments[1]}`;
+  } else {
+    packageName = segments[0];
+  }
+
+  const packageRoot = inputPath.slice(
+    0,
+    markerIndex + marker.length + packageName.length,
+  );
+  const packageJsonPath = path.join(packageRoot, 'package.json');
+  if (!fs.existsSync(packageJsonPath)) {
+    return { packageName };
+  }
+
+  try {
+    const packageJson = JSON.parse(
+      fs.readFileSync(packageJsonPath, 'utf8'),
+    ) as {
+      version?: string;
+    };
+    return {
+      packageName,
+      ...(typeof packageJson.version === 'string'
+        ? { packageVersion: packageJson.version }
+        : {}),
+    };
+  } catch {
+    return { packageName };
+  }
+}
+
+function computeDependencyIntegrity(absWorkingDir: string): string {
+  const lockfilePath = findNearestLockfile(absWorkingDir);
+  if (!lockfilePath) {
+    return sha256Hex('no-lockfile');
+  }
+  const bytes = fs.readFileSync(lockfilePath);
+  return createHash('sha256').update(bytes).digest('hex');
+}
+
+function findNearestLockfile(startDir: string): string | null {
+  const lockfiles = ['pnpm-lock.yaml', 'package-lock.json', 'yarn.lock'];
+  let cursor = path.resolve(startDir);
+
+  while (true) {
+    for (const lockfile of lockfiles) {
+      const candidate = path.join(cursor, lockfile);
+      if (fs.existsSync(candidate)) {
+        return candidate;
+      }
+    }
+    const parent = path.dirname(cursor);
+    if (parent === cursor) {
+      return null;
+    }
+    cursor = parent;
+  }
+}
+
+function computeModulePackGraphHash(pack: {
+  version: 1;
+  entrySpecifier: string;
+  entryExport: string;
+  modules: ModulePackModule[];
+  builderVersion: string;
+  dependencyIntegrity: string;
+}): string {
+  const canonical = {
+    version: pack.version,
+    entrySpecifier: pack.entrySpecifier,
+    entryExport: pack.entryExport,
+    modules: pack.modules.map((module) => ({
+      specifier: module.specifier,
+      source: module.source,
+      ...(module.sourceMap ? { sourceMap: module.sourceMap } : {}),
+    })),
+    builderVersion: pack.builderVersion,
+    dependencyIntegrity: pack.dependencyIntegrity,
+  };
+  return sha256Hex(stableStringify(canonical));
+}
+
+function stableStringify(value: unknown): string {
+  if (value === null || typeof value !== 'object') {
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => stableStringify(item)).join(',')}]`;
+  }
+
+  const entries = Object.entries(value as Record<string, unknown>)
+    .filter(([, item]) => item !== undefined)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, item]) => `${JSON.stringify(key)}:${stableStringify(item)}`);
+  return `{${entries.join(',')}}`;
 }
 
 function loadSourceByPath(modulePaths: string[]): Record<string, string> {

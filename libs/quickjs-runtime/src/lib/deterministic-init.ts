@@ -242,7 +242,11 @@ function executionProfileToFeatureFlags(
   if (!profile || profile === 'baseline-v1') {
     return 0;
   }
-  if (profile === 'compat-regexp-v1') {
+  if (
+    profile === 'compat-regexp-v1' ||
+    profile === 'compat-general-v1' ||
+    profile === 'compat-binary-v1'
+  ) {
     return DETERMINISTIC_FEATURE_REGEXP;
   }
   return 0;
