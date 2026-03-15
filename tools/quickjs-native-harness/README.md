@@ -23,5 +23,9 @@ Minimal native harness for the QuickJS fork. Builds a standalone binary that eva
   cross-checking vectors).
 
 Notes:
-- Uses the fork's deterministic init (`JS_NewDeterministicRuntime`): global scope excludes `Date`, `eval`, `Function`, `Proxy`, `RegExp`, typed arrays, `Promise`/`WeakRef` and reserves a null-prototype `Host.v1` placeholder.
+- Uses the fork's deterministic init (`JS_NewDeterministicRuntime`): baseline
+  global scope excludes `Date`, `eval`, `Function`, `Proxy`, `RegExp`, typed
+  arrays, `Promise`/`WeakRef` and reserves a null-prototype `Host.v1`
+  placeholder. `compat-general-v1` / `compat-binary-v1` enable Promise jobs and
+  queueMicrotask deterministically.
 - Build artifacts live under `tools/quickjs-native-harness/dist`.

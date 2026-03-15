@@ -2283,6 +2283,43 @@ builder/runtime/harness surfaces.
 
 ---
 
+## Phase P17 — Deterministic Promise jobs / async integration
+
+### T-180: Enable deterministic Promise job draining
+
+**Phase:** P17 – Async determinism  
+**Status:** IN PROGRESS  
+**Depends on:** T-170
+
+**Goal:**  
+Enable deterministic Promise/job execution in compatibility profiles while
+preserving baseline restrictions.
+
+**Detailed tasks:**
+
+- [x] Add deterministic feature-flag support for Promise jobs in QuickJS fork
+      (`JS_DETERMINISTIC_FEATURE_PROMISE_JOBS`) and wire profile mapping from
+      runtime/native harness.
+- [x] Drain pending Promise jobs after top-level eval in wasm/native execution
+      paths.
+- [x] Resolve top-level Promise results deterministically (fulfilled -> value,
+      rejected -> VM error, pending -> deterministic error).
+- [x] Add coverage for baseline Promise denial and compat-general Promise /
+      `queueMicrotask` execution in runtime and native harness tests.
+- [ ] Extend node/browser/native async parity fixtures (result + gas + tape) for
+      Promise-heavy scenarios.
+
+**Current state (P17 T-180):**
+
+- `qjs_det_eval(...)` and native harness eval now drain pending jobs
+  deterministically and unwrap Promise results.
+- `qjs_det_eval_module_pack(...)` and native module-pack eval paths now drain
+  pending jobs before export extraction and resolve Promise exports.
+- `compat-general-v1` / `compat-binary-v1` now enable Promise jobs via runtime
+  feature flags, while baseline continues to reject Promise usage.
+
+---
+
 ## Appendix A — Minimal required ABI surface (v1)
 
 The initial manifest should define at least:

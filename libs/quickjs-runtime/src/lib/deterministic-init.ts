@@ -64,6 +64,7 @@ export interface DeterministicVm {
 }
 
 const DETERMINISTIC_FEATURE_REGEXP = 1 << 0;
+const DETERMINISTIC_FEATURE_PROMISE_JOBS = 1 << 1;
 
 export function initializeDeterministicVm(
   runtime: RuntimeInstance,
@@ -273,10 +274,17 @@ function executionProfileToFeatureFlags(profile?: ExecutionProfile): number {
   if (!profile) {
     return 0;
   }
+  let flags = 0;
   if (executionProfileHasCapability(profile, 'regexp')) {
-    return DETERMINISTIC_FEATURE_REGEXP;
+    flags |= DETERMINISTIC_FEATURE_REGEXP;
   }
-  return 0;
+  if (
+    executionProfileHasCapability(profile, 'promiseJobs') ||
+    executionProfileHasCapability(profile, 'queueMicrotask')
+  ) {
+    flags |= DETERMINISTIC_FEATURE_PROMISE_JOBS;
+  }
+  return flags;
 }
 
 function writeBytes(module: QuickjsWasmModule, data: Uint8Array): number {

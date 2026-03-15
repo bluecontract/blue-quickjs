@@ -87,10 +87,13 @@ static uint32_t deterministic_feature_flags_for_profile(const char *profile) {
   if (!profile || strcmp(profile, "baseline-v1") == 0) {
     return 0;
   }
-  if (strcmp(profile, "compat-regexp-v1") == 0 ||
-      strcmp(profile, "compat-general-v1") == 0 ||
-      strcmp(profile, "compat-binary-v1") == 0) {
+  if (strcmp(profile, "compat-regexp-v1") == 0) {
     return JS_DETERMINISTIC_FEATURE_REGEXP;
+  }
+  if (strcmp(profile, "compat-general-v1") == 0 ||
+      strcmp(profile, "compat-binary-v1") == 0) {
+    return JS_DETERMINISTIC_FEATURE_REGEXP |
+           JS_DETERMINISTIC_FEATURE_PROMISE_JOBS;
   }
   return UINT32_MAX;
 }
@@ -1116,6 +1119,47 @@ static int run_gc_checkpoint(JSContext *ctx, const HarnessOptions *options) {
   return print_exception(ctx, options);
 }
 
+static int drain_pending_jobs(JSRuntime *rt, JSContext *ctx, JSContext **out_error_ctx) {
+  while (JS_IsJobPending(rt)) {
+    JSContext *job_ctx = NULL;
+    int rc = JS_ExecutePendingJob(rt, &job_ctx);
+    if (rc < 0) {
+      if (out_error_ctx) {
+        *out_error_ctx = job_ctx ? job_ctx : ctx;
+      }
+      return -1;
+    }
+  }
+  if (out_error_ctx) {
+    *out_error_ctx = ctx;
+  }
+  return 0;
+}
+
+static int resolve_promise_result(JSContext *ctx, JSValue *value) {
+  int state = (int)JS_PromiseState(ctx, *value);
+  if (state < 0) {
+    return 0;
+  }
+
+  if (state == JS_PROMISE_PENDING) {
+    JS_ThrowTypeError(ctx, "promise did not settle during deterministic job drain");
+    return -1;
+  }
+
+  JSValue settled = JS_PromiseResult(ctx, *value);
+  if (state == JS_PROMISE_REJECTED) {
+    JS_FreeValue(ctx, *value);
+    *value = JS_UNDEFINED;
+    JS_Throw(ctx, settled);
+    return -1;
+  }
+
+  JS_FreeValue(ctx, *value);
+  *value = settled;
+  return 0;
+}
+
 static int encode_dv_source(JSContext *ctx, const HarnessOptions *options) {
   if (run_gc_checkpoint(ctx, options) != 0) {
     return 1;
@@ -1357,6 +1401,9 @@ static int run_host_call(HarnessRuntime *runtime, const HarnessOptions *options)
 }
 
 static int eval_source(JSContext *ctx, const char *code, const HarnessOptions *options) {
+  JSRuntime *rt = JS_GetRuntime(ctx);
+  JSContext *job_error_ctx = NULL;
+
   if (run_gc_checkpoint(ctx, options) != 0) {
     return 1;
   }
@@ -1367,6 +1414,16 @@ static int eval_source(JSContext *ctx, const char *code, const HarnessOptions *o
     if (run_gc_checkpoint(ctx, options) != 0) {
       return 1;
     }
+    return print_exception(ctx, options);
+  }
+
+  if (drain_pending_jobs(rt, ctx, &job_error_ctx) != 0) {
+    JS_FreeValue(ctx, result);
+    return print_exception(job_error_ctx ? job_error_ctx : ctx, options);
+  }
+
+  if (resolve_promise_result(ctx, &result) != 0) {
+    JS_FreeValue(ctx, result);
     return print_exception(ctx, options);
   }
 
@@ -1411,6 +1468,8 @@ static int eval_source(JSContext *ctx, const char *code, const HarnessOptions *o
 static int eval_module_pack(HarnessRuntime *runtime, const HarnessOptions *options) {
   JSContext *ctx = runtime->ctx;
   JSRuntime *rt = runtime->rt;
+  JSContext *job_error_ctx = NULL;
+  JSContext *error_ctx = NULL;
   ModulePack pack = {0};
   JSValue module_eval = JS_UNDEFINED;
   JSValue global_obj = JS_UNDEFINED;
@@ -1503,6 +1562,12 @@ static int eval_module_pack(HarnessRuntime *runtime, const HarnessOptions *optio
     goto cleanup;
   }
 
+  if (drain_pending_jobs(rt, ctx, &job_error_ctx) != 0) {
+    error_ctx = job_error_ctx ? job_error_ctx : ctx;
+    rc = 1;
+    goto cleanup;
+  }
+
   global_obj = JS_GetGlobalObject(ctx);
   if (JS_IsException(global_obj)) {
     goto cleanup;
@@ -1514,6 +1579,11 @@ static int eval_module_pack(HarnessRuntime *runtime, const HarnessOptions *optio
   }
   if (JS_IsUndefined(export_value)) {
     JS_ThrowReferenceError(ctx, "ModuleExportMissing: export not found");
+    goto cleanup;
+  }
+
+  if (resolve_promise_result(ctx, &export_value) != 0) {
+    rc = 1;
     goto cleanup;
   }
 
@@ -1609,10 +1679,12 @@ cleanup:
   free(module_pack_from_file);
 
   if (rc != 0) {
-    if (!JS_HasException(ctx)) {
+    JSContext *exception_ctx = error_ctx ? error_ctx : ctx;
+    if (!JS_HasException(exception_ctx)) {
       JS_ThrowInternalError(ctx, "ModuleEvaluationError: module-pack execution failed");
+      exception_ctx = ctx;
     }
-    return print_exception(ctx, options);
+    return print_exception(exception_ctx, options);
   }
 
   return 0;

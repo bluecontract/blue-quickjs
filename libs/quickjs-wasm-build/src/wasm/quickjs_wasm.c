@@ -434,6 +434,50 @@ static char *format_prefixed_exception(JSContext *ctx, uint64_t gas_limit,
   return out;
 }
 
+static int drain_pending_jobs(JSContext *ctx, JSRuntime *rt,
+                              JSContext **out_error_ctx) {
+  while (JS_IsJobPending(rt)) {
+    JSContext *job_ctx = NULL;
+    int rc = JS_ExecutePendingJob(rt, &job_ctx);
+    if (rc < 0) {
+      if (out_error_ctx) {
+        *out_error_ctx = job_ctx ? job_ctx : ctx;
+      }
+      return -1;
+    }
+  }
+
+  if (out_error_ctx) {
+    *out_error_ctx = ctx;
+  }
+  return 0;
+}
+
+static int resolve_promise_result(JSContext *ctx, JSValue *value) {
+  int state = (int)JS_PromiseState(ctx, *value);
+  if (state < 0) {
+    return 0;
+  }
+
+  if (state == JS_PROMISE_PENDING) {
+    JS_ThrowTypeError(ctx,
+                      "promise did not settle during deterministic job drain");
+    return -1;
+  }
+
+  JSValue settled = JS_PromiseResult(ctx, *value);
+  if (state == JS_PROMISE_REJECTED) {
+    JS_FreeValue(ctx, *value);
+    *value = JS_UNDEFINED;
+    JS_Throw(ctx, settled);
+    return -1;
+  }
+
+  JS_FreeValue(ctx, *value);
+  *value = settled;
+  return 0;
+}
+
 EMSCRIPTEN_KEEPALIVE
 char *qjs_det_init(const uint8_t *manifest_bytes,
                    uint32_t manifest_size,
@@ -481,6 +525,8 @@ char *qjs_det_init(const uint8_t *manifest_bytes,
 
 EMSCRIPTEN_KEEPALIVE
 char *qjs_det_eval(const char *code) {
+  JSContext *job_error_ctx = NULL;
+
   if (!det_ctx || !det_rt) {
     return dup_printf("ERROR <uninitialized> GAS remaining=0 used=0");
   }
@@ -493,6 +539,17 @@ char *qjs_det_eval(const char *code) {
   if (JS_IsException(result)) {
     JS_FreeValue(det_ctx, result);
     return format_exception(det_ctx, det_gas_limit, "<exception>", NULL);
+  }
+
+  if (drain_pending_jobs(det_ctx, det_rt, &job_error_ctx) != 0) {
+    JS_FreeValue(det_ctx, result);
+    return format_exception(job_error_ctx ? job_error_ctx : det_ctx,
+                            det_gas_limit, "<job queue>", NULL);
+  }
+
+  if (resolve_promise_result(det_ctx, &result) != 0) {
+    JS_FreeValue(det_ctx, result);
+    return format_exception(det_ctx, det_gas_limit, "<promise result>", NULL);
   }
 
   JSDvBuffer dv = {0};
@@ -527,6 +584,7 @@ EMSCRIPTEN_KEEPALIVE
 char *qjs_det_eval_module_pack(const char *module_pack_json,
                                const char *entry_specifier,
                                const char *entry_export) {
+  JSContext *job_error_ctx = NULL;
   ModulePack pack = {0};
   JSValue module_eval = JS_UNDEFINED;
   JSValue global_obj = JS_UNDEFINED;
@@ -613,6 +671,13 @@ char *qjs_det_eval_module_pack(const char *module_pack_json,
     goto cleanup;
   }
 
+  if (drain_pending_jobs(det_ctx, det_rt, &job_error_ctx) != 0) {
+    out = format_prefixed_exception(job_error_ctx ? job_error_ctx : det_ctx,
+                                    det_gas_limit, "ModuleEvaluationError",
+                                    "<job queue>", NULL);
+    goto cleanup;
+  }
+
   global_obj = JS_GetGlobalObject(det_ctx);
   if (JS_IsException(global_obj)) {
     out = format_prefixed_exception(det_ctx, det_gas_limit,
@@ -633,6 +698,13 @@ char *qjs_det_eval_module_pack(const char *module_pack_json,
     uint64_t remaining = JS_GetGasRemaining(det_ctx);
     out = format_with_gas("ERROR", "ModuleExportMissing: export not found",
                           det_gas_limit, remaining, NULL);
+    goto cleanup;
+  }
+
+  if (resolve_promise_result(det_ctx, &export_value) != 0) {
+    out = format_prefixed_exception(det_ctx, det_gas_limit,
+                                    "ModuleEvaluationError",
+                                    "<module export promise>", NULL);
     goto cleanup;
   }
 

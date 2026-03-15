@@ -369,6 +369,69 @@ describe('evaluate', () => {
     expect(compat.value).toBe(true);
   });
 
+  it('keeps Promise disabled in baseline profile and drains Promise jobs for compat-general', async () => {
+    const baseline = await evaluate({
+      program: { ...BASE_PROGRAM, code: 'Promise.resolve(1)' },
+      input: BASE_INPUT,
+      gasLimit: TEST_GAS_LIMIT,
+      manifest: HOST_V1_MANIFEST,
+      handlers: createHandlers(),
+    });
+
+    expect(baseline.ok).toBe(false);
+    if (baseline.ok) {
+      throw new Error('expected baseline Promise failure');
+    }
+    expect(baseline.type).toBe('vm-error');
+    expect(baseline.error.kind).toBe('js-exception');
+    expect(baseline.message).toMatch(/promise is disabled/i);
+
+    const compat = await evaluate({
+      program: {
+        ...BASE_PROGRAM,
+        code: 'Promise.resolve(41).then((value) => value + 1)',
+        executionProfile: 'compat-general-v1',
+      },
+      input: BASE_INPUT,
+      gasLimit: TEST_GAS_LIMIT,
+      manifest: HOST_V1_MANIFEST,
+      handlers: createHandlers(),
+    });
+
+    expect(compat.ok).toBe(true);
+    if (!compat.ok) {
+      throw new Error(compat.message);
+    }
+    expect(compat.value).toBe(42);
+  });
+
+  it('runs queueMicrotask deterministically in compat-general profile', async () => {
+    const compat = await evaluate({
+      program: {
+        ...BASE_PROGRAM,
+        code: `
+          (() => {
+            const events = [];
+            queueMicrotask(() => events.push('first'));
+            queueMicrotask(() => events.push('second'));
+            return Promise.resolve().then(() => events.join(','));
+          })()
+        `,
+        executionProfile: 'compat-general-v1',
+      },
+      input: BASE_INPUT,
+      gasLimit: TEST_GAS_LIMIT,
+      manifest: HOST_V1_MANIFEST,
+      handlers: createHandlers(),
+    });
+
+    expect(compat.ok).toBe(true);
+    if (!compat.ok) {
+      throw new Error(compat.message);
+    }
+    expect(compat.value).toBe('first,second');
+  });
+
   it('returns DV results with gas accounting', async () => {
     const handlers = createHandlers();
     const result = await evaluate({
