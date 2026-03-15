@@ -72,14 +72,43 @@ export interface BuildDeterministicModulePackOptions {
   rejectIncompatible?: boolean;
   entryExport?: string;
   emitScriptArtifact?: boolean;
+  emitProgramArtifact?: boolean;
   builderVersion?: string;
   dependencyIntegrity?: string;
+  abiId?: string;
+  abiVersion?: number;
+  abiManifestHash?: string;
+  engineBuildHash?: string;
+}
+
+export interface ProgramArtifactV2 {
+  version: 2;
+  abiId: string;
+  abiVersion: number;
+  abiManifestHash: string;
+  engineBuildHash?: string;
+  executionProfile: DeterministicExecutionProfile;
+  sourceKind: 'module-pack';
+  source: {
+    modulePack: ModulePackV1;
+  };
+}
+
+export interface CompatibilityReportV1 {
+  version: 1;
+  profile: DeterministicExecutionProfile;
+  ok: boolean;
+  moduleCount: number;
+  diagnosticCounts: Record<string, number>;
+  diagnostics: CompatibilityDiagnostic[];
 }
 
 export interface BuildDeterministicModulePackResult {
   modulePack: ModulePackV1;
   compatibility: CompatibilityScanResult;
+  compatibilityReport: CompatibilityReportV1;
   scriptArtifact?: BundleDeterministicProgramResult;
+  programArtifact?: ProgramArtifactV2;
 }
 
 export class DeterministicBundlerError extends Error {
@@ -279,6 +308,11 @@ export async function buildDeterministicModulePack(
     ...modulePackWithoutHash,
     graphHash,
   };
+  const compatibilityReport = buildCompatibilityReport({
+    profile,
+    compatibility,
+    moduleCount: modules.length,
+  });
 
   const scriptArtifact = options.emitScriptArtifact
     ? await bundleDeterministicProgram({
@@ -288,11 +322,28 @@ export async function buildDeterministicModulePack(
         rejectIncompatible,
       })
     : undefined;
+  const programArtifact = options.emitProgramArtifact
+    ? buildProgramArtifactV2({
+        modulePack,
+        profile,
+        abiId: options.abiId ?? 'Host.v1',
+        abiVersion: options.abiVersion ?? 1,
+        abiManifestHash: expectHexStringOption(
+          options.abiManifestHash,
+          'abiManifestHash',
+        ),
+        engineBuildHash: options.engineBuildHash
+          ? expectHexStringOption(options.engineBuildHash, 'engineBuildHash')
+          : undefined,
+      })
+    : undefined;
 
   return {
     modulePack,
     compatibility,
+    compatibilityReport,
     ...(scriptArtifact ? { scriptArtifact } : {}),
+    ...(programArtifact ? { programArtifact } : {}),
   };
 }
 
@@ -839,6 +890,67 @@ function computeModulePackGraphHash(pack: {
     dependencyIntegrity: pack.dependencyIntegrity,
   };
   return sha256Hex(stableStringify(canonical));
+}
+
+function buildCompatibilityReport(options: {
+  profile: DeterministicExecutionProfile;
+  compatibility: CompatibilityScanResult;
+  moduleCount: number;
+}): CompatibilityReportV1 {
+  const diagnosticCounts = options.compatibility.diagnostics.reduce<
+    Record<string, number>
+  >((accumulator, diagnostic) => {
+    accumulator[diagnostic.ruleId] = (accumulator[diagnostic.ruleId] ?? 0) + 1;
+    return accumulator;
+  }, {});
+
+  return {
+    version: 1,
+    profile: options.profile,
+    ok: options.compatibility.ok,
+    moduleCount: options.moduleCount,
+    diagnosticCounts,
+    diagnostics: options.compatibility.diagnostics,
+  };
+}
+
+function buildProgramArtifactV2(options: {
+  modulePack: ModulePackV1;
+  profile: DeterministicExecutionProfile;
+  abiId: string;
+  abiVersion: number;
+  abiManifestHash: string;
+  engineBuildHash?: string;
+}): ProgramArtifactV2 {
+  return {
+    version: 2,
+    abiId: options.abiId,
+    abiVersion: options.abiVersion,
+    abiManifestHash: options.abiManifestHash,
+    ...(options.engineBuildHash
+      ? {
+          engineBuildHash: options.engineBuildHash,
+        }
+      : {}),
+    executionProfile: options.profile,
+    sourceKind: 'module-pack',
+    source: {
+      modulePack: options.modulePack,
+    },
+  };
+}
+
+function expectHexStringOption(
+  value: string | undefined,
+  fieldName: string,
+): string {
+  if (!value) {
+    throw new Error(`buildDeterministicModulePack requires ${fieldName}`);
+  }
+  if (!/^[0-9a-f]{64}$/.test(value)) {
+    throw new Error(`${fieldName} must be a lowercase 64-char hex string`);
+  }
+  return value;
 }
 
 function stableStringify(value: unknown): string {

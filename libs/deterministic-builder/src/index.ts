@@ -8,9 +8,11 @@ export {
   type BundleDeterministicProgramOptions,
   type BundleDeterministicProgramResult,
   type CompatibilityDiagnostic,
+  type CompatibilityReportV1,
   type CompatibilityScanResult,
   type DeterministicExecutionProfile,
   type ModulePackModule,
   type ModulePackOriginMeta,
   type ModulePackV1,
+  type ProgramArtifactV2,
 } from '@blue-quickjs/deterministic-bundler';

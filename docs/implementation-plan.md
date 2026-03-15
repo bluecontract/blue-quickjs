@@ -2138,7 +2138,7 @@ chat context or ad-hoc decisions.
 ### T-150: Introduce module-pack builder API and migration package
 
 **Phase:** P14 – Deterministic builder  
-**Status:** IN PROGRESS  
+**Status:** DONE  
 **Depends on:** T-140
 
 **Goal:**  
@@ -2158,9 +2158,9 @@ capabilities centered on `ModulePack.v1`, while preserving script-mode bridging.
   - npm CJS package resolution.
 - [x] Add transitional migration package `@blue-quickjs/deterministic-builder`
       that re-exports deterministic builder APIs.
-- [ ] Emit full compatibility report artifact schema (beyond scan diagnostics).
-- [ ] Emit `ProgramArtifact.v2` build artifact directly from builder API.
-- [ ] Add dedicated graph-hash golden fixtures to lock serialization format.
+- [x] Emit full compatibility report artifact schema (beyond scan diagnostics).
+- [x] Emit `ProgramArtifact.v2` build artifact directly from builder API.
+- [x] Add dedicated graph-hash golden fixtures to lock serialization format.
 
 **Current state (P14 T-150):**
 
@@ -2171,6 +2171,9 @@ capabilities centered on `ModulePack.v1`, while preserving script-mode bridging.
   - canonical graph hashing via stable JSON serialization,
   - lockfile-derived dependency integrity hash,
   - optional script artifact emission for transitional workflows.
+- Builder API now emits:
+  - `CompatibilityReport.v1` (profile, module count, rule counts, diagnostics),
+  - optional `ProgramArtifact.v2` embedding emitted `ModulePack.v1`.
 - Source maps are sanitized to remove absolute host paths before serialization.
 - `libs/deterministic-bundler/src/lib/deterministic-bundler.spec.ts` covers:
   - deterministic repeated module-pack builds,
@@ -2180,6 +2183,8 @@ capabilities centered on `ModulePack.v1`, while preserving script-mode bridging.
   surface and independent test coverage.
 - `libs/quickjs-runtime/src/lib/quickjs-runtime.ts` now includes
   `ProgramArtifactV2` and `ModulePackV1` validation scaffolding ahead of P15.
+- Graph hash serialization is pinned by deterministic-bundler golden test fixture
+  (`keeps graphHash stable for a golden fixture`).
 
 ---
 

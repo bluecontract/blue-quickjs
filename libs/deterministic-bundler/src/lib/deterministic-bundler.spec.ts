@@ -155,6 +155,11 @@ describe('buildDeterministicModulePack', () => {
     expect(second.modulePack.graphHash).toBe(first.modulePack.graphHash);
     expect(second.modulePack.modules).toEqual(first.modulePack.modules);
     expect(first.compatibility.ok).toBe(true);
+    expect(first.compatibilityReport.version).toBe(1);
+    expect(first.compatibilityReport.profile).toBe('baseline-v1');
+    expect(first.compatibilityReport.moduleCount).toBe(
+      first.modulePack.modules.length,
+    );
     expect(first.scriptArtifact?.contentHash).toMatch(/^[0-9a-f]{64}$/);
   });
 
@@ -252,6 +257,53 @@ describe('buildDeterministicModulePack', () => {
       ),
     ).toBe(true);
   });
+
+  it('emits ProgramArtifact.v2 when requested', async () => {
+    const fixtureDir = createFixtureDir();
+    writeFixture(fixtureDir, 'entry.ts', 'export default 99;');
+
+    const built = await buildDeterministicModulePack({
+      absWorkingDir: fixtureDir,
+      entryPath: 'entry.ts',
+      emitProgramArtifact: true,
+      abiManifestHash: SAMPLE_HASH,
+      engineBuildHash: SAMPLE_HASH,
+    });
+
+    expect(built.programArtifact).toEqual({
+      version: 2,
+      abiId: 'Host.v1',
+      abiVersion: 1,
+      abiManifestHash: SAMPLE_HASH,
+      engineBuildHash: SAMPLE_HASH,
+      executionProfile: 'baseline-v1',
+      sourceKind: 'module-pack',
+      source: {
+        modulePack: built.modulePack,
+      },
+    });
+  });
+
+  it('keeps graphHash stable for a golden fixture', async () => {
+    const fixtureDir = createFixtureDir();
+    writeFixture(fixtureDir, 'lib/value.ts', 'export const value = 5;');
+    writeFixture(
+      fixtureDir,
+      'entry.ts',
+      "import { value } from './lib/value'; export default value * 2;",
+    );
+
+    const built = await buildDeterministicModulePack({
+      absWorkingDir: fixtureDir,
+      entryPath: 'entry.ts',
+      builderVersion: 'golden-builder',
+      dependencyIntegrity: SAMPLE_HASH,
+    });
+
+    expect(built.modulePack.graphHash).toBe(
+      '191c77a4a6235a20f460887a4bdad13b09ab34bf0f841fcad68504e3e757b6b4',
+    );
+  });
 });
 
 function createFixtureDir(): string {
@@ -271,3 +323,6 @@ function writeFixture(
 function normalizePath(input: string): string {
   return input.split(path.sep).join('/');
 }
+
+const SAMPLE_HASH =
+  'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';

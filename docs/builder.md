@@ -16,6 +16,10 @@ artifacts (`ModulePack.v1`, `ProgramArtifact.v2`), not just one script blob.
   re-exports the deterministic builder APIs.
 - `bundleDeterministicProgram(...)` remains available for transitional
   script-mode execution.
+- Builder result shape now includes:
+  - `CompatibilityReport.v1`
+  - optional embedded `ProgramArtifact.v2` output
+  - graph-hash golden test lock for serialization stability.
 
 ## Goals
 
