@@ -4,7 +4,7 @@ Deterministic QuickJS-in-Wasm evaluator monorepo (Nx + pnpm), tracking a hardene
 
 ## QuickJS fork
 
-- Submodule at `vendor/quickjs` (origin `git@blue.github.com:mjwebblue/quickjs.git`).
+- Submodule at `vendor/quickjs` (origin `git@github.com:bluecontract/quickjs.git`).
 - Fresh checkout: `git submodule update --init --recursive`.
 - Update the pin after landing changes in the fork: `cd vendor/quickjs && git fetch origin && git checkout <new-ref>` then `cd .. && git add vendor/quickjs && git commit -m "chore: bump quickjs submodule"`.
 - Do QuickJS edits in the fork repository and only commit the pinned SHA here.
