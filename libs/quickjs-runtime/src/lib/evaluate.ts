@@ -13,6 +13,7 @@ import type {
 import {
   type InputEnvelope,
   type InputValidationOptions,
+  type ModulePackV1,
   type ProgramArtifact,
   type ProgramArtifactV2,
   validateInputEnvelope,
@@ -95,6 +96,9 @@ export async function evaluate(
   options: EvaluateOptions,
 ): Promise<EvaluateResult> {
   const program = normalizeProgramForExecution(options.program);
+  if (program.mode === 'module-pack') {
+    await assertModulePackHash(program.modulePack);
+  }
   const input = validateInputEnvelope(options.input, options.inputValidation);
 
   const runtime = await createRuntime({
@@ -136,7 +140,14 @@ export async function evaluate(
   }
 
   try {
-    const raw = vm.eval(program.legacyArtifact.code);
+    const raw =
+      program.mode === 'script'
+        ? vm.eval(program.legacyArtifact.code)
+        : vm.evalModulePack(
+            serializeModulePackModules(program.modulePack),
+            program.modulePack.entrySpecifier,
+            program.entryExport,
+          );
     const parsed = parseEvalOutput(raw);
     const tape = options.tape ? parseTape(vm.readTape()) : undefined;
     const trace = options.gasTrace
@@ -543,23 +554,55 @@ function assertEngineBuildHash(
   }
 }
 
-function normalizeProgramForExecution(program: unknown): {
-  legacyArtifact: ProgramArtifact;
-} {
+type NormalizedProgramForExecution =
+  | {
+      mode: 'script';
+      legacyArtifact: ProgramArtifact;
+    }
+  | {
+      mode: 'module-pack';
+      legacyArtifact: ProgramArtifact;
+      modulePack: ModulePackV1;
+      entryExport: string;
+    };
+
+function normalizeProgramForExecution(
+  program: unknown,
+): NormalizedProgramForExecution {
   if (isProgramArtifactV2(program)) {
     const validated = validateProgramArtifactV2(program);
-    if (validated.sourceKind !== 'script') {
-      throw new Error(
-        'MODULE_PACK_UNSUPPORTED: module-pack execution path is not enabled in this runtime build',
-      );
+    if (validated.sourceKind === 'script') {
+      if (!('code' in validated.source)) {
+        throw new Error(
+          'INVALID_PROGRAM: script source is missing code payload',
+        );
+      }
+
+      return {
+        mode: 'script',
+        legacyArtifact: {
+          code: validated.source.code,
+          abiId: validated.abiId,
+          abiVersion: validated.abiVersion,
+          abiManifestHash: validated.abiManifestHash,
+          ...(validated.engineBuildHash
+            ? { engineBuildHash: validated.engineBuildHash }
+            : {}),
+          executionProfile: validated.executionProfile,
+        },
+      };
     }
-    if (!('code' in validated.source)) {
-      throw new Error('INVALID_PROGRAM: script source is missing code payload');
+
+    if (!('modulePack' in validated.source)) {
+      throw new Error(
+        'INVALID_PROGRAM: module-pack source is missing modulePack payload',
+      );
     }
 
     return {
+      mode: 'module-pack',
       legacyArtifact: {
-        code: validated.source.code,
+        code: '',
         abiId: validated.abiId,
         abiVersion: validated.abiVersion,
         abiManifestHash: validated.abiManifestHash,
@@ -568,12 +611,93 @@ function normalizeProgramForExecution(program: unknown): {
           : {}),
         executionProfile: validated.executionProfile,
       },
+      modulePack: validated.source.modulePack,
+      entryExport: validated.source.modulePack.entryExport ?? 'default',
     };
   }
 
   return {
+    mode: 'script',
     legacyArtifact: validateProgramArtifact(program),
   };
+}
+
+async function assertModulePackHash(modulePack: ModulePackV1): Promise<void> {
+  const computed = await computeModulePackGraphHash(modulePack);
+  if (computed !== modulePack.graphHash) {
+    throw new Error(
+      `MODULE_PACK_HASH_MISMATCH: expected=${modulePack.graphHash} computed=${computed}`,
+    );
+  }
+}
+
+async function computeModulePackGraphHash(
+  modulePack: ModulePackV1,
+): Promise<string> {
+  const canonical = {
+    version: modulePack.version,
+    entrySpecifier: modulePack.entrySpecifier,
+    entryExport: modulePack.entryExport ?? 'default',
+    modules: [...modulePack.modules]
+      .sort((left, right) => left.specifier.localeCompare(right.specifier))
+      .map((module) => ({
+        specifier: module.specifier,
+        source: module.source,
+        ...(module.sourceMap ? { sourceMap: module.sourceMap } : {}),
+      })),
+    builderVersion: modulePack.builderVersion,
+    dependencyIntegrity: modulePack.dependencyIntegrity,
+  };
+  const payload = new TextEncoder().encode(stableStringify(canonical));
+  const subtle = getSubtleCrypto();
+  const digest = await subtle.digest('SHA-256', payload);
+  return [...new Uint8Array(digest)]
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+function serializeModulePackModules(modulePack: ModulePackV1): string {
+  return JSON.stringify(
+    modulePack.modules.map((module) => ({
+      specifier: module.specifier,
+      source: module.source,
+    })),
+  );
+}
+
+function stableStringify(value: unknown): string {
+  if (value === null || typeof value !== 'object') {
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => stableStringify(item)).join(',')}]`;
+  }
+
+  const entries = Object.entries(value as Record<string, unknown>)
+    .filter(([, item]) => item !== undefined)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, item]) => `${JSON.stringify(key)}:${stableStringify(item)}`);
+  return `{${entries.join(',')}}`;
+}
+
+type SubtleDigestApi = {
+  digest(
+    algorithm: string,
+    data: ArrayBuffer | ArrayBufferView,
+  ): Promise<ArrayBuffer>;
+};
+
+function getSubtleCrypto(): SubtleDigestApi {
+  const subtle =
+    globalThis.crypto && 'subtle' in globalThis.crypto
+      ? globalThis.crypto.subtle
+      : null;
+  if (!subtle) {
+    throw new Error(
+      'MODULE_PACK_HASH_MISMATCH: crypto.subtle is unavailable for graph hash verification',
+    );
+  }
+  return subtle;
 }
 
 function isProgramArtifactV2(value: unknown): value is ProgramArtifactV2 {

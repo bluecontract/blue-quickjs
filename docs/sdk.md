@@ -191,9 +191,11 @@ The runtime now accepts both:
 - legacy single-source script artifacts (`ProgramArtifact` v1), and
 - `ProgramArtifact.v2` with `sourceKind: "script"`.
 
-`ProgramArtifact.v2` with `sourceKind: "module-pack"` is intentionally rejected
-for now (`MODULE_PACK_UNSUPPORTED`) until the native in-memory module loader
-lands in P15 runtime work.
+`ProgramArtifact.v2` with `sourceKind: "module-pack"` now executes via the
+runtime's in-memory module loader path. The runtime validates
+`modulePack.graphHash` before execution and emits deterministic module-pack
+error codes for hash mismatches, missing specifiers/exports, resolution errors,
+and evaluation failures.
 
 The versioned artifact model is specified in:
 

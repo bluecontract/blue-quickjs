@@ -2205,21 +2205,27 @@ bridge toward first-class module-pack execution.
 - [x] Accept `ProgramArtifact.v2` at `evaluate(...)` API boundary.
 - [x] Execute `sourceKind: "script"` through existing deterministic VM path.
 - [x] Add test coverage for ProgramArtifact.v2 script execution.
-- [x] Add explicit deterministic failure for `sourceKind: "module-pack"` until
-      native in-memory module loader lands.
-- [ ] Implement in-memory deterministic module loader for `ModulePack.v1`.
-- [ ] Execute module entry and selected export in runtime (not script bridge).
+- [x] Implement in-memory deterministic module loader for `ModulePack.v1`.
+- [x] Execute module entry and selected export in runtime (not script bridge).
 - [ ] Add module-pack parity fixtures (node/browser/native result+gas+tape).
 
 **Current state (P15 T-160):**
 
 - `libs/quickjs-runtime/src/lib/evaluate.ts` now normalizes v1/v2 program
   artifacts and executes v2 script sources directly.
-- ProgramArtifact.v2 module-pack path currently rejects with
-  `MODULE_PACK_UNSUPPORTED`, making the remaining P15 runtime loader work
-  explicit and testable.
-- `libs/quickjs-runtime/src/lib/evaluate.spec.ts` now includes v2 script success
-  and module-pack rejection tests.
+- ProgramArtifact.v2 module-pack path now executes via wasm runtime entrypoint
+  `qjs_det_eval_module_pack(...)` with an in-memory module loader backed only by
+  pack sources.
+- Runtime validates `modulePack.graphHash` before VM execution and maps
+  deterministic module-pack errors:
+  - `MODULE_PACK_HASH_MISMATCH`
+  - `MODULE_SPECIFIER_NOT_FOUND`
+  - `MODULE_EXPORT_MISSING`
+  - `MODULE_RESOLUTION_ERROR`
+  - `MODULE_EVALUATION_ERROR`
+- `libs/quickjs-runtime/src/lib/evaluate.spec.ts` now includes v2 module-pack
+  tests for default export, named export, cyclic imports, missing specifier,
+  missing export, and hash mismatch.
 
 ---
 

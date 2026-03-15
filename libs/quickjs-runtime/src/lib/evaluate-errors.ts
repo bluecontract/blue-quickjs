@@ -34,6 +34,17 @@ export type EvaluateVmErrorDetail =
       message: string;
     }
   | {
+      kind: 'module-pack';
+      code:
+        | 'MODULE_PACK_HASH_MISMATCH'
+        | 'MODULE_SPECIFIER_NOT_FOUND'
+        | 'MODULE_EXPORT_MISSING'
+        | 'MODULE_RESOLUTION_ERROR'
+        | 'MODULE_EVALUATION_ERROR';
+      tag: 'vm/module_pack';
+      message: string;
+    }
+  | {
       kind: 'unknown';
       code: 'UNKNOWN';
       tag: 'vm/unknown';
@@ -95,6 +106,11 @@ export function mapVmError(
     };
   }
 
+  const modulePackError = parseModulePackError(name, normalizedMessage);
+  if (modulePackError) {
+    return modulePackError;
+  }
+
   if (name && name !== 'Error') {
     return {
       kind: 'js-exception',
@@ -112,6 +128,72 @@ export function mapVmError(
     name: name || undefined,
     message: normalizedMessage,
   };
+}
+
+function parseModulePackError(
+  name: string,
+  message: string,
+): EvaluateVmErrorDetail | null {
+  if (
+    name === 'ModulePackHashMismatch' ||
+    message.startsWith('MODULE_PACK_HASH_MISMATCH')
+  ) {
+    return {
+      kind: 'module-pack',
+      code: 'MODULE_PACK_HASH_MISMATCH',
+      tag: 'vm/module_pack',
+      message,
+    };
+  }
+
+  if (
+    name === 'ModuleSpecifierNotFound' ||
+    message.startsWith('ModuleSpecifierNotFound') ||
+    message.includes('ModuleSpecifierNotFound')
+  ) {
+    return {
+      kind: 'module-pack',
+      code: 'MODULE_SPECIFIER_NOT_FOUND',
+      tag: 'vm/module_pack',
+      message,
+    };
+  }
+
+  if (
+    name === 'ModuleExportMissing' ||
+    message.startsWith('ModuleExportMissing') ||
+    message.includes('ModuleExportMissing')
+  ) {
+    return {
+      kind: 'module-pack',
+      code: 'MODULE_EXPORT_MISSING',
+      tag: 'vm/module_pack',
+      message,
+    };
+  }
+
+  if (
+    message.startsWith('ModuleResolutionError') ||
+    message.includes('ModuleResolutionError')
+  ) {
+    return {
+      kind: 'module-pack',
+      code: 'MODULE_RESOLUTION_ERROR',
+      tag: 'vm/module_pack',
+      message,
+    };
+  }
+
+  if (name === 'ModuleEvaluationError') {
+    return {
+      kind: 'module-pack',
+      code: 'MODULE_EVALUATION_ERROR',
+      tag: 'vm/module_pack',
+      message,
+    };
+  }
+
+  return null;
 }
 
 export function createInvalidOutputError(

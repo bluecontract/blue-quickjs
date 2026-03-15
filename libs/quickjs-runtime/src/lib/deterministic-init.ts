@@ -25,6 +25,11 @@ type DetInitFn = (
 ) => number;
 
 type DetEvalFn = (code: string) => number;
+type DetEvalModulePackFn = (
+  modulePackJson: string,
+  entrySpecifier: string,
+  entryExport: string,
+) => number;
 type DetSetGasLimitFn = (gasLimit: bigint) => number;
 type EnableTapeFn = (capacity: number) => number;
 type ReadTapeFn = () => number;
@@ -34,6 +39,7 @@ type ReadTraceFn = () => number;
 interface DeterministicExports {
   init: DetInitFn;
   eval: DetEvalFn;
+  evalModulePack: DetEvalModulePackFn;
   setGasLimit: DetSetGasLimitFn;
   freeRuntime: () => void;
   enableTape: EnableTapeFn;
@@ -44,6 +50,11 @@ interface DeterministicExports {
 
 export interface DeterministicVm {
   eval(code: string): string;
+  evalModulePack(
+    modulePackJson: string,
+    entrySpecifier: string,
+    entryExport: string,
+  ): string;
   setGasLimit(limit: bigint | number): void;
   enableTape(capacity: number): void;
   readTape(): string;
@@ -113,6 +124,21 @@ export function initializeDeterministicVm(
       }
       return readAndFreeCString(runtime.module, ptr);
     },
+    evalModulePack(
+      modulePackJson: string,
+      entrySpecifier: string,
+      entryExport: string,
+    ): string {
+      const ptr = ffi.evalModulePack(
+        modulePackJson,
+        entrySpecifier,
+        entryExport,
+      );
+      if (ptr === 0) {
+        throw new Error('qjs_det_eval_module_pack returned a null pointer');
+      }
+      return readAndFreeCString(runtime.module, ptr);
+    },
     setGasLimit(limit: bigint | number): void {
       const normalized = normalizeGasLimit(limit);
       const rc = ffi.setGasLimit(normalized);
@@ -173,6 +199,11 @@ function createDeterministicExports(
   const evalFn = module.cwrap('qjs_det_eval', 'number', [
     'string',
   ]) as unknown as DetEvalFn;
+  const evalModulePack = module.cwrap('qjs_det_eval_module_pack', 'number', [
+    'string',
+    'string',
+    'string',
+  ]) as unknown as DetEvalModulePackFn;
   const setGasLimit = module.cwrap('qjs_det_set_gas_limit', 'number', [
     'bigint',
   ]) as unknown as DetSetGasLimitFn;
@@ -202,6 +233,7 @@ function createDeterministicExports(
   return {
     init,
     eval: evalFn,
+    evalModulePack,
     setGasLimit,
     freeRuntime,
     enableTape,

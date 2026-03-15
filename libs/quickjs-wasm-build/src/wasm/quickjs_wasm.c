@@ -170,6 +170,270 @@ static int js_set_prop(JSContext *ctx, JSValue obj, const char *name, JSValue va
   return 0;
 }
 
+typedef struct {
+  char *specifier;
+  char *source;
+  size_t source_len;
+} ModulePackEntry;
+
+typedef struct {
+  ModulePackEntry *entries;
+  uint32_t entry_count;
+} ModulePack;
+
+static void free_module_pack(ModulePack *pack) {
+  if (!pack) {
+    return;
+  }
+  if (pack->entries) {
+    for (uint32_t i = 0; i < pack->entry_count; i++) {
+      free(pack->entries[i].specifier);
+      free(pack->entries[i].source);
+    }
+    free(pack->entries);
+  }
+  pack->entries = NULL;
+  pack->entry_count = 0;
+}
+
+static ModulePackEntry *find_module_pack_entry(ModulePack *pack,
+                                               const char *specifier) {
+  if (!pack || !specifier) {
+    return NULL;
+  }
+  for (uint32_t i = 0; i < pack->entry_count; i++) {
+    if (strcmp(pack->entries[i].specifier, specifier) == 0) {
+      return &pack->entries[i];
+    }
+  }
+  return NULL;
+}
+
+static char *copy_cstring_len(const char *value, size_t length) {
+  char *out = malloc(length + 1);
+  if (!out) {
+    return NULL;
+  }
+  memcpy(out, value, length);
+  out[length] = '\0';
+  return out;
+}
+
+static int parse_module_pack_json(JSContext *ctx,
+                                  const char *module_pack_json,
+                                  ModulePack *out_pack) {
+  JSValue parsed = JS_UNDEFINED;
+  JSValue length_value = JS_UNDEFINED;
+  uint32_t module_count = 0;
+
+  memset(out_pack, 0, sizeof(*out_pack));
+
+  parsed = JS_ParseJSON(ctx, module_pack_json, strlen(module_pack_json),
+                        "<module-pack>");
+  if (JS_IsException(parsed)) {
+    goto fail;
+  }
+
+  if (!JS_IsArray(ctx, parsed)) {
+    JS_ThrowTypeError(ctx, "module pack json must be an array");
+    goto fail;
+  }
+
+  length_value = JS_GetPropertyStr(ctx, parsed, "length");
+  if (JS_IsException(length_value)) {
+    goto fail;
+  }
+  if (JS_ToUint32(ctx, &module_count, length_value) != 0) {
+    goto fail;
+  }
+  JS_FreeValue(ctx, length_value);
+  length_value = JS_UNDEFINED;
+
+  if (module_count == 0) {
+    JS_ThrowTypeError(ctx, "module pack must contain at least one module");
+    goto fail;
+  }
+
+  out_pack->entries = calloc(module_count, sizeof(*out_pack->entries));
+  if (!out_pack->entries) {
+    JS_ThrowOutOfMemory(ctx);
+    goto fail;
+  }
+  out_pack->entry_count = module_count;
+
+  for (uint32_t i = 0; i < module_count; i++) {
+    JSValue item = JS_GetPropertyUint32(ctx, parsed, i);
+    JSValue specifier_value = JS_UNDEFINED;
+    JSValue source_value = JS_UNDEFINED;
+    const char *specifier_cstr = NULL;
+    const char *source_cstr = NULL;
+    size_t source_len = 0;
+
+    if (JS_IsException(item)) {
+      goto fail;
+    }
+    if (!JS_IsObject(item)) {
+      JS_FreeValue(ctx, item);
+      JS_ThrowTypeError(ctx, "module pack entry must be an object");
+      goto fail;
+    }
+
+    specifier_value = JS_GetPropertyStr(ctx, item, "specifier");
+    source_value = JS_GetPropertyStr(ctx, item, "source");
+    if (JS_IsException(specifier_value) || JS_IsException(source_value)) {
+      JS_FreeValue(ctx, specifier_value);
+      JS_FreeValue(ctx, source_value);
+      JS_FreeValue(ctx, item);
+      goto fail;
+    }
+
+    specifier_cstr = JS_ToCString(ctx, specifier_value);
+    source_cstr = JS_ToCStringLen(ctx, &source_len, source_value);
+    if (!specifier_cstr || !source_cstr) {
+      JS_FreeCString(ctx, specifier_cstr);
+      JS_FreeCString(ctx, source_cstr);
+      JS_FreeValue(ctx, specifier_value);
+      JS_FreeValue(ctx, source_value);
+      JS_FreeValue(ctx, item);
+      goto fail;
+    }
+
+    out_pack->entries[i].specifier =
+        copy_cstring_len(specifier_cstr, strlen(specifier_cstr));
+    out_pack->entries[i].source = copy_cstring_len(source_cstr, source_len);
+    out_pack->entries[i].source_len = source_len;
+
+    JS_FreeCString(ctx, specifier_cstr);
+    JS_FreeCString(ctx, source_cstr);
+    JS_FreeValue(ctx, specifier_value);
+    JS_FreeValue(ctx, source_value);
+    JS_FreeValue(ctx, item);
+
+    if (!out_pack->entries[i].specifier || !out_pack->entries[i].source) {
+      JS_ThrowOutOfMemory(ctx);
+      goto fail;
+    }
+  }
+
+  JS_FreeValue(ctx, parsed);
+  return 0;
+
+fail:
+  if (!JS_IsUndefined(length_value)) {
+    JS_FreeValue(ctx, length_value);
+  }
+  if (!JS_IsUndefined(parsed)) {
+    JS_FreeValue(ctx, parsed);
+  }
+  free_module_pack(out_pack);
+  return -1;
+}
+
+static JSModuleDef *module_pack_loader(JSContext *ctx,
+                                       const char *module_name,
+                                       void *opaque,
+                                       JSValueConst attributes) {
+  ModulePack *pack = (ModulePack *)opaque;
+  ModulePackEntry *entry = find_module_pack_entry(pack, module_name);
+  JSValue module_obj = JS_UNDEFINED;
+
+  (void)attributes;
+
+  if (!entry) {
+    JS_ThrowReferenceError(ctx,
+                           "ModuleResolutionError: module specifier not found: %s",
+                           module_name);
+    return NULL;
+  }
+
+  module_obj = JS_Eval(ctx, entry->source, entry->source_len, entry->specifier,
+                       JS_EVAL_TYPE_MODULE | JS_EVAL_FLAG_COMPILE_ONLY);
+  if (JS_IsException(module_obj)) {
+    return NULL;
+  }
+
+  JSModuleDef *module_def = (JSModuleDef *)JS_VALUE_GET_PTR(module_obj);
+  JS_FreeValue(ctx, module_obj);
+  return module_def;
+}
+
+static char *escape_js_string(const char *input) {
+  size_t needed = 2; /* quotes */
+  for (const unsigned char *p = (const unsigned char *)input; *p; p++) {
+    switch (*p) {
+    case '\\':
+    case '"':
+    case '\n':
+    case '\r':
+    case '\t':
+      needed += 2;
+      break;
+    default:
+      needed += 1;
+      break;
+    }
+  }
+
+  char *out = malloc(needed + 1);
+  if (!out) {
+    return NULL;
+  }
+
+  char *cursor = out;
+  *cursor++ = '"';
+  for (const unsigned char *p = (const unsigned char *)input; *p; p++) {
+    switch (*p) {
+    case '\\':
+      *cursor++ = '\\';
+      *cursor++ = '\\';
+      break;
+    case '"':
+      *cursor++ = '\\';
+      *cursor++ = '"';
+      break;
+    case '\n':
+      *cursor++ = '\\';
+      *cursor++ = 'n';
+      break;
+    case '\r':
+      *cursor++ = '\\';
+      *cursor++ = 'r';
+      break;
+    case '\t':
+      *cursor++ = '\\';
+      *cursor++ = 't';
+      break;
+    default:
+      *cursor++ = (char)*p;
+      break;
+    }
+  }
+  *cursor++ = '"';
+  *cursor = '\0';
+  return out;
+}
+
+static char *format_prefixed_exception(JSContext *ctx, uint64_t gas_limit,
+                                       const char *prefix,
+                                       const char *fallback,
+                                       const JSGasTrace *trace) {
+  JSValue exception = JS_GetException(ctx);
+  const char *msg = JS_ToCString(ctx, exception);
+  uint64_t remaining = JS_GetGasRemaining(ctx);
+  char *payload = dup_printf("%s: %s", prefix, msg ? msg : fallback);
+  char *out = format_with_gas("ERROR", payload ? payload : prefix, gas_limit,
+                              remaining, trace);
+
+  if (payload) {
+    free(payload);
+  }
+  if (msg) {
+    JS_FreeCString(ctx, msg);
+  }
+  JS_FreeValue(ctx, exception);
+  return out;
+}
+
 EMSCRIPTEN_KEEPALIVE
 char *qjs_det_init(const uint8_t *manifest_bytes,
                    uint32_t manifest_size,
@@ -256,6 +520,191 @@ char *qjs_det_eval(const char *code) {
   uint64_t remaining = JS_GetGasRemaining(det_ctx);
   char *out = format_with_gas("RESULT", hex, det_gas_limit, remaining, NULL);
   free(hex);
+  return out;
+}
+
+EMSCRIPTEN_KEEPALIVE
+char *qjs_det_eval_module_pack(const char *module_pack_json,
+                               const char *entry_specifier,
+                               const char *entry_export) {
+  ModulePack pack = {0};
+  JSValue module_eval = JS_UNDEFINED;
+  JSValue global_obj = JS_UNDEFINED;
+  JSValue export_value = JS_UNDEFINED;
+  JSDvBuffer dv = {0};
+  JSAtom result_atom = JS_ATOM_NULL;
+  const char *target_export = NULL;
+  char *entry_specifier_escaped = NULL;
+  char *entry_export_escaped = NULL;
+  char *wrapper_source = NULL;
+  char *hex = NULL;
+  char *out = NULL;
+  const char *result_global_name = "__blue_module_pack_result";
+
+  if (!det_ctx || !det_rt) {
+    return dup_printf("ERROR <uninitialized> GAS remaining=0 used=0");
+  }
+
+  if (run_gc_checkpoint(det_ctx) != 0) {
+    return format_exception(det_ctx, det_gas_limit, "<gc checkpoint>", NULL);
+  }
+
+  if (!entry_specifier || entry_specifier[0] == '\0') {
+    uint64_t remaining = JS_GetGasRemaining(det_ctx);
+    return format_with_gas("ERROR",
+                           "ModuleSpecifierNotFound: empty entry specifier",
+                           det_gas_limit, remaining, NULL);
+  }
+
+  target_export = (entry_export && entry_export[0] != '\0') ? entry_export
+                                                             : "default";
+
+  if (parse_module_pack_json(det_ctx, module_pack_json, &pack) != 0) {
+    return format_prefixed_exception(det_ctx, det_gas_limit,
+                                     "ModuleEvaluationError",
+                                     "<module-pack parse>", NULL);
+  }
+
+  if (!find_module_pack_entry(&pack, entry_specifier)) {
+    uint64_t remaining = JS_GetGasRemaining(det_ctx);
+    out = format_with_gas("ERROR",
+                          "ModuleSpecifierNotFound: entry module not found",
+                          det_gas_limit, remaining, NULL);
+    goto cleanup;
+  }
+
+  if (JS_AddIntrinsicPromise(det_ctx) != 0) {
+    out = format_prefixed_exception(det_ctx, det_gas_limit,
+                                    "ModuleEvaluationError", "<promise init>",
+                                    NULL);
+    goto cleanup;
+  }
+
+  JS_SetModuleLoaderFunc2(det_rt, NULL, module_pack_loader, NULL, &pack);
+
+  entry_specifier_escaped = escape_js_string(entry_specifier);
+  entry_export_escaped = escape_js_string(target_export);
+  if (!entry_specifier_escaped || !entry_export_escaped) {
+    out = format_prefixed_exception(det_ctx, det_gas_limit,
+                                    "ModuleEvaluationError", "<escape>", NULL);
+    goto cleanup;
+  }
+
+  wrapper_source = dup_printf(
+      "import * as __blue_entry_ns from %s;\n"
+      "if (typeof __blue_entry_ns[%s] === 'undefined') {\n"
+      "  throw new Error('ModuleExportMissing: export not found');\n"
+      "}\n"
+      "globalThis.%s = __blue_entry_ns[%s];\n",
+      entry_specifier_escaped, entry_export_escaped, result_global_name,
+      entry_export_escaped);
+  if (!wrapper_source) {
+    out = format_prefixed_exception(det_ctx, det_gas_limit,
+                                    "ModuleEvaluationError", "<wrapper>", NULL);
+    goto cleanup;
+  }
+
+  module_eval = JS_Eval(det_ctx, wrapper_source, strlen(wrapper_source),
+                        "./__module_pack_entry__.js", JS_EVAL_TYPE_MODULE);
+  if (JS_IsException(module_eval)) {
+    out = format_prefixed_exception(det_ctx, det_gas_limit,
+                                    "ModuleEvaluationError",
+                                    "<module evaluation>", NULL);
+    goto cleanup;
+  }
+
+  global_obj = JS_GetGlobalObject(det_ctx);
+  if (JS_IsException(global_obj)) {
+    out = format_prefixed_exception(det_ctx, det_gas_limit,
+                                    "ModuleEvaluationError",
+                                    "<global object>", NULL);
+    goto cleanup;
+  }
+
+  export_value = JS_GetPropertyStr(det_ctx, global_obj, result_global_name);
+  if (JS_IsException(export_value)) {
+    out = format_prefixed_exception(det_ctx, det_gas_limit,
+                                    "ModuleEvaluationError",
+                                    "<module export>", NULL);
+    goto cleanup;
+  }
+
+  if (JS_IsUndefined(export_value)) {
+    uint64_t remaining = JS_GetGasRemaining(det_ctx);
+    out = format_with_gas("ERROR", "ModuleExportMissing: export not found",
+                          det_gas_limit, remaining, NULL);
+    goto cleanup;
+  }
+
+  result_atom = JS_NewAtom(det_ctx, result_global_name);
+  if (result_atom != JS_ATOM_NULL) {
+    JS_DeleteProperty(det_ctx, global_obj, result_atom, 0);
+  }
+
+  if (JS_EncodeDV(det_ctx, export_value, &JS_DV_LIMIT_DEFAULTS, &dv) != 0) {
+    out = format_prefixed_exception(det_ctx, det_gas_limit,
+                                    "ModuleEvaluationError", "<dv encode>",
+                                    NULL);
+    goto cleanup;
+  }
+
+  if (run_gc_checkpoint(det_ctx) != 0) {
+    out = format_prefixed_exception(det_ctx, det_gas_limit,
+                                    "ModuleEvaluationError",
+                                    "<gc checkpoint>", NULL);
+    goto cleanup;
+  }
+
+  hex = hex_bytes(dv.data, dv.length);
+  if (!hex) {
+    uint64_t remaining = JS_GetGasRemaining(det_ctx);
+    out = format_with_gas("ERROR", "<dv encode>", det_gas_limit, remaining,
+                          NULL);
+    goto cleanup;
+  }
+
+  {
+    uint64_t remaining = JS_GetGasRemaining(det_ctx);
+    out = format_with_gas("RESULT", hex, det_gas_limit, remaining, NULL);
+  }
+
+cleanup:
+  JS_SetModuleLoaderFunc2(det_rt, NULL, NULL, NULL, NULL);
+  if (wrapper_source) {
+    free(wrapper_source);
+  }
+  if (entry_specifier_escaped) {
+    free(entry_specifier_escaped);
+  }
+  if (entry_export_escaped) {
+    free(entry_export_escaped);
+  }
+  if (result_atom != JS_ATOM_NULL) {
+    JS_FreeAtom(det_ctx, result_atom);
+  }
+  if (!JS_IsUndefined(export_value)) {
+    JS_FreeValue(det_ctx, export_value);
+  }
+  if (!JS_IsUndefined(global_obj)) {
+    JS_FreeValue(det_ctx, global_obj);
+  }
+  if (!JS_IsUndefined(module_eval)) {
+    JS_FreeValue(det_ctx, module_eval);
+  }
+  if (dv.data) {
+    JS_FreeDVBuffer(det_ctx, &dv);
+  }
+  if (hex) {
+    free(hex);
+  }
+  JS_FreeContextLoadedModules(det_ctx);
+  free_module_pack(&pack);
+
+  if (!out) {
+    return format_prefixed_exception(det_ctx, det_gas_limit,
+                                     "ModuleEvaluationError", "<module-pack>",
+                                     NULL);
+  }
   return out;
 }
 

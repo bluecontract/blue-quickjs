@@ -1,4 +1,5 @@
 import { HOST_V1_HASH, HOST_V1_MANIFEST } from '@blue-quickjs/abi-manifest';
+import { createHash } from 'node:crypto';
 import { vi } from 'vitest';
 import { evaluate } from './evaluate.js';
 import type { HostDispatcherHandlers } from './host-dispatcher.js';
@@ -75,7 +76,200 @@ describe('evaluate', () => {
     expect(result.value).toBe(14);
   });
 
-  it('rejects ProgramArtifact.v2 module-pack execution before P15 runtime loader lands', async () => {
+  it('evaluates ProgramArtifact.v2 module-pack default export', async () => {
+    const modulePack = createModulePack({
+      entrySpecifier: './entry.js',
+      modules: [
+        {
+          specifier: './entry.js',
+          source: 'export default 1;\n',
+        },
+      ],
+    });
+
+    const result = await evaluate({
+      program: {
+        ...BASE_PROGRAM_V2_SCRIPT,
+        sourceKind: 'module-pack',
+        source: {
+          modulePack,
+        },
+      },
+      input: BASE_INPUT,
+      gasLimit: TEST_GAS_LIMIT,
+      manifest: HOST_V1_MANIFEST,
+      handlers: createHandlers(),
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error(result.message);
+    }
+    expect(result.value).toBe(1);
+  });
+
+  it('evaluates module-pack entryExport for named exports', async () => {
+    const modulePack = createModulePack({
+      entrySpecifier: './entry.js',
+      entryExport: 'answer',
+      modules: [
+        {
+          specifier: './entry.js',
+          source: 'export const answer = 42;\n',
+        },
+      ],
+    });
+
+    const result = await evaluate({
+      program: {
+        ...BASE_PROGRAM_V2_SCRIPT,
+        sourceKind: 'module-pack',
+        source: {
+          modulePack,
+        },
+      },
+      input: BASE_INPUT,
+      gasLimit: TEST_GAS_LIMIT,
+      manifest: HOST_V1_MANIFEST,
+      handlers: createHandlers(),
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error(result.message);
+    }
+    expect(result.value).toBe(42);
+  });
+
+  it('evaluates cyclic module-pack imports deterministically', async () => {
+    const modulePack = createModulePack({
+      entrySpecifier: './entry.js',
+      modules: [
+        {
+          specifier: './entry.js',
+          source:
+            "import { valueFromA } from './b.js'; export default valueFromA;\n",
+        },
+        {
+          specifier: './a.js',
+          source:
+            "import { getB } from './b.js'; export function getA() { return 40 + getB(); }\n",
+        },
+        {
+          specifier: './b.js',
+          source:
+            "import { getA } from './a.js'; export function getB() { return 2; } export const valueFromA = getA();\n",
+        },
+      ],
+    });
+
+    const result = await evaluate({
+      program: {
+        ...BASE_PROGRAM_V2_SCRIPT,
+        sourceKind: 'module-pack',
+        source: {
+          modulePack,
+        },
+      },
+      input: BASE_INPUT,
+      gasLimit: TEST_GAS_LIMIT,
+      manifest: HOST_V1_MANIFEST,
+      handlers: createHandlers(),
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error(result.message);
+    }
+    expect(result.value).toBe(42);
+  });
+
+  it('maps missing entry module to deterministic module-pack error', async () => {
+    const modulePack = createModulePack({
+      entrySpecifier: './missing.js',
+      modules: [
+        {
+          specifier: './entry.js',
+          source: 'export default 1;\n',
+        },
+      ],
+    });
+
+    const result = await evaluate({
+      program: {
+        ...BASE_PROGRAM_V2_SCRIPT,
+        sourceKind: 'module-pack',
+        source: {
+          modulePack,
+        },
+      },
+      input: BASE_INPUT,
+      gasLimit: TEST_GAS_LIMIT,
+      manifest: HOST_V1_MANIFEST,
+      handlers: createHandlers(),
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      throw new Error('expected module-pack failure');
+    }
+    expect(result.type).toBe('vm-error');
+    expect(result.error.kind).toBe('module-pack');
+    if (result.error.kind !== 'module-pack') {
+      throw new Error('expected module-pack error kind');
+    }
+    expect(result.error.code).toBe('MODULE_SPECIFIER_NOT_FOUND');
+  });
+
+  it('maps missing module export to deterministic module-pack error', async () => {
+    const modulePack = createModulePack({
+      entrySpecifier: './entry.js',
+      entryExport: 'missing',
+      modules: [
+        {
+          specifier: './entry.js',
+          source: 'export const value = 1;\n',
+        },
+      ],
+    });
+
+    const result = await evaluate({
+      program: {
+        ...BASE_PROGRAM_V2_SCRIPT,
+        sourceKind: 'module-pack',
+        source: {
+          modulePack,
+        },
+      },
+      input: BASE_INPUT,
+      gasLimit: TEST_GAS_LIMIT,
+      manifest: HOST_V1_MANIFEST,
+      handlers: createHandlers(),
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      throw new Error('expected module-pack failure');
+    }
+    expect(result.type).toBe('vm-error');
+    expect(result.error.kind).toBe('module-pack');
+    if (result.error.kind !== 'module-pack') {
+      throw new Error('expected module-pack error kind');
+    }
+    expect(result.error.code).toBe('MODULE_EXPORT_MISSING');
+  });
+
+  it('rejects module-pack artifacts with graph hash mismatch', async () => {
+    const modulePack = createModulePack({
+      entrySpecifier: './entry.js',
+      modules: [
+        {
+          specifier: './entry.js',
+          source: 'export default 1;\n',
+        },
+      ],
+    });
+
     await expect(
       evaluate({
         program: {
@@ -83,19 +277,9 @@ describe('evaluate', () => {
           sourceKind: 'module-pack',
           source: {
             modulePack: {
-              version: 1,
-              entrySpecifier: './entry.js',
-              modules: [
-                {
-                  specifier: './entry.js',
-                  source: 'export default 1;\n',
-                },
-              ],
+              ...modulePack,
               graphHash:
-                'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
-              builderVersion: 'deterministic-builder-v1',
-              dependencyIntegrity:
-                'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+                'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
             },
           },
         },
@@ -104,7 +288,7 @@ describe('evaluate', () => {
         manifest: HOST_V1_MANIFEST,
         handlers: createHandlers(),
       }),
-    ).rejects.toThrow(/MODULE_PACK_UNSUPPORTED/);
+    ).rejects.toThrow(/MODULE_PACK_HASH_MISMATCH/);
   });
 
   it('classifies top-level return as execution surface mismatch', async () => {
@@ -716,4 +900,55 @@ function getFnId(path: string): number {
     throw new Error(`missing fn_id for ${path}`);
   }
   return fn.fn_id;
+}
+
+function createModulePack(options: {
+  entrySpecifier: string;
+  modules: Array<{ specifier: string; source: string; sourceMap?: string }>;
+  entryExport?: string;
+}) {
+  const base = {
+    version: 1 as const,
+    entrySpecifier: options.entrySpecifier,
+    ...(options.entryExport ? { entryExport: options.entryExport } : {}),
+    modules: options.modules,
+    builderVersion: 'deterministic-builder-v1',
+    dependencyIntegrity:
+      'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+  };
+  const canonical = {
+    version: base.version,
+    entrySpecifier: base.entrySpecifier,
+    entryExport: base.entryExport ?? 'default',
+    modules: [...base.modules]
+      .sort((left, right) => left.specifier.localeCompare(right.specifier))
+      .map((module) => ({
+        specifier: module.specifier,
+        source: module.source,
+        ...(module.sourceMap ? { sourceMap: module.sourceMap } : {}),
+      })),
+    builderVersion: base.builderVersion,
+    dependencyIntegrity: base.dependencyIntegrity,
+  };
+  const graphHash = createHash('sha256')
+    .update(stableStringify(canonical), 'utf8')
+    .digest('hex');
+  return {
+    ...base,
+    graphHash,
+  };
+}
+
+function stableStringify(value: unknown): string {
+  if (value === null || typeof value !== 'object') {
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => stableStringify(item)).join(',')}]`;
+  }
+  const entries = Object.entries(value as Record<string, unknown>)
+    .filter(([, item]) => item !== undefined)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, item]) => `${JSON.stringify(key)}:${stableStringify(item)}`);
+  return `{${entries.join(',')}}`;
 }
