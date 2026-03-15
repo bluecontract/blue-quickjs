@@ -390,6 +390,67 @@ export const DETERMINISM_FIXTURES: DeterminismFixture[] = [
     },
   },
   {
+    name: 'compat-stable-sort',
+    program: {
+      ...BASE_PROGRAM,
+      executionProfile: 'compat-general-v1',
+      code: `
+        (() => {
+          const records = [
+            { id: 'a', group: 1 },
+            { id: 'b', group: 1 },
+            { id: 'c', group: 2 },
+            { id: 'd', group: 1 },
+          ];
+          records.sort((left, right) => left.group - right.group);
+          return records.map((record) => record.id);
+        })()
+      `.trim(),
+    },
+    input: DETERMINISM_INPUT,
+    gasLimit: DETERMINISM_GAS_LIMIT,
+    manifest: HOST_V1_MANIFEST,
+    createHost: createDeterminismHost,
+    expected: {
+      resultHash:
+        '950f57b0bb4280b09b5a63004acc9c50811ca16cea7c932494f47cb3cfb23c04',
+      errorCode: null,
+      errorTag: null,
+      gasUsed: 2368n,
+      gasRemaining: 47632n,
+      tapeHash: null,
+      tapeLength: 0,
+    },
+  },
+  {
+    name: 'compat-console-shim',
+    program: {
+      ...BASE_PROGRAM,
+      executionProfile: 'compat-general-v1',
+      code: `
+        (() => {
+          console.info('deterministic', 7);
+          return { ok: true };
+        })()
+      `.trim(),
+    },
+    input: DETERMINISM_INPUT,
+    gasLimit: DETERMINISM_GAS_LIMIT,
+    manifest: HOST_V1_MANIFEST,
+    createHost: createDeterminismHost,
+    expected: {
+      resultHash:
+        '20a934991093b3d9bfcb5f3c05871eb1db002d19469c29ea3ae1ff7e4a29cd02',
+      errorCode: null,
+      errorTag: null,
+      gasUsed: 749n,
+      gasRemaining: 49251n,
+      tapeHash:
+        'c481a1396ab5097cc8aa68fd11c1bb6e96d63259dba00b560bf49489fe5b2e3f',
+      tapeLength: 1,
+    },
+  },
+  {
     name: 'json-builtins',
     program: {
       ...BASE_PROGRAM,

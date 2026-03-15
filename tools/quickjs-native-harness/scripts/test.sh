@@ -393,6 +393,7 @@ assert_output "JSON.stringify invalid key" "(() => { const key = '\\ud800'; retu
 assert_output "JSON.stringify unsupported type" "JSON.stringify({ x: undefined })" "ERROR TypeError: JSON.stringify only supports null, booleans, strings, finite numbers, arrays, and plain objects"
 assert_output "JSON.stringify sparse array ignores prototype getters" "(() => { let getterCalls = 0; Object.defineProperty(Array.prototype, 0, { get() { getterCalls += 1; return 1; }, configurable: true }); try { return [JSON.stringify([,]), getterCalls]; } finally { delete Array.prototype[0]; } })()" "RESULT [\"[null]\",0]"
 assert_output "Array.sort disabled" "[3, 1, 2].sort()" "ERROR TypeError: Array.prototype.sort is disabled in deterministic mode"
+assert_output "Array.sort compat-general stable" "(() => { const records = [{ id: 'a', group: 1 }, { id: 'b', group: 1 }, { id: 'c', group: 2 }, { id: 'd', group: 1 }]; records.sort((left, right) => left.group - right.group); return records.map((record) => record.id).join(','); })()" "RESULT \"a,b,d,c\"" --execution-profile compat-general-v1
 assert_output "Date missing" "typeof Date" "RESULT \"undefined\""
 assert_output "Timers missing" "typeof setTimeout" "RESULT \"undefined\""
 assert_output "Promise disabled" "Promise.resolve(1)" "ERROR TypeError: Promise is disabled in deterministic mode"

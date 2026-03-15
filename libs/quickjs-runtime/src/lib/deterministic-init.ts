@@ -66,6 +66,7 @@ export interface DeterministicVm {
 const DETERMINISTIC_FEATURE_REGEXP = 1 << 0;
 const DETERMINISTIC_FEATURE_PROMISE_JOBS = 1 << 1;
 const DETERMINISTIC_FEATURE_CONSOLE_SHIM = 1 << 2;
+const DETERMINISTIC_FEATURE_STABLE_SORT = 1 << 3;
 
 export function initializeDeterministicVm(
   runtime: RuntimeInstance,
@@ -287,6 +288,9 @@ function executionProfileToFeatureFlags(profile?: ExecutionProfile): number {
   }
   if (executionProfileHasCapability(profile, 'consoleShim')) {
     flags |= DETERMINISTIC_FEATURE_CONSOLE_SHIM;
+  }
+  if (executionProfileHasCapability(profile, 'stableSort')) {
+    flags |= DETERMINISTIC_FEATURE_STABLE_SORT;
   }
   return flags;
 }

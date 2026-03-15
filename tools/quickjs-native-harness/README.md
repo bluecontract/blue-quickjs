@@ -27,5 +27,6 @@ Notes:
   global scope excludes `Date`, `eval`, `Function`, `Proxy`, `RegExp`, typed
   arrays, `Promise`/`WeakRef` and reserves a null-prototype `Host.v1`
   placeholder. `compat-general-v1` / `compat-binary-v1` enable Promise jobs,
-  deterministic `queueMicrotask`, and console shim routing via `Host.v1.emit`.
+  deterministic `queueMicrotask`, console shim routing via `Host.v1.emit`, and
+  deterministic stable `Array.prototype.sort`.
 - Build artifacts live under `tools/quickjs-native-harness/dist`.

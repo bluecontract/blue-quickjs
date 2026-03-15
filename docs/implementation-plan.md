@@ -2339,9 +2339,9 @@ baseline strict.
 
 - [x] Enable deterministic console shim in `compat-general-v1` /
       `compat-binary-v1`, routing console methods through `Host.v1.emit`.
-- [ ] Implement deterministic stable `Array.prototype.sort` for compatibility
+- [x] Implement deterministic stable `Array.prototype.sort` for compatibility
       profiles.
-- [ ] Extend parity fixtures for compatibility expansion behaviors (result + gas
+- [x] Extend parity fixtures for compatibility expansion behaviors (result + gas
       + tape where applicable).
 
 **Current state (P18 T-190):**
@@ -2349,8 +2349,10 @@ baseline strict.
 - Console remains disabled in baseline.
 - Compatibility profiles now expose console methods (`log/info/warn/error/debug`)
   and route payloads through `Host.v1.emit` deterministically.
-- Runtime and native harness tests now verify compatibility profile console
-  behavior.
+- Compatibility profiles now expose deterministic stable `Array.prototype.sort`,
+  while baseline keeps sort disabled.
+- Runtime, smoke node/browser, and native harness suites now include parity
+  coverage for console/sort compatibility behavior (including gas+tape fixtures).
 
 ---
 

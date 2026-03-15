@@ -94,7 +94,8 @@ static uint32_t deterministic_feature_flags_for_profile(const char *profile) {
       strcmp(profile, "compat-binary-v1") == 0) {
     return JS_DETERMINISTIC_FEATURE_REGEXP |
            JS_DETERMINISTIC_FEATURE_PROMISE_JOBS |
-           JS_DETERMINISTIC_FEATURE_CONSOLE_SHIM;
+           JS_DETERMINISTIC_FEATURE_CONSOLE_SHIM |
+           JS_DETERMINISTIC_FEATURE_STABLE_SORT;
   }
   return UINT32_MAX;
 }

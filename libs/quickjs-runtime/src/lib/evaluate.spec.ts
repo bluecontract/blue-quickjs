@@ -463,6 +463,53 @@ describe('evaluate', () => {
     });
   });
 
+  it('keeps sort disabled in baseline and enables stable sort in compat-general', async () => {
+    const baseline = await evaluate({
+      program: { ...BASE_PROGRAM, code: '[3, 1, 2].sort()' },
+      input: BASE_INPUT,
+      gasLimit: TEST_GAS_LIMIT,
+      manifest: HOST_V1_MANIFEST,
+      handlers: createHandlers(),
+    });
+
+    expect(baseline.ok).toBe(false);
+    if (baseline.ok) {
+      throw new Error('expected baseline sort failure');
+    }
+    expect(baseline.type).toBe('vm-error');
+    expect(baseline.error.kind).toBe('js-exception');
+    expect(baseline.message).toMatch(/sort is disabled/i);
+
+    const compat = await evaluate({
+      program: {
+        ...BASE_PROGRAM,
+        code: `
+          (() => {
+            const records = [
+              { id: 'a', group: 1 },
+              { id: 'b', group: 1 },
+              { id: 'c', group: 2 },
+              { id: 'd', group: 1 },
+            ];
+            records.sort((left, right) => left.group - right.group);
+            return records.map((record) => record.id).join(',');
+          })()
+        `,
+        executionProfile: 'compat-general-v1',
+      },
+      input: BASE_INPUT,
+      gasLimit: TEST_GAS_LIMIT,
+      manifest: HOST_V1_MANIFEST,
+      handlers: createHandlers(),
+    });
+
+    expect(compat.ok).toBe(true);
+    if (!compat.ok) {
+      throw new Error(compat.message);
+    }
+    expect(compat.value).toBe('a,b,d,c');
+  });
+
   it('returns DV results with gas accounting', async () => {
     const handlers = createHandlers();
     const result = await evaluate({
