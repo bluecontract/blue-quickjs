@@ -47,7 +47,9 @@ async function run(): Promise<void> {
   try {
     const code = window.__CHESS_BUNDLED_CODE__;
     if (typeof code !== 'string' || code.length === 0) {
-      throw new Error('Missing bundled chess code in window.__CHESS_BUNDLED_CODE__');
+      throw new Error(
+        'Missing bundled chess code in window.__CHESS_BUNDLED_CODE__',
+      );
     }
 
     const host = createDeterminismHost();

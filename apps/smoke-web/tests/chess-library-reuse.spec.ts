@@ -32,16 +32,18 @@ test('browser matches node for bundled chess.js e2e6 legality', async ({
   const nodeResult = await runNodeFixture(bundled.code);
 
   await page.addInitScript((code) => {
-    (window as Window & { __CHESS_BUNDLED_CODE__?: string }).__CHESS_BUNDLED_CODE__ =
-      code;
+    (
+      window as Window & { __CHESS_BUNDLED_CODE__?: string }
+    ).__CHESS_BUNDLED_CODE__ = code;
   }, bundled.code);
 
   await page.goto('/chess-library-reuse.html');
   await page.waitForSelector('[data-runstate="done"]', { timeout: 30000 });
 
-  const browserResult = (await page.evaluate(() =>
-    (window as Window & { __CHESS_LIBRARY_REUSE_RESULT__?: ChessReuseResult })
-      .__CHESS_LIBRARY_REUSE_RESULT__,
+  const browserResult = (await page.evaluate(
+    () =>
+      (window as Window & { __CHESS_LIBRARY_REUSE_RESULT__?: ChessReuseResult })
+        .__CHESS_LIBRARY_REUSE_RESULT__,
   )) as ChessReuseResult | undefined;
 
   expect(browserResult).toBeTruthy();

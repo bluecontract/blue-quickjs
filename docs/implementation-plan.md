@@ -2226,6 +2226,14 @@ bridge toward first-class module-pack execution.
 - `libs/quickjs-runtime/src/lib/evaluate.spec.ts` now includes v2 module-pack
   tests for default export, named export, cyclic imports, missing specifier,
   missing export, and hash mismatch.
+- Added module-pack parity fixture suites across smoke node/browser surfaces:
+  - `libs/test-harness/src/lib/module-pack-fixtures.ts`
+  - `apps/smoke-node/src/lib/module-pack-parity.spec.ts`
+  - `apps/smoke-web/module-pack-fixtures.html`
+  - `apps/smoke-web/src/module-pack-fixtures.ts`
+  - `apps/smoke-web/tests/module-pack-fixtures.spec.ts`
+- Remaining P15 parity work: extend the same module-pack fixture matrix to
+  explicit native harness parity assertions (result + gas + tape).
 
 ---
 
