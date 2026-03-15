@@ -17,7 +17,7 @@ describe('smoke-node chess.js reuse', () => {
     const bundled = await bundleDeterministicProgram({
       absWorkingDir: workspaceRoot,
       entryPath: CHESS_LIBRARY_ENTRY_PATH,
-      profile: 'compat-regexp-v1',
+      profile: 'compat-general-v1',
     });
 
     const host = createDeterminismHost();

@@ -2265,8 +2265,9 @@ builder/runtime/harness surfaces.
       deterministic init feature-flag mapping.
 - [x] Update quickjs-native-harness profile parsing/help to accept new profile
       names.
-- [ ] Remove transitional `compat-regexp-v1` usage from fixtures and docs once
-      `compat-general-v1` parity coverage is complete.
+- [x] Remove transitional `compat-regexp-v1` usage from fixtures/docs where
+      compatibility-mode examples are exercised (legacy alias remains supported
+      for backward compatibility).
 
 **Current state (P16 T-170):**
 

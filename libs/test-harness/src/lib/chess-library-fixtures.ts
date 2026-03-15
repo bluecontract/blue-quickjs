@@ -10,7 +10,7 @@ export const CHESS_LIBRARY_PROGRAM_BASE = {
   abiId: 'Host.v1',
   abiVersion: 1,
   abiManifestHash: HOST_V1_HASH,
-  executionProfile: 'compat-regexp-v1' as const,
+  executionProfile: 'compat-general-v1' as const,
 };
 
 export const CHESS_LIBRARY_INPUT = DETERMINISM_INPUT;

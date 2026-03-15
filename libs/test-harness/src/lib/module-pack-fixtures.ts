@@ -30,7 +30,7 @@ export interface ProgramArtifactV2ModulePackFixture {
   abiId: string;
   abiVersion: number;
   abiManifestHash: string;
-  executionProfile: 'baseline-v1' | 'compat-regexp-v1';
+  executionProfile: 'baseline-v1' | 'compat-general-v1';
   sourceKind: 'module-pack';
   source: {
     modulePack: ModulePackV1Fixture;

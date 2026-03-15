@@ -17,7 +17,7 @@ describe('library reuse: chess.js', () => {
     const bundled = await bundleDeterministicProgram({
       absWorkingDir: workspaceRoot,
       entryPath: CHESS_LIBRARY_ENTRY_PATH,
-      profile: 'compat-regexp-v1',
+      profile: 'compat-general-v1',
     });
 
     const run = async () => {

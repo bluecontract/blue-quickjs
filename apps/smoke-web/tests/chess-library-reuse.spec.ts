@@ -26,7 +26,7 @@ test('browser matches node for bundled chess.js e2e6 legality', async ({
   const bundled = await bundleDeterministicProgram({
     absWorkingDir: process.cwd(),
     entryPath: CHESS_LIBRARY_ENTRY_PATH,
-    profile: 'compat-regexp-v1',
+    profile: 'compat-general-v1',
   });
 
   const nodeResult = await runNodeFixture(bundled.code);

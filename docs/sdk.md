@@ -167,7 +167,8 @@ Some environments also provide `engineBuildHash` pinning; if present, the SDK ch
 Optional fields:
 
 - `engineBuildHash` (lowercase hex; sha256 of the wasm bytes)
-- `executionProfile` (`"baseline-v1"` default, or `"compat-regexp-v1"` for explicit regex compatibility mode)
+- `executionProfile` (`"baseline-v1"` default, or `"compat-general-v1"` for
+  compatibility-mode execution; `"compat-regexp-v1"` remains as a legacy alias)
 
 Program artifact limits (validation defaults used by `evaluate()` and `initializeDeterministicVm()`):
 
