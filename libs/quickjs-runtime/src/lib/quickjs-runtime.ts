@@ -133,6 +133,7 @@ export function validateProgramArtifact(
       'executionProfile',
     ],
     'program',
+    ['engineBuildHash', 'executionProfile'],
   );
 
   const code = expectString(program.code, 'program.code', {
@@ -196,9 +197,10 @@ export function validateProgramArtifactV2(
       'source',
     ],
     'program',
+    ['engineBuildHash'],
   );
 
-  const version = expectUint(artifact.version, 2, 2, 'program.version');
+  const version = expectUint(artifact.version, 2, 2, 'program.version') as 2;
   const abiId = expectString(artifact.abiId, 'program.abiId', {
     maxLength: limits.maxAbiIdLength,
   });
@@ -223,7 +225,10 @@ export function validateProgramArtifactV2(
     artifact.executionProfile,
     'program.executionProfile',
   );
-  const sourceKind = expectSourceKind(artifact.sourceKind, 'program.sourceKind');
+  const sourceKind = expectSourceKind(
+    artifact.sourceKind,
+    'program.sourceKind',
+  );
   const source = validateProgramV2Source(
     artifact.source,
     sourceKind,
@@ -259,6 +264,7 @@ export function validateInputEnvelope(
       'currentContractCanonical',
     ],
     'input',
+    ['currentContract', 'currentContractCanonical'],
   );
 
   const event = validateDvField(input.event, dvLimits, 'input.event');
@@ -330,7 +336,21 @@ function enforceExactKeys(
   value: Record<string, unknown>,
   allowed: string[],
   path: string,
+  optional: string[] = [],
 ): void {
+  for (const requiredKey of allowed) {
+    if (optional.includes(requiredKey)) {
+      continue;
+    }
+    if (!(requiredKey in value)) {
+      throw runtimeError(
+        'MISSING_FIELD',
+        `${path} is missing required field "${requiredKey}"`,
+        `${path}.${requiredKey}`,
+      );
+    }
+  }
+
   for (const key of Object.keys(value)) {
     if (!allowed.includes(key)) {
       throw runtimeError(
@@ -492,7 +512,7 @@ function validateModulePackV1(value: unknown, path: string): ModulePackV1 {
     ['entryExport', 'diagnosticsMeta'],
   );
 
-  const version = expectUint(pack.version, 1, 1, `${path}.version`);
+  const version = expectUint(pack.version, 1, 1, `${path}.version`) as 1;
   const entrySpecifier = expectString(
     pack.entrySpecifier,
     `${path}.entrySpecifier`,
@@ -502,7 +522,8 @@ function validateModulePackV1(value: unknown, path: string): ModulePackV1 {
       ? expectString(pack.entryExport, `${path}.entryExport`)
       : undefined;
   const modules = expectArray(pack.modules, `${path}.modules`).map(
-    (moduleValue, index) => validateModulePackModule(moduleValue, `${path}.modules[${index}]`),
+    (moduleValue, index) =>
+      validateModulePackModule(moduleValue, `${path}.modules[${index}]`),
   );
   const graphHash = expectHexString(pack.graphHash, `${path}.graphHash`, {
     exactLength: SHA256_HEX_LENGTH,
@@ -626,10 +647,7 @@ function expectArray(value: unknown, path: string): unknown[] {
   return value;
 }
 
-function expectRecord(
-  value: unknown,
-  path: string,
-): Record<string, unknown> {
+function expectRecord(value: unknown, path: string): Record<string, unknown> {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
     throw runtimeError('INVALID_TYPE', `${path} must be an object`, path);
   }

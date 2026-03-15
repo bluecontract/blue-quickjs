@@ -2071,7 +2071,7 @@ Prove end-to-end third-party library reuse by bundling chess.js and evaluating w
 ### T-140: Lock post-P12 artifact/profile/value-model architecture
 
 **Phase:** P13 – Design reset  
-**Status:** IN PROGRESS  
+**Status:** DONE  
 **Depends on:** T-130
 
 **Goal:**  
@@ -2130,6 +2130,56 @@ chat context or ad-hoc decisions.
   - `embedders`
 - Existing docs that previously implied DV bytes in the current runtime were
   corrected to reflect current DV1 scope and the DV2 migration track.
+
+---
+
+## Phase P14 — Deterministic builder evolution
+
+### T-150: Introduce module-pack builder API and migration package
+
+**Phase:** P14 – Deterministic builder  
+**Status:** IN PROGRESS  
+**Depends on:** T-140
+
+**Goal:**  
+Evolve deterministic-bundler from script-only output into deterministic builder
+capabilities centered on `ModulePack.v1`, while preserving script-mode bridging.
+
+**Detailed tasks:**
+
+- [x] Add `buildDeterministicModulePack(...)` API to deterministic-bundler.
+- [x] Emit `ModulePack.v1` fields (`modules`, `entrySpecifier`, `graphHash`,
+      `builderVersion`, `dependencyIntegrity`) with canonical ordering.
+- [x] Emit canonical source maps (path-clean, stable JSON key ordering).
+- [x] Run compatibility scanning on transformed module output.
+- [x] Add builder fixture coverage for:
+  - workspace TS graph,
+  - npm ESM package resolution,
+  - npm CJS package resolution.
+- [x] Add transitional migration package `@blue-quickjs/deterministic-builder`
+      that re-exports deterministic builder APIs.
+- [ ] Emit full compatibility report artifact schema (beyond scan diagnostics).
+- [ ] Emit `ProgramArtifact.v2` build artifact directly from builder API.
+- [ ] Add dedicated graph-hash golden fixtures to lock serialization format.
+
+**Current state (P14 T-150):**
+
+- `libs/deterministic-bundler/src/lib/deterministic-bundler.ts` now exports
+  `buildDeterministicModulePack(...)` and `ModulePack.v1`-aligned types.
+- Builder output includes:
+  - deterministic module ordering by canonical specifier,
+  - canonical graph hashing via stable JSON serialization,
+  - lockfile-derived dependency integrity hash,
+  - optional script artifact emission for transitional workflows.
+- Source maps are sanitized to remove absolute host paths before serialization.
+- `libs/deterministic-bundler/src/lib/deterministic-bundler.spec.ts` covers:
+  - deterministic repeated module-pack builds,
+  - local npm-style ESM package import,
+  - local npm-style CJS package conversion/import.
+- New package `libs/deterministic-builder` provides migration-friendly re-export
+  surface and independent test coverage.
+- `libs/quickjs-runtime/src/lib/quickjs-runtime.ts` now includes
+  `ProgramArtifactV2` and `ModulePackV1` validation scaffolding ahead of P15.
 
 ---
 

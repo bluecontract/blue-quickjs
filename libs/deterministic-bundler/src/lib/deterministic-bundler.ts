@@ -5,9 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 
-export type DeterministicExecutionProfile =
-  | 'baseline-v1'
-  | 'compat-regexp-v1';
+export type DeterministicExecutionProfile = 'baseline-v1' | 'compat-regexp-v1';
 
 export interface BundleDeterministicProgramOptions {
   entryPath: string;
@@ -160,7 +158,9 @@ export async function bundleDeterministicProgram(
     charset: 'utf8',
   });
 
-  const jsOutput = result.outputFiles?.find((file) => file.path.endsWith('.js'));
+  const jsOutput = result.outputFiles?.find((file) =>
+    file.path.endsWith('.js'),
+  );
   if (!jsOutput) {
     throw new Error('Bundler did not produce a JavaScript output');
   }
@@ -360,8 +360,13 @@ function scanNode(
     return;
   }
 
-  if (node.type === 'ImportDeclaration' || node.type === 'ExportAllDeclaration') {
-    const source = asString((node as { source?: { value?: unknown } }).source?.value);
+  if (
+    node.type === 'ImportDeclaration' ||
+    node.type === 'ExportAllDeclaration'
+  ) {
+    const source = asString(
+      (node as { source?: { value?: unknown } }).source?.value,
+    );
     if (source && isNodeBuiltinSpecifier(source)) {
       addDiagnostic(
         diagnostics,
@@ -486,9 +491,7 @@ function scanNode(
 
 function safeParseModule(
   source: string,
-):
-  | { ok: true; ast: AstNode }
-  | { ok: false; message: string } {
+): { ok: true; ast: AstNode } | { ok: false; message: string } {
   try {
     const ast = parse(source, {
       ecmaVersion: 'latest',
@@ -639,8 +642,9 @@ function resolveEntrySpecifier(
         absoluteEntry: absoluteEntry ? normalizePath(absoluteEntry) : null,
       };
     })
-    .find((candidate) => candidate.absoluteEntry === normalizedEntry)
-    ?.absoluteOutput;
+    .find(
+      (candidate) => candidate.absoluteEntry === normalizedEntry,
+    )?.absoluteOutput;
 
   if (!entryOutputPath) {
     throw new Error(
@@ -661,7 +665,9 @@ function toModuleSpecifier(
   const absoluteOutputPath = path.isAbsolute(outputPath)
     ? outputPath
     : path.resolve(options.absWorkingDir, outputPath);
-  const relative = normalizePath(path.relative(options.outputDir, absoluteOutputPath));
+  const relative = normalizePath(
+    path.relative(options.outputDir, absoluteOutputPath),
+  );
   return relative.startsWith('.') ? relative : `./${relative}`;
 }
 
@@ -682,13 +688,18 @@ function sanitizeSourceMap(
       return normalized;
     });
   }
-  if (typeof parsed.sourceRoot === 'string' && path.isAbsolute(parsed.sourceRoot)) {
+  if (
+    typeof parsed.sourceRoot === 'string' &&
+    path.isAbsolute(parsed.sourceRoot)
+  ) {
     parsed.sourceRoot = normalizePath(
       path.relative(options.absWorkingDir, parsed.sourceRoot),
     );
   }
   if (typeof parsed.file === 'string' && path.isAbsolute(parsed.file)) {
-    parsed.file = normalizePath(path.relative(options.absWorkingDir, parsed.file));
+    parsed.file = normalizePath(
+      path.relative(options.absWorkingDir, parsed.file),
+    );
   }
   return stableStringify(parsed);
 }
@@ -709,11 +720,14 @@ function resolveOriginMeta(
     .map((inputPath) => normalizePath(inputPath))
     .sort();
   const selectedInputPath =
-    normalizedInputs.find((inputPath) => inputPath.includes('/node_modules/')) ??
-    normalizedInputs[0];
+    normalizedInputs.find((inputPath) =>
+      inputPath.includes('/node_modules/'),
+    ) ?? normalizedInputs[0];
 
   const originMeta: ModulePackOriginMeta = {
-    originalPath: normalizePath(path.relative(options.absWorkingDir, selectedInputPath)),
+    originalPath: normalizePath(
+      path.relative(options.absWorkingDir, selectedInputPath),
+    ),
   };
 
   const packageInfo = resolvePackageInfoFromInputPath(selectedInputPath);

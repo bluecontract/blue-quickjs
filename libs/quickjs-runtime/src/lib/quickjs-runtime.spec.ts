@@ -95,8 +95,8 @@ describe('validateProgramArtifact', () => {
     expect(() =>
       validateProgramArtifact({
         ...baseProgram,
-        executionProfile: 'compat-unknown' as unknown as
-          ProgramArtifact['executionProfile'],
+        executionProfile:
+          'compat-unknown' as unknown as ProgramArtifact['executionProfile'],
       }),
     ).toThrow(RuntimeValidationError);
   });

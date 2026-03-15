@@ -236,9 +236,7 @@ function normalizeGasLimit(value: bigint | number): bigint {
   return value;
 }
 
-function executionProfileToFeatureFlags(
-  profile?: ExecutionProfile,
-): number {
+function executionProfileToFeatureFlags(profile?: ExecutionProfile): number {
   if (!profile || profile === 'baseline-v1') {
     return 0;
   }

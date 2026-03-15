@@ -8,6 +8,15 @@ This document defines the target behavior for the deterministic build pipeline.
 surface is **deterministic builder** because it emits first-class reusable
 artifacts (`ModulePack.v1`, `ProgramArtifact.v2`), not just one script blob.
 
+### Current implementation status (P14)
+
+- `@blue-quickjs/deterministic-bundler` now exports
+  `buildDeterministicModulePack(...)` for `ModulePack.v1` emission.
+- `@blue-quickjs/deterministic-builder` is introduced as a migration facade that
+  re-exports the deterministic builder APIs.
+- `bundleDeterministicProgram(...)` remains available for transitional
+  script-mode execution.
+
 ## Goals
 
 - Deterministic JS/TS authoring pipeline for real libraries.

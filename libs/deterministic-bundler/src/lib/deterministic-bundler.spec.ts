@@ -258,7 +258,11 @@ function createFixtureDir(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'det-bundler-fixture-'));
 }
 
-function writeFixture(dir: string, relativePath: string, contents: string): void {
+function writeFixture(
+  dir: string,
+  relativePath: string,
+  contents: string,
+): void {
   const filePath = path.join(dir, relativePath);
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   fs.writeFileSync(filePath, contents, 'utf8');
