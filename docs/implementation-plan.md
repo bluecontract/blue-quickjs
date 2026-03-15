@@ -2188,6 +2188,41 @@ capabilities centered on `ModulePack.v1`, while preserving script-mode bridging.
 
 ---
 
+## Phase P15 — ProgramArtifact.v2 runtime execution path
+
+### T-160: Wire ProgramArtifact.v2 into evaluate pipeline
+
+**Phase:** P15 – Runtime module-pack execution  
+**Status:** IN PROGRESS  
+**Depends on:** T-150
+
+**Goal:**  
+Enable `ProgramArtifact.v2` execution entry in the runtime pipeline as the
+bridge toward first-class module-pack execution.
+
+**Detailed tasks:**
+
+- [x] Accept `ProgramArtifact.v2` at `evaluate(...)` API boundary.
+- [x] Execute `sourceKind: "script"` through existing deterministic VM path.
+- [x] Add test coverage for ProgramArtifact.v2 script execution.
+- [x] Add explicit deterministic failure for `sourceKind: "module-pack"` until
+      native in-memory module loader lands.
+- [ ] Implement in-memory deterministic module loader for `ModulePack.v1`.
+- [ ] Execute module entry and selected export in runtime (not script bridge).
+- [ ] Add module-pack parity fixtures (node/browser/native result+gas+tape).
+
+**Current state (P15 T-160):**
+
+- `libs/quickjs-runtime/src/lib/evaluate.ts` now normalizes v1/v2 program
+  artifacts and executes v2 script sources directly.
+- ProgramArtifact.v2 module-pack path currently rejects with
+  `MODULE_PACK_UNSUPPORTED`, making the remaining P15 runtime loader work
+  explicit and testable.
+- `libs/quickjs-runtime/src/lib/evaluate.spec.ts` now includes v2 script success
+  and module-pack rejection tests.
+
+---
+
 ## Appendix A — Minimal required ABI surface (v1)
 
 The initial manifest should define at least:

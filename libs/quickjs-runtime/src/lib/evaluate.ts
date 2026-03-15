@@ -14,8 +14,10 @@ import {
   type InputEnvelope,
   type InputValidationOptions,
   type ProgramArtifact,
+  type ProgramArtifactV2,
   validateInputEnvelope,
   validateProgramArtifact,
+  validateProgramArtifactV2,
 } from './quickjs-runtime.js';
 import {
   type RuntimeArtifactSelection,
@@ -32,7 +34,7 @@ import { parseHexToBytes } from './hex-utils.js';
 
 export interface EvaluateOptions
   extends RuntimeArtifactSelection, HostDispatcherOptions {
-  program: ProgramArtifact;
+  program: ProgramArtifact | ProgramArtifactV2;
   input: InputEnvelope;
   gasLimit: bigint | number;
   manifest: AbiManifest;
@@ -92,7 +94,7 @@ const HOST_TAPE_MAX_CAPACITY = 1024;
 export async function evaluate(
   options: EvaluateOptions,
 ): Promise<EvaluateResult> {
-  const program = validateProgramArtifact(options.program);
+  const program = normalizeProgramForExecution(options.program);
   const input = validateInputEnvelope(options.input, options.inputValidation);
 
   const runtime = await createRuntime({
@@ -103,15 +105,15 @@ export async function evaluate(
     metadata: options.metadata,
     wasmBinary: options.wasmBinary,
     dvLimits: options.dvLimits,
-    expectedAbiId: program.abiId,
-    expectedAbiVersion: program.abiVersion,
+    expectedAbiId: program.legacyArtifact.abiId,
+    expectedAbiVersion: program.legacyArtifact.abiVersion,
   });
 
-  assertEngineBuildHash(program, runtime);
+  assertEngineBuildHash(program.legacyArtifact, runtime);
 
   const vm = initializeDeterministicVm(
     runtime,
-    program,
+    program.legacyArtifact,
     input,
     options.gasLimit,
   );
@@ -134,7 +136,7 @@ export async function evaluate(
   }
 
   try {
-    const raw = vm.eval(program.code);
+    const raw = vm.eval(program.legacyArtifact.code);
     const parsed = parseEvalOutput(raw);
     const tape = options.tape ? parseTape(vm.readTape()) : undefined;
     const trace = options.gasTrace
@@ -516,7 +518,7 @@ function parseUint64(text: string, label: string): bigint {
 }
 
 function assertEngineBuildHash(
-  program: ProgramArtifact,
+  program: { engineBuildHash?: string },
   runtime: RuntimeInstance,
 ): void {
   if (!program.engineBuildHash) {
@@ -539,6 +541,46 @@ function assertEngineBuildHash(
       `engineBuildHash mismatch: program=${program.engineBuildHash} runtime=${runtimeHash}`,
     );
   }
+}
+
+function normalizeProgramForExecution(program: unknown): {
+  legacyArtifact: ProgramArtifact;
+} {
+  if (isProgramArtifactV2(program)) {
+    const validated = validateProgramArtifactV2(program);
+    if (validated.sourceKind !== 'script') {
+      throw new Error(
+        'MODULE_PACK_UNSUPPORTED: module-pack execution path is not enabled in this runtime build',
+      );
+    }
+    if (!('code' in validated.source)) {
+      throw new Error('INVALID_PROGRAM: script source is missing code payload');
+    }
+
+    return {
+      legacyArtifact: {
+        code: validated.source.code,
+        abiId: validated.abiId,
+        abiVersion: validated.abiVersion,
+        abiManifestHash: validated.abiManifestHash,
+        ...(validated.engineBuildHash
+          ? { engineBuildHash: validated.engineBuildHash }
+          : {}),
+        executionProfile: validated.executionProfile,
+      },
+    };
+  }
+
+  return {
+    legacyArtifact: validateProgramArtifact(program),
+  };
+}
+
+function isProgramArtifactV2(value: unknown): value is ProgramArtifactV2 {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    return false;
+  }
+  return (value as { version?: unknown }).version === 2;
 }
 
 export type {

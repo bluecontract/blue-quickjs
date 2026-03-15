@@ -2,7 +2,11 @@ import { HOST_V1_HASH, HOST_V1_MANIFEST } from '@blue-quickjs/abi-manifest';
 import { vi } from 'vitest';
 import { evaluate } from './evaluate.js';
 import type { HostDispatcherHandlers } from './host-dispatcher.js';
-import type { InputEnvelope, ProgramArtifact } from './quickjs-runtime.js';
+import type {
+  InputEnvelope,
+  ProgramArtifact,
+  ProgramArtifactV2,
+} from './quickjs-runtime.js';
 
 const TEST_GAS_LIMIT = 50_000n;
 
@@ -11,6 +15,18 @@ const BASE_PROGRAM: ProgramArtifact = {
   abiId: 'Host.v1',
   abiVersion: 1,
   abiManifestHash: HOST_V1_HASH,
+};
+
+const BASE_PROGRAM_V2_SCRIPT: ProgramArtifactV2 = {
+  version: 2,
+  abiId: 'Host.v1',
+  abiVersion: 1,
+  abiManifestHash: HOST_V1_HASH,
+  executionProfile: 'baseline-v1',
+  sourceKind: 'script',
+  source: {
+    code: 'document("path/to/doc")',
+  },
 };
 
 const BASE_INPUT: InputEnvelope = {
@@ -36,6 +52,59 @@ describe('evaluate', () => {
       throw new Error(result.message);
     }
     expect(result.value).toBe(5);
+  });
+
+  it('evaluates ProgramArtifact.v2 script source', async () => {
+    const result = await evaluate({
+      program: {
+        ...BASE_PROGRAM_V2_SCRIPT,
+        source: {
+          code: 'const n = 10; n + 4;',
+        },
+      },
+      input: BASE_INPUT,
+      gasLimit: TEST_GAS_LIMIT,
+      manifest: HOST_V1_MANIFEST,
+      handlers: createHandlers(),
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error(result.message);
+    }
+    expect(result.value).toBe(14);
+  });
+
+  it('rejects ProgramArtifact.v2 module-pack execution before P15 runtime loader lands', async () => {
+    await expect(
+      evaluate({
+        program: {
+          ...BASE_PROGRAM_V2_SCRIPT,
+          sourceKind: 'module-pack',
+          source: {
+            modulePack: {
+              version: 1,
+              entrySpecifier: './entry.js',
+              modules: [
+                {
+                  specifier: './entry.js',
+                  source: 'export default 1;\n',
+                },
+              ],
+              graphHash:
+                'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+              builderVersion: 'deterministic-builder-v1',
+              dependencyIntegrity:
+                'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+            },
+          },
+        },
+        input: BASE_INPUT,
+        gasLimit: TEST_GAS_LIMIT,
+        manifest: HOST_V1_MANIFEST,
+        handlers: createHandlers(),
+      }),
+    ).rejects.toThrow(/MODULE_PACK_UNSUPPORTED/);
   });
 
   it('classifies top-level return as execution surface mismatch', async () => {

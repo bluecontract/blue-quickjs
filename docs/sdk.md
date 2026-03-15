@@ -186,8 +186,16 @@ The hash pinning rules are described in:
 
 ### ProgramArtifact.v2 roadmap
 
-The current SDK surface still accepts single-source script artifacts. The
-versioned next artifact model is now specified in:
+The runtime now accepts both:
+
+- legacy single-source script artifacts (`ProgramArtifact` v1), and
+- `ProgramArtifact.v2` with `sourceKind: "script"`.
+
+`ProgramArtifact.v2` with `sourceKind: "module-pack"` is intentionally rejected
+for now (`MODULE_PACK_UNSUPPORTED`) until the native in-memory module loader
+lands in P15 runtime work.
+
+The versioned artifact model is specified in:
 
 - [Program artifact v2](./program-artifact-v2.md)
 - [Module pack v1](./module-pack.md)
