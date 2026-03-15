@@ -1,5 +1,5 @@
-import { encodeDv, decodeDv } from '@blue-quickjs/dv';
-import { HOST_V1_MANIFEST } from '@blue-quickjs/abi-manifest';
+import { decodeDv, decodeDv2, encodeDv, encodeDv2 } from '@blue-quickjs/dv';
+import { HOST_V1_MANIFEST, HOST_V2_MANIFEST } from '@blue-quickjs/abi-manifest';
 import {
   type DocumentHostHandlers,
   type EmitHostHandler,
@@ -10,9 +10,10 @@ import {
   createHostDispatcher,
 } from './host-dispatcher.js';
 
-const DOC_GET_ID = getFnId('document.get');
-const DOC_GET_CANONICAL_ID = getFnId('document.getCanonical');
-const EMIT_ID = getFnId('emit');
+const DOC_GET_ID = getFnId(HOST_V1_MANIFEST, 'document.get');
+const DOC_GET_CANONICAL_ID = getFnId(HOST_V1_MANIFEST, 'document.getCanonical');
+const EMIT_ID = getFnId(HOST_V1_MANIFEST, 'emit');
+const DOC_GET_ID_V2 = getFnId(HOST_V2_MANIFEST, 'document.get');
 const UINT32_MAX = 0xffffffff;
 
 describe('host dispatcher', () => {
@@ -189,6 +190,35 @@ describe('host dispatcher', () => {
     const written = hostCall(DOC_GET_ID, 0, request.length, 64, 128);
     expect(written).toBeGreaterThan(0);
   });
+
+  it('supports Host.v2 byte-string payloads via DV2', () => {
+    const handlers = createHandlers({
+      get: vi.fn((path: string) => {
+        if (path !== 'bytes/path') {
+          return {
+            err: { code: 'NOT_FOUND', tag: 'host/not_found' },
+            units: 1,
+          };
+        }
+        return { ok: Uint8Array.from([0xde, 0xad, 0xbe, 0xef]), units: 2 };
+      }),
+    });
+    const dispatcher = createHostDispatcher(HOST_V2_MANIFEST, handlers, {
+      expectedAbiId: 'Host.v2',
+      expectedAbiVersion: 2,
+    });
+
+    const request = encodeDv2(['bytes/path']);
+    const result = dispatcher.dispatch(DOC_GET_ID_V2, request);
+    expect(result.kind).toBe('response');
+
+    const envelope = decodeDv2(
+      (result as Extract<typeof result, { kind: 'response' }>).envelope,
+    ) as { ok: Uint8Array; units: number };
+    expect(envelope.units).toBe(2);
+    expect(envelope.ok).toBeInstanceOf(Uint8Array);
+    expect(Array.from(envelope.ok)).toEqual([0xde, 0xad, 0xbe, 0xef]);
+  });
 });
 
 function expectResponse(result: HostDispatchResult): {
@@ -237,8 +267,11 @@ function createHandlers(
   };
 }
 
-function getFnId(path: string): number {
-  const fn = HOST_V1_MANIFEST.functions.find(
+function getFnId(
+  manifest: { functions: Array<{ fn_id: number; js_path: string[] }> },
+  path: string,
+): number {
+  const fn = manifest.functions.find(
     (entry) => entry.js_path.join('.') === path,
   );
   if (!fn) {

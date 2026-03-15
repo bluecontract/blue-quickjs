@@ -14,6 +14,9 @@ fi
 HOST_MANIFEST_HEX="$(tr -d '\r\n' < "${REPO_ROOT}/libs/test-harness/fixtures/abi-manifest/host-v1.bytes.hex")"
 HOST_MANIFEST_HASH="$(tr -d '\r\n' < "${REPO_ROOT}/libs/test-harness/fixtures/abi-manifest/host-v1.hash")"
 COMMON_ARGS=(--abi-manifest-hex "${HOST_MANIFEST_HEX}" --abi-manifest-hash "${HOST_MANIFEST_HASH}")
+HOST_V2_MANIFEST_HEX="$(tr -d '\r\n' < "${REPO_ROOT}/libs/test-harness/fixtures/abi-manifest/host-v2.bytes.hex")"
+HOST_V2_MANIFEST_HASH="$(tr -d '\r\n' < "${REPO_ROOT}/libs/test-harness/fixtures/abi-manifest/host-v2.hash")"
+COMMON_ARGS_V2=(--abi-manifest-hex "${HOST_V2_MANIFEST_HEX}" --abi-manifest-hash "${HOST_V2_MANIFEST_HASH}")
 BAD_MANIFEST_HASH="0000000000000000000000000000000000000000000000000000000000000000"
 SHA_EMPTY="e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 SHA_ABC="ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
@@ -55,6 +58,23 @@ assert_host_call() {
 
   if [[ "${output}" != "${expected}" ]]; then
     echo "Harness host_call mismatch for '${name}'" >&2
+    echo " expected: ${expected}" >&2
+    echo "   actual: ${output}" >&2
+    exit 1
+  fi
+}
+
+assert_output_v2() {
+  local name="$1"
+  local code="$2"
+  local expected="$3"
+  shift 3
+
+  local output
+  output="$("${BIN}" "${COMMON_ARGS_V2[@]}" "$@" --eval "${code}" || true)"
+
+  if [[ "${output}" != "${expected}" ]]; then
+    echo "Harness output mismatch for '${name}'" >&2
     echo " expected: ${expected}" >&2
     echo "   actual: ${output}" >&2
     exit 1
@@ -410,6 +430,7 @@ assert_output "ergonomic globals" "${ergonomic_globals_js}" "RESULT {\"document\
 assert_output "Host.v1 document.get ok" "Host.v1.document.get('foo')" "RESULT \"foo\""
 assert_output "Host.v1 document.getCanonical ok" "Host.v1.document.getCanonical('bar')" "RESULT \"bar\""
 assert_output "Host.v1 emit" "Host.v1.emit({ a: 1 })" "RESULT null"
+assert_output_v2 "Host.v2 bytes roundtrip" "(() => { const payload = Host.v2.document.get('bytes/payload'); Host.v2.emit(payload); return [payload.byteLength, payload[0], payload[payload.byteLength - 1]]; })()" "RESULT [4,222,239]" --execution-profile compat-binary-v1
 assert_output "Host.v1 document missing" "Host.v1.document.get('missing')" "ERROR HostError: host/not_found"
 assert_output "Host.v1 document arg type" "Host.v1.document.get(123)" "ERROR TypeError: Host.v1.document.get argument 1 must be a string"
 assert_output "Host.v1 document arg utf8 limit" "Host.v1.document.get('x'.repeat(2050))" "ERROR TypeError: Host.v1.document.get argument 1 exceeds utf8 limit (2050 > 2048)"

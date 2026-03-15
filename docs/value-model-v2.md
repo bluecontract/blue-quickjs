@@ -42,6 +42,10 @@ ordering, deterministic size/depth limits).
   on ArrayBuffer/DataView/typed arrays.
 - Non-byte typed arrays are runtime values, but boundary canonicalization must
   still be explicit and deterministic.
+- Current implementation wires this mapping for Host.v2 boundaries in:
+  - quickjs-runtime host dispatcher,
+  - QuickJS host-call wrappers (`JS_EncodeDV2` / `JS_DecodeDV2`),
+  - native harness manifest stubs and parity scripts.
 
 ## ABI versioning policy
 

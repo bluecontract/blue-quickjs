@@ -14,6 +14,12 @@ import {
   HOST_V1_HASH,
   HOST_V1_MANIFEST,
 } from './host-v1-manifest.js';
+import {
+  HOST_V2_BYTES,
+  HOST_V2_BYTES_HEX,
+  HOST_V2_HASH,
+  HOST_V2_MANIFEST,
+} from './host-v2-manifest.js';
 
 describe('abi-manifest', () => {
   it('produces canonical bytes and hash for the Host.v1 manifest', () => {
@@ -22,6 +28,14 @@ describe('abi-manifest', () => {
     expect(new Uint8Array(bytes)).toEqual(HOST_V1_BYTES);
     expect(bytesToHex(bytes)).toEqual(HOST_V1_BYTES_HEX);
     expect(hash).toEqual(HOST_V1_HASH);
+  });
+
+  it('produces canonical bytes and hash for the Host.v2 manifest', () => {
+    const { bytes, hash, manifest } = hashAbiManifest(HOST_V2_MANIFEST);
+    expect(manifest).toEqual(validateAbiManifest(HOST_V2_MANIFEST));
+    expect(new Uint8Array(bytes)).toEqual(HOST_V2_BYTES);
+    expect(bytesToHex(bytes)).toEqual(HOST_V2_BYTES_HEX);
+    expect(hash).toEqual(HOST_V2_HASH);
   });
 
   it('hashes manifests deterministically regardless of key insertion order', () => {

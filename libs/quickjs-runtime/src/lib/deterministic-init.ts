@@ -67,6 +67,7 @@ const DETERMINISTIC_FEATURE_REGEXP = 1 << 0;
 const DETERMINISTIC_FEATURE_PROMISE_JOBS = 1 << 1;
 const DETERMINISTIC_FEATURE_CONSOLE_SHIM = 1 << 2;
 const DETERMINISTIC_FEATURE_STABLE_SORT = 1 << 3;
+const DETERMINISTIC_FEATURE_TYPED_ARRAYS = 1 << 4;
 
 export function initializeDeterministicVm(
   runtime: RuntimeInstance,
@@ -291,6 +292,9 @@ function executionProfileToFeatureFlags(profile?: ExecutionProfile): number {
   }
   if (executionProfileHasCapability(profile, 'stableSort')) {
     flags |= DETERMINISTIC_FEATURE_STABLE_SORT;
+  }
+  if (executionProfileHasCapability(profile, 'typedArrays')) {
+    flags |= DETERMINISTIC_FEATURE_TYPED_ARRAYS;
   }
   return flags;
 }

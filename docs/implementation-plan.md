@@ -2361,7 +2361,7 @@ baseline strict.
 ### T-200: Introduce DV2 bytes-capable codec foundation
 
 **Phase:** P19 – DV2 foundation  
-**Status:** IN PROGRESS  
+**Status:** DONE  
 **Depends on:** T-190
 
 **Goal:**  
@@ -2374,8 +2374,8 @@ DV1 behavior in place.
       `encodeDv2`, `decodeDv2`, `validateDv2`, `isDv2`.
 - [x] Preserve DV1 behavior (`encodeDv` / `decodeDv`) so byte strings remain
       rejected outside DV2 mode.
-- [ ] Wire DV2 bytes to Host.v2/runtime boundaries under `compat-binary-v1`.
-- [ ] Add Host.v2 bytes roundtrip fixtures and parity coverage.
+- [x] Wire DV2 bytes to Host.v2/runtime boundaries under `compat-binary-v1`.
+- [x] Add Host.v2 bytes roundtrip fixtures and parity coverage.
 
 **Current state (P19 T-200):**
 
@@ -2385,8 +2385,17 @@ DV1 behavior in place.
   `JS_EncodeDV2(...)` / `JS_DecodeDV2(...)` with byte-string support while
   preserving DV1 behavior in `JS_EncodeDV(...)` / `JS_DecodeDV(...)`.
 - DV1 paths remain strict and still reject CBOR major type 2 values.
-- Runtime DvLimit normalization now carries `maxByteStringBytes` for upcoming
-  Host.v2/DV2 integration.
+- Runtime host boundaries now switch codec behavior by ABI version:
+  Host.v1 uses DV1, Host.v2 uses DV2 byte-string envelopes.
+- `compat-binary-v1` now enables typed-array intrinsics in deterministic init;
+  baseline/compat-general behavior is unchanged.
+- Host manifest fixtures now include Host.v2 (`abi_id=Host.v2`, `abi_version=2`)
+  with canonical bytes/hash fixtures and parity checks.
+- Host.v2 bytes roundtrip parity coverage is now present across:
+  - quickjs-runtime host dispatcher + evaluate tests,
+  - shared determinism fixture matrix (`compat-binary-host-v2-bytes-roundtrip`),
+  - smoke-node and smoke-web parity suites,
+  - quickjs-native-harness script assertions.
 
 ---
 

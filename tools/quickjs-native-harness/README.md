@@ -28,5 +28,7 @@ Notes:
   arrays, `Promise`/`WeakRef` and reserves a null-prototype `Host.v1`
   placeholder. `compat-general-v1` / `compat-binary-v1` enable Promise jobs,
   deterministic `queueMicrotask`, console shim routing via `Host.v1.emit`, and
-  deterministic stable `Array.prototype.sort`.
+  deterministic stable `Array.prototype.sort`. `compat-binary-v1` additionally
+  enables typed-array intrinsics so Host.v2/DV2 byte-string boundaries roundtrip
+  via `Uint8Array`.
 - Build artifacts live under `tools/quickjs-native-harness/dist`.

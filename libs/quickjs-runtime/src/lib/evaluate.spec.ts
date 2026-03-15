@@ -1,4 +1,9 @@
-import { HOST_V1_HASH, HOST_V1_MANIFEST } from '@blue-quickjs/abi-manifest';
+import {
+  HOST_V1_HASH,
+  HOST_V1_MANIFEST,
+  HOST_V2_HASH,
+  HOST_V2_MANIFEST,
+} from '@blue-quickjs/abi-manifest';
 import { createHash } from 'node:crypto';
 import { vi } from 'vitest';
 import { evaluate } from './evaluate.js';
@@ -28,6 +33,14 @@ const BASE_PROGRAM_V2_SCRIPT: ProgramArtifactV2 = {
   source: {
     code: 'document("path/to/doc")',
   },
+};
+
+const BASE_PROGRAM_V2_BINARY: ProgramArtifact = {
+  code: 'Host.v2.document.get("bytes/payload").byteLength',
+  abiId: 'Host.v2',
+  abiVersion: 2,
+  abiManifestHash: HOST_V2_HASH,
+  executionProfile: 'compat-binary-v1',
 };
 
 const BASE_INPUT: InputEnvelope = {
@@ -362,10 +375,10 @@ describe('evaluate', () => {
       handlers: createHandlers(),
     });
 
-    expect(compat.ok).toBe(true);
     if (!compat.ok) {
       throw new Error(compat.message);
     }
+    expect(compat.ok).toBe(true);
     expect(compat.value).toBe(true);
   });
 
@@ -398,10 +411,10 @@ describe('evaluate', () => {
       handlers: createHandlers(),
     });
 
-    expect(compat.ok).toBe(true);
     if (!compat.ok) {
       throw new Error(compat.message);
     }
+    expect(compat.ok).toBe(true);
     expect(compat.value).toBe(42);
   });
 
@@ -425,10 +438,12 @@ describe('evaluate', () => {
       handlers: createHandlers(),
     });
 
-    expect(compat.ok).toBe(true);
     if (!compat.ok) {
-      throw new Error(compat.message);
+      throw new Error(
+        `Host.v2 roundtrip failed: ${compat.type} ${compat.message}`,
+      );
     }
+    expect(compat.ok).toBe(true);
     expect(compat.value).toBe('first,second');
   });
 
@@ -461,6 +476,53 @@ describe('evaluate', () => {
       level: 'log',
       args: ['hello', 7],
     });
+  });
+
+  it('supports Host.v2 DV2 byte roundtrips in compat-binary profile', async () => {
+    const handlers = createHandlers({
+      document: {
+        get: vi.fn((path: string) => {
+          if (path !== 'bytes/payload') {
+            return {
+              err: { code: 'NOT_FOUND', tag: 'host/not_found' },
+              units: 1,
+            };
+          }
+          return { ok: Uint8Array.from([222, 173, 190, 239]), units: 2 };
+        }),
+      },
+      emit: vi.fn(() => ({ ok: null, units: 1 })),
+    });
+
+    const compat = await evaluate({
+      program: {
+        ...BASE_PROGRAM_V2_BINARY,
+        code: `
+          (() => {
+            const payload = Host.v2.document.get('bytes/payload');
+            Host.v2.emit(payload);
+            return 1;
+          })()
+        `,
+      },
+      input: BASE_INPUT,
+      gasLimit: TEST_GAS_LIMIT,
+      manifest: HOST_V2_MANIFEST,
+      handlers,
+    });
+
+    if (!compat.ok) {
+      throw new Error(
+        `Host.v2 roundtrip failed: ${compat.type} ${compat.message}`,
+      );
+    }
+    expect(compat.ok).toBe(true);
+    expect(compat.value).toBe(1);
+    expect(handlers.document.get).toHaveBeenCalledWith('bytes/payload');
+    expect(handlers.emit).toHaveBeenCalledTimes(1);
+    const [emitArg] = handlers.emit.mock.calls[0] ?? [];
+    expect(emitArg).toBeInstanceOf(Uint8Array);
+    expect(Array.from(emitArg as Uint8Array)).toEqual([222, 173, 190, 239]);
   });
 
   it('keeps sort disabled in baseline and enables stable sort in compat-general', async () => {

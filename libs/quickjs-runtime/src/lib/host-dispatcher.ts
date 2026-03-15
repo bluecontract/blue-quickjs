@@ -5,13 +5,16 @@ import {
   validateAbiManifest,
 } from '@blue-quickjs/abi-manifest';
 import {
-  type DV,
+  type DV2,
   DV_LIMIT_DEFAULTS,
   type DvLimits,
   DvError,
   decodeDv,
+  decodeDv2,
   encodeDv,
+  encodeDv2,
   validateDv,
+  validateDv2,
 } from '@blue-quickjs/dv';
 
 const UINT32_MAX = 0xffffffff;
@@ -20,20 +23,20 @@ const UTF8 = new TextEncoder();
 export interface HostCallError {
   code: string;
   tag: string;
-  details?: DV;
+  details?: DV2;
 }
 
-export type HostCallResult<T extends DV | null = DV> =
+export type HostCallResult<T extends DV2 | null = DV2> =
   | { ok: T; units: number }
   | { err: HostCallError; units: number };
 
 export interface DocumentHostHandlers {
-  get(path: string): HostCallResult<DV>;
-  getCanonical(path: string): HostCallResult<DV>;
+  get(path: string): HostCallResult<DV2>;
+  getCanonical(path: string): HostCallResult<DV2>;
 }
 
 export interface EmitHostHandler {
-  emit(value: DV): HostCallResult<null>;
+  emit(value: DV2): HostCallResult<null>;
 }
 
 export interface HostDispatcherHandlers {
@@ -118,6 +121,7 @@ export function createHostDispatcher(
   }
 
   const dvLimits = normalizeDvLimits(options?.dvLimits);
+  const dvCodec = selectDvCodec(canonical);
   const bindings = buildBindings(canonical.functions, handlers);
 
   return {
@@ -138,6 +142,7 @@ export function createHostDispatcher(
           return encodeEnvelope(
             binding.fn,
             binding.limitExceededEnvelope,
+            dvCodec,
             dvLimits,
           );
         }
@@ -152,9 +157,9 @@ export function createHostDispatcher(
         ),
       };
 
-      let args: DV;
+      let args: DV2;
       try {
-        args = decodeDv(request, { limits: decodeLimits });
+        args = decodeRequest(request, decodeLimits, dvCodec);
       } catch (err) {
         return fatal(
           'INVALID_REQUEST',
@@ -177,7 +182,7 @@ export function createHostDispatcher(
       }
 
       try {
-        return binding.dispatch(args, dvLimits);
+        return binding.dispatch(args, dvLimits, dvCodec);
       } catch (err) {
         return fatal(
           'HANDLER_ERROR',
@@ -241,7 +246,7 @@ export function createHostCallImport(
 
 type HostFunctionBinding = {
   fn: CanonicalFunction;
-  dispatch(args: DV[], dvLimits: DvLimits): HostDispatchResult;
+  dispatch(args: DV2[], dvLimits: DvLimits, codec: DvCodec): HostDispatchResult;
   limitExceededEnvelope?: HostResponseEnvelope;
 };
 
@@ -250,8 +255,16 @@ type CanonicalFunction = AbiFunction & {
 };
 
 type HostResponseEnvelope =
-  | { ok: DV; units: number }
-  | { err: { code: string; details?: DV }; units: number };
+  | { ok: DV2; units: number }
+  | { err: { code: string; details?: DV2 }; units: number };
+
+type DvCodec = 'dv1' | 'dv2';
+
+function selectDvCodec(manifest: CanonicalAbiManifest): DvCodec {
+  return manifest.abi_id === 'Host.v2' && manifest.abi_version >= 2
+    ? 'dv2'
+    : 'dv1';
+}
 
 function buildBindings(
   functions: AbiFunction[],
@@ -269,7 +282,7 @@ function buildBindings(
   if (!documentGet || !documentGetCanonical) {
     throw new HostDispatcherError(
       'INVALID_REQUEST',
-      'Host.v1 manifest must include document.get and document.getCanonical',
+      'manifest must include document.get and document.getCanonical',
     );
   }
 
@@ -321,7 +334,11 @@ function buildDocumentBinding(
   return {
     fn,
     limitExceededEnvelope,
-    dispatch(args: DV[], dvLimits: DvLimits): HostDispatchResult {
+    dispatch(
+      args: DV2[],
+      dvLimits: DvLimits,
+      codec: DvCodec,
+    ): HostDispatchResult {
       const [path] = args;
       if (typeof path !== 'string') {
         return fatal(
@@ -335,7 +352,7 @@ function buildDocumentBinding(
         const byteLen = UTF8.encode(path).byteLength;
         if (byteLen > utf8Max) {
           if (limitExceededEnvelope) {
-            return encodeEnvelope(fn, limitExceededEnvelope, dvLimits);
+            return encodeEnvelope(fn, limitExceededEnvelope, codec, dvLimits);
           }
           return fatal(
             'INVALID_ARGUMENTS',
@@ -345,7 +362,7 @@ function buildDocumentBinding(
       }
 
       const result = handler(path);
-      return encodeResult(fn, result, dvLimits, limitExceededEnvelope);
+      return encodeResult(fn, result, dvLimits, codec, limitExceededEnvelope);
     },
   };
 }
@@ -359,10 +376,14 @@ function buildEmitBinding(
   return {
     fn,
     limitExceededEnvelope,
-    dispatch(args: DV[], dvLimits: DvLimits): HostDispatchResult {
+    dispatch(
+      args: DV2[],
+      dvLimits: DvLimits,
+      codec: DvCodec,
+    ): HostDispatchResult {
       const [value] = args;
       const result = handler(value);
-      return encodeResult(fn, result, dvLimits, limitExceededEnvelope);
+      return encodeResult(fn, result, dvLimits, codec, limitExceededEnvelope);
     },
   };
 }
@@ -371,6 +392,7 @@ function encodeResult(
   fn: CanonicalFunction,
   result: HostCallResult,
   dvLimits: DvLimits,
+  codec: DvCodec,
   limitExceededEnvelope?: HostResponseEnvelope,
 ): HostDispatchResult {
   if (result === null || typeof result !== 'object') {
@@ -406,7 +428,7 @@ function encodeResult(
   }
   if (units === null) {
     if (limitExceededEnvelope) {
-      return encodeEnvelope(fn, limitExceededEnvelope, dvLimits);
+      return encodeEnvelope(fn, limitExceededEnvelope, codec, dvLimits);
     }
     return fatal(
       'INVALID_ARGUMENTS',
@@ -423,13 +445,14 @@ function encodeResult(
     }
     if (fn.return_schema.type === 'dv') {
       try {
-        validateDv(result.ok, {
+        validateHostValue(result.ok, codec, {
           limits: cappedDvLimits(dvLimits, fn.limits.max_response_bytes),
         });
       } catch (err) {
         return handleDvValidationError(
           fn,
           err,
+          codec,
           limitExceededEnvelope,
           dvLimits,
         );
@@ -439,6 +462,7 @@ function encodeResult(
     return encodeEnvelope(
       fn,
       { ok: result.ok, units },
+      codec,
       dvLimits,
       limitExceededEnvelope,
     );
@@ -471,11 +495,17 @@ function encodeResult(
 
   if (result.err.details !== undefined) {
     try {
-      validateDv(result.err.details, {
+      validateHostValue(result.err.details, codec, {
         limits: cappedDvLimits(dvLimits, fn.limits.max_response_bytes),
       });
     } catch (err) {
-      return handleDvValidationError(fn, err, limitExceededEnvelope, dvLimits);
+      return handleDvValidationError(
+        fn,
+        err,
+        codec,
+        limitExceededEnvelope,
+        dvLimits,
+      );
     }
   }
 
@@ -488,6 +518,7 @@ function encodeResult(
           : { code: result.err.code, details: result.err.details },
       units,
     },
+    codec,
     dvLimits,
     limitExceededEnvelope,
   );
@@ -496,17 +527,20 @@ function encodeResult(
 function encodeEnvelope(
   fn: CanonicalFunction,
   envelope: HostResponseEnvelope,
+  codec: DvCodec,
   dvLimits: DvLimits,
   limitExceededEnvelope?: HostResponseEnvelope,
 ): HostDispatchResult {
   const encodeLimits = cappedDvLimits(dvLimits, fn.limits.max_response_bytes);
   try {
-    const bytes = encodeDv(envelope, { limits: encodeLimits });
+    const bytes = encodeHostValue(envelope, codec, { limits: encodeLimits });
     return { kind: 'response', envelope: bytes };
   } catch (err) {
     if (limitExceededEnvelope && isSizeRelatedDvError(err)) {
       try {
-        const bytes = encodeDv(limitExceededEnvelope, { limits: encodeLimits });
+        const bytes = encodeHostValue(limitExceededEnvelope, codec, {
+          limits: encodeLimits,
+        });
         return { kind: 'response', envelope: bytes };
       } catch (limitErr) {
         return fatal(
@@ -579,17 +613,48 @@ function assertEmitShape(fn: CanonicalFunction): void {
 function handleDvValidationError(
   fn: CanonicalFunction,
   err: unknown,
+  codec: DvCodec,
   limitExceededEnvelope: HostResponseEnvelope | undefined,
   dvLimits: DvLimits,
 ): HostDispatchResult {
   if (limitExceededEnvelope && isSizeRelatedDvError(err)) {
-    return encodeEnvelope(fn, limitExceededEnvelope, dvLimits);
+    return encodeEnvelope(fn, limitExceededEnvelope, codec, dvLimits);
   }
   return fatal(
     'HANDLER_ERROR',
     `fn_id=${fn.fn_id} produced non-DV value: ${stringifyError(err)}`,
     err,
   );
+}
+
+function decodeRequest(
+  bytes: Uint8Array,
+  limits: DvLimits,
+  codec: DvCodec,
+): DV2 {
+  return codec === 'dv2'
+    ? decodeDv2(bytes, { limits })
+    : (decodeDv(bytes, { limits }) as DV2);
+}
+
+function validateHostValue(
+  value: unknown,
+  codec: DvCodec,
+  options: { limits: DvLimits },
+): void {
+  if (codec === 'dv2') {
+    validateDv2(value, options);
+    return;
+  }
+  validateDv(value, options);
+}
+
+function encodeHostValue(
+  value: unknown,
+  codec: DvCodec,
+  options: { limits: DvLimits },
+): Uint8Array {
+  return codec === 'dv2' ? encodeDv2(value, options) : encodeDv(value, options);
 }
 
 function cappedDvLimits(limits: DvLimits, maxBytes: number): DvLimits {
@@ -685,6 +750,7 @@ function isSizeRelatedDvError(err: unknown): boolean {
     err instanceof DvError &&
     (err.code === 'ENCODED_TOO_LARGE' ||
       err.code === 'STRING_TOO_LONG' ||
+      err.code === 'BYTE_STRING_TOO_LONG' ||
       err.code === 'ARRAY_TOO_LONG' ||
       err.code === 'MAP_TOO_LONG' ||
       err.code === 'DEPTH_EXCEEDED')

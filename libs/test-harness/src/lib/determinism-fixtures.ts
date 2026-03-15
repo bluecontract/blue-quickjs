@@ -1,6 +1,11 @@
 import type { AbiManifest } from '@blue-quickjs/abi-manifest';
-import type { DV } from '@blue-quickjs/dv';
-import { HOST_V1_HASH, HOST_V1_MANIFEST } from './abi-manifest-fixtures.js';
+import type { DV, DV2 } from '@blue-quickjs/dv';
+import {
+  HOST_V1_HASH,
+  HOST_V1_MANIFEST,
+  HOST_V2_HASH,
+  HOST_V2_MANIFEST,
+} from './abi-manifest-fixtures.js';
 
 export interface DeterminismProgramArtifact {
   code: string;
@@ -44,19 +49,19 @@ export interface DeterminismHostHandlers {
   document: {
     get: (
       path: string,
-    ) => { ok: DV; units: number } | { err: HostError; units: number };
+    ) => { ok: DV2; units: number } | { err: HostError; units: number };
     getCanonical: (
       path: string,
-    ) => { ok: DV; units: number } | { err: HostError; units: number };
+    ) => { ok: DV2; units: number } | { err: HostError; units: number };
   };
   emit: (
-    value: DV,
+    value: DV2,
   ) => { ok: null; units: number } | { err: HostError; units: number };
 }
 
 export interface DeterminismHostEnvironment {
   handlers: DeterminismHostHandlers;
-  emitted: DV[];
+  emitted: DV2[];
 }
 
 export interface DeterminismFixtureBaseline {
@@ -97,7 +102,7 @@ const ERROR_PATHS = new Map<string, HostError>([
 ]);
 
 export function createDeterminismHost(): DeterminismHostEnvironment {
-  const emitted: DV[] = [];
+  const emitted: DV2[] = [];
   const documentHash = HOST_V1_HASH;
 
   const resolveError = (path: string): HostError | null =>
@@ -109,6 +114,9 @@ export function createDeterminismHost(): DeterminismHostEnvironment {
         const error = resolveError(path);
         if (error) {
           return { err: error, units: 2 };
+        }
+        if (path === 'bytes/payload') {
+          return { ok: Uint8Array.from([222, 173, 190, 239]), units: 11 };
         }
         return {
           ok: {
@@ -131,7 +139,7 @@ export function createDeterminismHost(): DeterminismHostEnvironment {
         };
       },
     },
-    emit: (value: DV) => {
+    emit: (value: DV2) => {
       emitted.push(value);
       return { ok: null, units: 1 };
     },
@@ -144,6 +152,12 @@ const BASE_PROGRAM = {
   abiId: 'Host.v1',
   abiVersion: 1,
   abiManifestHash: HOST_V1_HASH,
+} satisfies Omit<DeterminismProgramArtifact, 'code'>;
+
+const BASE_PROGRAM_V2 = {
+  abiId: 'Host.v2',
+  abiVersion: 2,
+  abiManifestHash: HOST_V2_HASH,
 } satisfies Omit<DeterminismProgramArtifact, 'code'>;
 
 export const DETERMINISM_FIXTURES: DeterminismFixture[] = [
@@ -448,6 +462,44 @@ export const DETERMINISM_FIXTURES: DeterminismFixture[] = [
       tapeHash:
         'c481a1396ab5097cc8aa68fd11c1bb6e96d63259dba00b560bf49489fe5b2e3f',
       tapeLength: 1,
+    },
+  },
+  {
+    name: 'compat-binary-host-v2-bytes-roundtrip',
+    program: {
+      ...BASE_PROGRAM_V2,
+      executionProfile: 'compat-binary-v1',
+      code: `
+        (() => {
+          const payload = Host.v2.document.get('bytes/payload');
+          Host.v2.emit(payload);
+          let sum = 0;
+          for (const byte of payload) {
+            sum += byte;
+          }
+          return {
+            length: payload.byteLength,
+            first: payload[0],
+            last: payload[payload.byteLength - 1],
+            sum,
+          };
+        })()
+      `.trim(),
+    },
+    input: DETERMINISM_INPUT,
+    gasLimit: DETERMINISM_GAS_LIMIT,
+    manifest: HOST_V2_MANIFEST,
+    createHost: createDeterminismHost,
+    expected: {
+      resultHash:
+        'a538717d219fa0484c601ef7b5b63704c90cb9ae0406495b9f0083989a9fb2f8',
+      errorCode: null,
+      errorTag: null,
+      gasUsed: 1246n,
+      gasRemaining: 48754n,
+      tapeHash:
+        'b2d3a3b07a1be6b39cd854077910a2bc839c281281275c2c137f6a704723a734',
+      tapeLength: 2,
     },
   },
   {

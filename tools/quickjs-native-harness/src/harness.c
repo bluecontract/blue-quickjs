@@ -17,6 +17,7 @@ typedef struct {
   HostStubMode mode;
   int trigger_reentrancy;
   int trigger_exception;
+  int use_dv2_codec;
 } HostStubConfig;
 
 typedef struct {
@@ -90,12 +91,18 @@ static uint32_t deterministic_feature_flags_for_profile(const char *profile) {
   if (strcmp(profile, "compat-regexp-v1") == 0) {
     return JS_DETERMINISTIC_FEATURE_REGEXP;
   }
-  if (strcmp(profile, "compat-general-v1") == 0 ||
-      strcmp(profile, "compat-binary-v1") == 0) {
+  if (strcmp(profile, "compat-general-v1") == 0) {
     return JS_DETERMINISTIC_FEATURE_REGEXP |
            JS_DETERMINISTIC_FEATURE_PROMISE_JOBS |
            JS_DETERMINISTIC_FEATURE_CONSOLE_SHIM |
            JS_DETERMINISTIC_FEATURE_STABLE_SORT;
+  }
+  if (strcmp(profile, "compat-binary-v1") == 0) {
+    return JS_DETERMINISTIC_FEATURE_REGEXP |
+           JS_DETERMINISTIC_FEATURE_PROMISE_JOBS |
+           JS_DETERMINISTIC_FEATURE_CONSOLE_SHIM |
+           JS_DETERMINISTIC_FEATURE_STABLE_SORT |
+           JS_DETERMINISTIC_FEATURE_TYPED_ARRAYS;
   }
   return UINT32_MAX;
 }
@@ -170,6 +177,19 @@ static int parse_hex_string(const char *hex, uint8_t **out, size_t *out_len) {
 
   *out = buf;
   *out_len = byte_len;
+  return 0;
+}
+
+static int manifest_uses_host_v2(const uint8_t *bytes, size_t len) {
+  static const uint8_t needle[] = {'H', 'o', 's', 't', '.', 'v', '2'};
+  if (!bytes || len < sizeof(needle)) {
+    return 0;
+  }
+  for (size_t i = 0; i + sizeof(needle) <= len; i++) {
+    if (memcmp(bytes + i, needle, sizeof(needle)) == 0) {
+      return 1;
+    }
+  }
   return 0;
 }
 
@@ -491,7 +511,8 @@ static uint32_t harness_manifest_host_call(JSContext *ctx,
                                            const uint8_t *req_ptr,
                                            uint32_t req_len,
                                            uint8_t *resp_ptr,
-                                           uint32_t resp_capacity) {
+                                           uint32_t resp_capacity,
+                                           int use_dv2_codec) {
   JSValue req = JS_UNDEFINED;
   JSValue arg0 = JS_UNDEFINED;
   JSValue envelope = JS_UNDEFINED;
@@ -502,7 +523,9 @@ static uint32_t harness_manifest_host_call(JSContext *ctx,
   const char *error_code = NULL;
   uint32_t resp_len = JS_HOST_CALL_TRANSPORT_ERROR;
 
-  req = JS_DecodeDV(ctx, req_ptr, req_len, &JS_DV_LIMIT_DEFAULTS);
+  req = use_dv2_codec
+            ? JS_DecodeDV2(ctx, req_ptr, req_len, &JS_DV_LIMIT_DEFAULTS)
+            : JS_DecodeDV(ctx, req_ptr, req_len, &JS_DV_LIMIT_DEFAULTS);
   if (JS_IsException(req)) {
     goto done;
   }
@@ -536,19 +559,29 @@ static uint32_t harness_manifest_host_call(JSContext *ctx,
       error_code = "LIMIT_EXCEEDED";
       units = 3;
     }
-    JS_FreeCString(ctx, path);
 
-    if (error_code) {
+    if (!error_code && strcmp(path, "bytes/payload") == 0) {
+      const uint8_t payload_dv2[] = {0x44, 0xde, 0xad, 0xbe, 0xef};
+      ok_val = JS_DecodeDV2(ctx, payload_dv2, sizeof(payload_dv2), &JS_DV_LIMIT_DEFAULTS);
+      if (JS_IsException(ok_val)) {
+        JS_FreeCString(ctx, path);
+        goto done;
+      }
+      units = 4;
+    } else if (error_code) {
       err_obj = JS_NewObjectProto(ctx, JS_NULL);
       if (JS_IsException(err_obj)) {
+        JS_FreeCString(ctx, path);
         goto done;
       }
       if (JS_SetPropertyStr(ctx, err_obj, "code", JS_NewString(ctx, error_code)) < 0) {
+        JS_FreeCString(ctx, path);
         goto done;
       }
     } else {
       ok_val = JS_DupValue(ctx, arg0);
     }
+    JS_FreeCString(ctx, path);
   } else if (fn_id == 3) {
     ok_val = JS_NULL;
     units = 0;
@@ -572,7 +605,8 @@ static uint32_t harness_manifest_host_call(JSContext *ctx,
     goto done;
   }
 
-  if (JS_EncodeDV(ctx, envelope, &JS_DV_LIMIT_DEFAULTS, &resp) != 0) {
+  if ((use_dv2_codec ? JS_EncodeDV2(ctx, envelope, &JS_DV_LIMIT_DEFAULTS, &resp)
+                     : JS_EncodeDV(ctx, envelope, &JS_DV_LIMIT_DEFAULTS, &resp)) != 0) {
     goto done;
   }
 
@@ -636,7 +670,13 @@ static uint32_t harness_host_call(JSContext *ctx,
   }
 
   if (config && config->mode == HOST_STUB_MODE_MANIFEST) {
-    return harness_manifest_host_call(ctx, fn_id, req_ptr, req_len, resp_ptr, resp_capacity);
+    return harness_manifest_host_call(ctx,
+                                      fn_id,
+                                      req_ptr,
+                                      req_len,
+                                      resp_ptr,
+                                      resp_capacity,
+                                      config->use_dv2_codec);
   }
 
   if (req_len > resp_capacity) {
@@ -822,6 +862,11 @@ static int init_runtime(HarnessRuntime *runtime, const HarnessOptions *options) 
         options->host_call_hex != NULL ? HOST_STUB_MODE_ECHO : HOST_STUB_MODE_MANIFEST;
     runtime->host_stub.trigger_reentrancy = options->host_call_reentrant;
     runtime->host_stub.trigger_exception = options->host_call_exception;
+    runtime->host_stub.use_dv2_codec =
+        runtime->host_stub.mode == HOST_STUB_MODE_MANIFEST &&
+                manifest_uses_host_v2(manifest_bytes, manifest_len)
+            ? 1
+            : 0;
     runtime->host_stub_enabled = 1;
     if (JS_SetHostCallDispatcher(runtime->rt, harness_host_call, &runtime->host_stub) != 0) {
       rc = 1;
