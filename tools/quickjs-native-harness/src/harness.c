@@ -425,10 +425,16 @@ static int init_runtime(HarnessRuntime *runtime, const HarnessOptions *options) 
   uint8_t *context_blob = NULL;
   size_t context_blob_len = 0;
   char *manifest_hex_from_file = NULL;
+  uint32_t feature_flags = deterministic_feature_flags_for_profile(options->execution_profile);
   int rc = 0;
 
-  if (JS_NewDeterministicRuntime(&runtime->rt, &runtime->ctx) != 0) {
-    fprintf(stderr, "init: JS_NewDeterministicRuntime failed\n");
+  if (feature_flags == UINT32_MAX) {
+    fprintf(stderr, "Unsupported --execution-profile: %s\n", options->execution_profile);
+    return 2;
+  }
+
+  if (JS_NewDeterministicRuntimeWithFeatures(&runtime->rt, &runtime->ctx, feature_flags) != 0) {
+    fprintf(stderr, "init: JS_NewDeterministicRuntimeWithFeatures failed\n");
     return 1;
   }
 
@@ -486,14 +492,8 @@ static int init_runtime(HarnessRuntime *runtime, const HarnessOptions *options) 
         .context_blob = context_blob,
         .context_blob_size = context_blob_len,
         .gas_limit = options->gas_limit,
-        .feature_flags = deterministic_feature_flags_for_profile(options->execution_profile),
+        .feature_flags = feature_flags,
     };
-
-    if (init_opts.feature_flags == UINT32_MAX) {
-      fprintf(stderr, "Unsupported --execution-profile: %s\n", options->execution_profile);
-      rc = 2;
-      goto cleanup;
-    }
 
     if (JS_InitDeterministicContext(runtime->ctx, &init_opts) != 0) {
       rc = print_exception(runtime->ctx, options);

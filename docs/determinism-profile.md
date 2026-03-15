@@ -7,6 +7,7 @@ Scope: capture the deterministic VM configuration required by Baseline #1 for bo
 ## Deterministic init entrypoints
 
 - `JS_NewDeterministicRuntime(out_rt, out_ctx)` creates a runtime/context in deterministic mode, disables GC heuristics, and sets gas to `JS_GAS_UNLIMITED` by default.
+- `JS_NewDeterministicRuntimeWithFeatures(out_rt, out_ctx, feature_flags)` does the same with explicit deterministic feature toggles (currently `JS_DETERMINISTIC_FEATURE_REGEXP`).
 - `JS_InitDeterministicContext(ctx, options)` must run before user code. It:
   - requires manifest bytes and a lowercase hex hash; size limit 1 MiB (`JS_DETERMINISTIC_MAX_MANIFEST_BYTES`)
   - validates `sha256(manifest_bytes)` against the provided hash and throws `ManifestError` with code `ABI_MANIFEST_HASH_MISMATCH` on mismatch
@@ -23,6 +24,11 @@ Scope: capture the deterministic VM configuration required by Baseline #1 for bo
 
 `compat-regexp-v1` only re-enables RegExp support. All other disabled surfaces
 remain disabled unless explicitly documented otherwise.
+
+The next public composite profile set is specified in
+`docs/execution-profiles.md` (`baseline-v1`, `compat-general-v1`,
+`compat-binary-v1`). Until those runtime paths land, this document remains the
+normative source for currently implemented profile behavior.
 
 ## Enabled intrinsics
 

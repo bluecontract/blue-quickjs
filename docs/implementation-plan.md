@@ -2066,6 +2066,73 @@ Prove end-to-end third-party library reuse by bundling chess.js and evaluating w
 
 ---
 
+## Phase P13 — Design reset for next-generation execution surface
+
+### T-140: Lock post-P12 artifact/profile/value-model architecture
+
+**Phase:** P13 – Design reset  
+**Status:** IN PROGRESS  
+**Depends on:** T-130
+
+**Goal:**  
+Freeze the architecture for P14+ so implementation work no longer depends on
+chat context or ad-hoc decisions.
+
+**Deliverables:**
+
+- [x] Add `docs/program-artifact-v2.md`.
+- [x] Add `docs/module-pack.md`.
+- [x] Add `docs/execution-profiles.md`.
+- [x] Add `docs/builder.md`.
+- [x] Add `docs/value-model-v2.md`.
+- [x] Add `docs/embedders.md`.
+- [x] Update docs index and cross-references (`docs/README.md`, `docs/sdk.md`, `docs/implementation-summary.md`, `docs/release-policy.md`).
+
+**Decision log (locked in P13):**
+
+1. **ProgramArtifact.v2 is the next canonical artifact.**  
+   It requires explicit `executionProfile`, explicit `sourceKind` (`script` or
+   `module-pack`), and version pinning metadata.
+2. **ModulePack.v1 is the first-class reusable source artifact.**  
+   Runtime executes static modules directly from in-memory pack data.
+3. **Composite profile model is mandatory.**  
+   Public profiles: `baseline-v1`, `compat-general-v1`, `compat-binary-v1`,
+   backed by a single capability registry.
+4. **DV2/bytes track is mandatory for this iteration.**  
+   Binary boundary support is introduced as versioned value-model/ABI evolution,
+   not in-place DV1 mutation.
+5. **Builder naming direction is locked.**  
+   `deterministic-bundler` is treated as transitional; target product surface is
+   deterministic builder semantics.
+6. **`engineBuildHash` is required for builder-produced release artifacts.**
+
+**Open design questions (must stay < 3):**
+
+1. Should top-level await support be included in P17 or deferred to a post-P21
+   phase if scheduler complexity threatens parity guarantees?
+2. Should `ModulePack.v1.graphHash` include canonical source-map payloads by
+   default, or should source maps remain separately hashed metadata?
+
+**Acceptance criteria:**
+
+- [x] P13 docs exist and are cross-linked.
+- [x] Locked decisions are explicit and centralized.
+- [x] Unresolved design question count is `2` (<= 2 target).
+
+**Current state (P13 T-140):**
+
+- The new architecture docs are now present and linked:
+  - `program-artifact-v2`
+  - `module-pack`
+  - `execution-profiles`
+  - `builder`
+  - `value-model-v2`
+  - `embedders`
+- Existing docs that previously implied DV bytes in the current runtime were
+  corrected to reflect current DV1 scope and the DV2 migration track.
+
+---
+
 ## Appendix A — Minimal required ABI surface (v1)
 
 The initial manifest should define at least:

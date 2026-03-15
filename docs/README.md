@@ -27,6 +27,12 @@ If you are new to determinism/gas (or coming from “normal” JS runtimes), fol
    - [Determinism profile](./determinism-profile.md)
    - [Gas schedule](./gas-schedule.md)
    - [Deterministic Value wire format](./dv-wire-format.md)
+   - [Program artifact v2](./program-artifact-v2.md)
+   - [Module pack v1](./module-pack.md)
+   - [Execution profiles](./execution-profiles.md)
+   - [Deterministic builder](./builder.md)
+   - [Value model v2 (DV2)](./value-model-v2.md)
+   - [Embedder integration](./embedders.md)
    - [ABI manifest schema + canonical encoding](./abi-manifest.md)
    - [Host call ABI (the `host_call` syscall)](./host-call-abi.md)
    - [Toolchain + build determinism](./toolchain.md)
@@ -49,7 +55,7 @@ Most people end up reading some docs and then jumping into these locations:
   - Wasm entrypoints: `vendor/quickjs/quickjs-wasm-entry.c`
 
 - **TypeScript libraries**
-  - Deterministic library bundling + compatibility scan: `libs/deterministic-bundler/`
+  - Deterministic builder/bundler bridge + compatibility scan: `libs/deterministic-bundler/`
   - DV reference implementation: `libs/dv/`
   - Manifest schema + canonical encoding/hashing: `libs/abi-manifest/`
   - Wasm constants + metadata types: `libs/quickjs-wasm-constants/`

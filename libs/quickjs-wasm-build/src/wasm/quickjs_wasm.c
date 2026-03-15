@@ -181,7 +181,7 @@ char *qjs_det_init(const uint8_t *manifest_bytes,
   free_det_runtime();
   det_gas_limit = gas_limit;
 
-  if (JS_NewDeterministicRuntime(&det_rt, &det_ctx) != 0) {
+  if (JS_NewDeterministicRuntimeWithFeatures(&det_rt, &det_ctx, feature_flags) != 0) {
     return dup_printf("ERROR <init> GAS remaining=0 used=0");
   }
 

@@ -184,6 +184,18 @@ The hash pinning rules are described in:
 - [ABI manifest](./abi-manifest.md) (canonical encoding + hash)
 - [Release policy](./release-policy.md)
 
+### ProgramArtifact.v2 roadmap
+
+The current SDK surface still accepts single-source script artifacts. The
+versioned next artifact model is now specified in:
+
+- [Program artifact v2](./program-artifact-v2.md)
+- [Module pack v1](./module-pack.md)
+- [Execution profiles](./execution-profiles.md)
+
+This locks the migration target for module-pack execution and explicit
+profile-required build outputs.
+
 ### 2) Input envelope (`I`)
 
 The input envelope is DV-encodable data injected into the VM as ergonomic globals.

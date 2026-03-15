@@ -21,9 +21,21 @@ A deterministic program artifact `P` should pin:
 
 - `abiId`, `abiVersion`
 - `abiManifestHash` (sha256 of canonical manifest bytes)
-- `engineBuildHash` (optional but strongly recommended)
+- `executionProfile` (explicit, versioned profile name)
+- `engineBuildHash` (required for builder-produced release artifacts)
 
 `@blue-quickjs/quickjs-runtime` validates these fields and rejects mismatches when provided.
+
+For `ProgramArtifact.v2` module-pack outputs, pinning should additionally include:
+
+- `sourceKind` (`script` vs `module-pack`)
+- `modulePack.graphHash` when `sourceKind = "module-pack"`
+
+See:
+
+- `docs/program-artifact-v2.md`
+- `docs/module-pack.md`
+- `docs/execution-profiles.md`
 
 ## engine_build_hash
 

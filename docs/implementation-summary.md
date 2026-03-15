@@ -136,7 +136,7 @@ Evaluation semantics in this repo are **raw script mode**: `program.code` is eva
 Return encoding details: [DV wire format](./dv-wire-format.md).  
 Evaluation API: [TypeScript SDK usage](./sdk.md).
 
-### 6) Deterministic library reuse is done by bundling to one source string
+### 6) Deterministic library reuse is currently bundled to one source string
 
 The runtime contract still evaluates a single `program.code` string. To reuse
 normal multi-file libraries, this repo now provides a deterministic bundling
@@ -149,6 +149,13 @@ step (`@blue-quickjs/deterministic-bundler`) that:
 This keeps the evaluator contract simple while enabling practical third-party
 library reuse in a controlled way.
 
+The next product stage moves this to first-class module-pack execution via
+`ProgramArtifact.v2` and `ModulePack.v1`:
+
+- [Program artifact v2](./program-artifact-v2.md)
+- [Module pack v1](./module-pack.md)
+- [Deterministic builder](./builder.md)
+
 ---
 
 ## Deterministic Value (DV)
@@ -160,7 +167,12 @@ DV is the repository’s “universal value model” for **all boundary crossing
 - Context blob injected into the VM
 - Manifest canonical encoding/hashing
 
-DV is a deliberately small subset: `null`, `boolean`, `int/float` (restricted), `string`, `bytes`, `array`, `map`, with **canonical encoding** rules and **size limits**.
+Current DV (v1) is a deliberately small subset: `null`, `boolean`,
+`int/float` (restricted), `string`, `array`, `map`, with **canonical
+encoding** rules and **size limits**.
+
+The versioned bytes-capable model is defined separately in
+[Value model v2](./value-model-v2.md).
 
 Reference spec: [DV wire format](./dv-wire-format.md).
 
@@ -406,3 +418,6 @@ Details: [ABI manifest](./abi-manifest.md), [Host call ABI](./host-call-abi.md),
 - Wasm memory is configured for determinism (fixed sizing; no growth). See [Toolchain](./toolchain.md).
 - The determinism profile is intentionally restrictive; many JS APIs are not available. See [Determinism profile](./determinism-profile.md).
 - “Gas trace” attributes only VM-internal categories; host-call gas is billed but not counted inside trace totals. See [Gas schedule](./gas-schedule.md) and [Observability](./observability.md).
+- Runtime execution is still single-source script mode today; module-pack runtime
+  mode is specified in [Program artifact v2](./program-artifact-v2.md) and
+  [Module pack v1](./module-pack.md).

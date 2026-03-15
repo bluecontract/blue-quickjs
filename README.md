@@ -28,6 +28,12 @@ Deterministic QuickJS-in-Wasm evaluator monorepo (Nx + pnpm), tracking a hardene
 - Determinism profile: `docs/determinism-profile.md`
 - Gas schedule: `docs/gas-schedule.md`
 - DV wire format: `docs/dv-wire-format.md`
+- Program artifact v2: `docs/program-artifact-v2.md`
+- Module pack v1: `docs/module-pack.md`
+- Execution profiles: `docs/execution-profiles.md`
+- Deterministic builder: `docs/builder.md`
+- Value model v2 (DV2): `docs/value-model-v2.md`
+- Embedder integration: `docs/embedders.md`
 - ABI manifest: `docs/abi-manifest.md`
 - Host call ABI: `docs/host-call-abi.md`
 - Release policy: `docs/release-policy.md`
