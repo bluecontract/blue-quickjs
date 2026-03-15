@@ -456,6 +456,8 @@ echo "Running host gas suite"
 node "${SCRIPT_DIR}/host-gas.mjs"
 echo "Running DV parity suite"
 node "${SCRIPT_DIR}/dv-parity.mjs"
+echo "Running binary library parity suite"
+node "${SCRIPT_DIR}/binary-library-parity.mjs"
 echo "Running module-pack parity suite"
 node "${SCRIPT_DIR}/module-pack-parity.mjs"
 

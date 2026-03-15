@@ -1,4 +1,5 @@
 export * from './lib/abi-manifest-fixtures.js';
+export * from './lib/binary-library-fixtures.js';
 export * from './lib/chess-library-fixtures.js';
 export * from './lib/determinism-fixtures.js';
 export * from './lib/module-pack-fixtures.js';

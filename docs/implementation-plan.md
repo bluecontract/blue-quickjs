@@ -2396,6 +2396,11 @@ DV1 behavior in place.
   - shared determinism fixture matrix (`compat-binary-host-v2-bytes-roundtrip`),
   - smoke-node and smoke-web parity suites,
   - quickjs-native-harness script assertions.
+- Real binary-library fixture coverage now includes at least two bundled npm
+  packages under `compat-binary-v1`:
+  - `base64-js` roundtrip fixture,
+  - `@noble/hashes` (`sha256`) fixture,
+  with smoke-node/smoke-web checks and native harness baseline assertions.
 
 ---
 
