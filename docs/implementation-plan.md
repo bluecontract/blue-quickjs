@@ -2306,7 +2306,7 @@ preserving baseline restrictions.
       rejected -> VM error, pending -> deterministic error).
 - [x] Add coverage for baseline Promise denial and compat-general Promise /
       `queueMicrotask` execution in runtime and native harness tests.
-- [ ] Extend node/browser/native async parity fixtures (result + gas + tape) for
+- [x] Extend node/browser/native async parity fixtures (result + gas + tape) for
       Promise-heavy scenarios.
 
 **Current state (P17 T-180):**
@@ -2317,6 +2317,9 @@ preserving baseline restrictions.
   pending jobs before export extraction and resolve Promise exports.
 - `compat-general-v1` / `compat-binary-v1` now enable Promise jobs via runtime
   feature flags, while baseline continues to reject Promise usage.
+- Added Promise/`queueMicrotask` determinism fixtures to shared smoke fixture
+  matrix (`libs/test-harness/src/lib/determinism-fixtures.ts`) with node/browser
+  parity validation and native harness gas+tape assertions.
 
 ---
 

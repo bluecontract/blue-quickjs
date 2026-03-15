@@ -7,6 +7,11 @@ export interface DeterminismProgramArtifact {
   abiId: string;
   abiVersion: number;
   abiManifestHash: string;
+  executionProfile?:
+    | 'baseline-v1'
+    | 'compat-regexp-v1'
+    | 'compat-general-v1'
+    | 'compat-binary-v1';
   engineBuildHash?: string;
 }
 
@@ -305,6 +310,81 @@ export const DETERMINISM_FIXTURES: DeterminismFixture[] = [
       errorTag: null,
       gasUsed: 1873n,
       gasRemaining: 48127n,
+      tapeHash: null,
+      tapeLength: 0,
+    },
+  },
+  {
+    name: 'async-promise-chain',
+    program: {
+      ...BASE_PROGRAM,
+      executionProfile: 'compat-general-v1',
+      code: `
+        (() => Promise.resolve(40).then((value) => value + 2))()
+      `.trim(),
+    },
+    input: DETERMINISM_INPUT,
+    gasLimit: DETERMINISM_GAS_LIMIT,
+    manifest: HOST_V1_MANIFEST,
+    createHost: createDeterminismHost,
+    expected: {
+      resultHash:
+        '7f83f7bda2d63959d34767689f06d47576683d378d9eb8d09386c9a020395c53',
+      errorCode: null,
+      errorTag: null,
+      gasUsed: 758n,
+      gasRemaining: 49242n,
+      tapeHash: null,
+      tapeLength: 0,
+    },
+  },
+  {
+    name: 'async-queue-microtask-host',
+    program: {
+      ...BASE_PROGRAM,
+      executionProfile: 'compat-general-v1',
+      code: `
+        (() => {
+          queueMicrotask(() => Host.v1.emit({ phase: 'microtask' }));
+          return Promise.resolve({ ok: true });
+        })()
+      `.trim(),
+    },
+    input: DETERMINISM_INPUT,
+    gasLimit: DETERMINISM_GAS_LIMIT,
+    manifest: HOST_V1_MANIFEST,
+    createHost: createDeterminismHost,
+    expected: {
+      resultHash:
+        '20a934991093b3d9bfcb5f3c05871eb1db002d19469c29ea3ae1ff7e4a29cd02',
+      errorCode: null,
+      errorTag: null,
+      gasUsed: 912n,
+      gasRemaining: 49088n,
+      tapeHash:
+        '43c068fe25380b52c96b71cbc266343a90afc80c928ebde6a7d967c8c57b6e5c',
+      tapeLength: 1,
+    },
+  },
+  {
+    name: 'async-promise-rejection',
+    program: {
+      ...BASE_PROGRAM,
+      executionProfile: 'compat-general-v1',
+      code: `
+        (() => Promise.reject(new Error('async-failure')))()
+      `.trim(),
+    },
+    input: DETERMINISM_INPUT,
+    gasLimit: DETERMINISM_GAS_LIMIT,
+    manifest: HOST_V1_MANIFEST,
+    createHost: createDeterminismHost,
+    expected: {
+      resultHash: null,
+      errorCode: 'UNKNOWN',
+      errorTag: 'vm/unknown',
+      gasUsed: 612n,
+      gasRemaining: 49388n,
       tapeHash: null,
       tapeLength: 0,
     },
