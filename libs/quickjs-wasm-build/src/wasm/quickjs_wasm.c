@@ -26,6 +26,7 @@ static void free_det_runtime(void) {
     det_ctx = NULL;
   }
   if (det_rt) {
+    JS_RunGC(det_rt);
     JS_FreeRuntime(det_rt);
     det_rt = NULL;
   }
@@ -175,7 +176,8 @@ char *qjs_det_init(const uint8_t *manifest_bytes,
                    const char *manifest_hash_hex,
                    const uint8_t *context_blob,
                    uint32_t context_blob_size,
-                   uint64_t gas_limit) {
+                   uint64_t gas_limit,
+                   uint32_t feature_flags) {
   free_det_runtime();
   det_gas_limit = gas_limit;
 
@@ -195,6 +197,7 @@ char *qjs_det_init(const uint8_t *manifest_bytes,
       .context_blob = context_blob,
       .context_blob_size = context_blob_size,
       .gas_limit = gas_limit,
+      .feature_flags = feature_flags,
   };
 
   if (JS_InitDeterministicContext(det_ctx, &opts) != 0) {

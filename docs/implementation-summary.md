@@ -131,8 +131,23 @@ Ergonomics and injected globals: [Determinism profile](./determinism-profile.md)
 
 The evaluator runs JS with deterministic gas metering enabled. The final return value must be DV-encodable, otherwise evaluation fails deterministically.
 
+Evaluation semantics in this repo are **raw script mode**: `program.code` is evaluated as a global script, the resulting value comes from the script’s final expression, and top-level `return` is invalid. `emit(...)` side effects are allowed through Host.v1 wrappers, but wrapper-specific conventions (for example function-body wrappers in external workflow engines) are out of scope for this evaluator.
+
 Return encoding details: [DV wire format](./dv-wire-format.md).  
 Evaluation API: [TypeScript SDK usage](./sdk.md).
+
+### 6) Deterministic library reuse is done by bundling to one source string
+
+The runtime contract still evaluates a single `program.code` string. To reuse
+normal multi-file libraries, this repo now provides a deterministic bundling
+step (`@blue-quickjs/deterministic-bundler`) that:
+
+- flattens static module graphs into one script string,
+- emits a stable content hash for the bundled code,
+- runs a compatibility scan for deterministic-profile restrictions before VM execution.
+
+This keeps the evaluator contract simple while enabling practical third-party
+library reuse in a controlled way.
 
 ---
 

@@ -9,12 +9,16 @@ import {
 const UINT32_MAX = 0xffffffff;
 const SHA256_HEX_LENGTH = 64;
 const HEX_RE = /^[0-9a-f]+$/;
+
+export type ExecutionProfile = 'baseline-v1' | 'compat-regexp-v1';
+
 export interface ProgramArtifact {
   code: string;
   abiId: string;
   abiVersion: number;
   abiManifestHash: string;
   engineBuildHash?: string;
+  executionProfile?: ExecutionProfile;
 }
 
 export interface ProgramArtifactLimits {
@@ -45,6 +49,7 @@ export interface InputValidationOptions {
 
 export type RuntimeValidationErrorCode =
   | 'INVALID_TYPE'
+  | 'INVALID_VALUE'
   | 'MISSING_FIELD'
   | 'UNKNOWN_FIELD'
   | 'EMPTY_STRING'
@@ -73,7 +78,14 @@ export function validateProgramArtifact(
   const program = expectPlainObject(value, 'program');
   enforceExactKeys(
     program,
-    ['code', 'abiId', 'abiVersion', 'abiManifestHash', 'engineBuildHash'],
+    [
+      'code',
+      'abiId',
+      'abiVersion',
+      'abiManifestHash',
+      'engineBuildHash',
+      'executionProfile',
+    ],
     'program',
   );
 
@@ -101,6 +113,13 @@ export function validateProgramArtifact(
           exactLength: SHA256_HEX_LENGTH,
         })
       : undefined;
+  const executionProfile =
+    program.executionProfile !== undefined
+      ? expectExecutionProfile(
+          program.executionProfile,
+          'program.executionProfile',
+        )
+      : undefined;
 
   return {
     code,
@@ -108,6 +127,7 @@ export function validateProgramArtifact(
     abiVersion,
     abiManifestHash,
     engineBuildHash,
+    executionProfile,
   };
 }
 
@@ -280,6 +300,20 @@ function expectUint(
     throw runtimeError(
       'OUT_OF_RANGE',
       `${path} must be between ${min} and ${max}`,
+      path,
+    );
+  }
+  return value;
+}
+
+function expectExecutionProfile(
+  value: unknown,
+  path: string,
+): ExecutionProfile {
+  if (value !== 'baseline-v1' && value !== 'compat-regexp-v1') {
+    throw runtimeError(
+      'INVALID_VALUE',
+      `${path} must be "baseline-v1" or "compat-regexp-v1"`,
       path,
     );
   }

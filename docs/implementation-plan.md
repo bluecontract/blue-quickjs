@@ -1920,6 +1920,152 @@ Deterministic ABI entrypoints are available; wasm gas consumers have been migrat
 
 ---
 
+## Phase P9 — Execution surface semantics hardening
+
+### T-100: Clarify raw script evaluation semantics and regressions
+
+**Phase:** P9 – Execution surface semantics hardening  
+**Status:** DONE  
+**Depends on:** T-064, T-065, T-066
+
+**Goal:**  
+Make it unambiguous what `blue-quickjs` means by “evaluate code”, and lock the common `return` vs final-expression confusion with deterministic errors and tests.
+
+**Detailed tasks:**
+
+- [x] Update docs to define raw script mode clearly:
+  - [x] `program.code` is evaluated as a global script.
+  - [x] The final expression value is used as the result.
+  - [x] Top-level `return` is invalid in this repo’s execution mode.
+  - [x] `emit(...)` side effects are supported through Host.v1 wrappers.
+- [x] Add runtime error classification for execution-surface mismatches (`EXECUTION_SURFACE_MISMATCH`).
+- [x] Add regression tests for:
+  - [x] final-expression result in raw script mode,
+  - [x] top-level return mismatch classification,
+  - [x] emit side effects with explicit final result.
+
+**Acceptance criteria:**
+
+- [x] A single docs paragraph defines evaluator semantics unambiguously.
+- [x] `return` vs final-expression confusion is covered by automated regression tests.
+- [x] Runtime error surfaces distinguish execution-surface mismatch from generic JS exceptions and invalid-output failures.
+
+**Current state (P9 T-100):**
+
+- `docs/sdk.md` and `docs/implementation-summary.md` now explicitly document raw script semantics, final-expression results, top-level `return` behavior, and `emit` side effects.
+- `libs/quickjs-runtime/src/lib/evaluate-errors.ts` introduces `execution-surface-mismatch` mapping (`code: EXECUTION_SURFACE_MISMATCH`, `tag: vm/execution_surface`) for top-level return syntax errors.
+- `libs/quickjs-runtime/src/lib/evaluate.spec.ts` includes targeted regression coverage for raw script final expressions, top-level return mismatch, and emit side effects.
+
+---
+
+## Phase P10 — Deterministic bundling for library reuse
+
+### T-110: Add deterministic source bundler + compatibility scan
+
+**Phase:** P10 – Deterministic bundling  
+**Status:** DONE  
+**Depends on:** T-064, T-066
+
+**Goal:**  
+Enable practical multi-file JS library reuse by deterministically bundling source graphs into a single `program.code` string before VM execution.
+
+**Detailed tasks:**
+
+- [x] Add new library `libs/deterministic-bundler`.
+- [x] Implement deterministic bundle output (stable code + SHA-256 content hash).
+- [x] Add compatibility scanner with deterministic diagnostics for forbidden surfaces.
+- [x] Keep scanner profile-aware (`baseline-v1` vs `compat-regexp-v1`).
+- [x] Add unit tests for hash stability, rejection diagnostics, and profile-aware regexp handling.
+- [x] Document bundling workflow in SDK/docs.
+
+**Acceptance criteria:**
+
+- [x] Multi-file source graphs bundle into a single deterministic source string.
+- [x] Same inputs yield the same output hash across repeated runs.
+- [x] Compatibility violations are deterministic and test-covered.
+
+**Current state (P10 T-110):**
+
+- `@blue-quickjs/deterministic-bundler` now exposes:
+  - `bundleDeterministicProgram(...)` → `{ code, contentHash, meta }`
+  - `scanCompatibility(...)` → deterministic diagnostics with profile awareness.
+- Bundles are emitted with stable line endings and an explicit default-export expression suffix so they can be evaluated directly as `program.code`.
+- Tests in `libs/deterministic-bundler/src/lib/deterministic-bundler.spec.ts` verify deterministic hash stability, baseline rejection of forbidden surfaces, and compat-regexp acceptance.
+
+---
+
+## Phase P11 — Profile-gated RegExp compatibility
+
+### T-120: Add explicit `compat-regexp-v1` execution profile
+
+**Phase:** P11 – Compatibility profile gating  
+**Status:** DONE  
+**Depends on:** T-100, T-110
+
+**Goal:**  
+Support real-world regex-dependent libraries (for example chess.js) without changing baseline defaults.
+
+**Detailed tasks:**
+
+- [x] Extend program artifact validation with optional `executionProfile`:
+  - [x] `baseline-v1` (default behavior)
+  - [x] `compat-regexp-v1` (opt-in compatibility mode)
+- [x] Propagate profile feature flags through runtime init:
+  - [x] TS runtime -> wasm `qjs_det_init(..., feature_flags)` -> `JS_InitDeterministicContext`.
+- [x] Keep baseline behavior unchanged:
+  - [x] baseline still disables RegExp and regex literals deterministically.
+- [x] Enable regexp only when profile flag is explicitly set.
+- [x] Add tests for baseline-vs-compat profile behavior in runtime and harness layers.
+
+**Acceptance criteria:**
+
+- [x] Baseline profile still rejects regexp usage deterministically.
+- [x] `compat-regexp-v1` runs regexp code successfully.
+- [x] Profile selection is explicit in the program artifact and test-covered.
+
+**Current state (P11 T-120):**
+
+- `libs/quickjs-runtime/src/lib/quickjs-runtime.ts` validates `executionProfile`, and `deterministic-init.ts` maps it to deterministic feature flags passed into wasm init.
+- `libs/quickjs-wasm-build/src/wasm/quickjs_wasm.c` now accepts `feature_flags` in `qjs_det_init` and forwards them to `JS_InitDeterministicContext`.
+- `vendor/quickjs/quickjs.h` defines `JS_DETERMINISTIC_FEATURE_REGEXP`, and `vendor/quickjs/quickjs-host.c` gates RegExp disablement/enablement on this flag.
+- `libs/quickjs-runtime/src/lib/evaluate.spec.ts` and `tools/quickjs-native-harness/scripts/test.sh` verify baseline rejection and compat acceptance for regexp behavior.
+
+---
+
+## Phase P12 — Chess.js deterministic reuse acceptance
+
+### T-130: Bundle chess.js and validate `e2e6` legality check
+
+**Phase:** P12 – Library reuse acceptance  
+**Status:** DONE  
+**Depends on:** T-110, T-120
+
+**Goal:**  
+Prove end-to-end third-party library reuse by bundling chess.js and evaluating whether `e2e6` is legal from the initial board position.
+
+**Detailed tasks:**
+
+- [x] Add chess fixture entry source under `libs/test-harness/fixtures/library-reuse/chess-entry.ts`.
+- [x] Add shared chess fixture constants for program/input/gas/manifest expectations.
+- [x] Add runtime-level test that bundles chess.js and evaluates the bundled code deterministically.
+- [x] Add smoke-node acceptance coverage for chess library reuse.
+- [x] Add smoke-web Playwright parity coverage comparing browser and Node outputs for the bundled chess fixture.
+
+**Acceptance criteria:**
+
+- [x] Chess.js is bundled into deterministic single-source code.
+- [x] Evaluated result for `e2e6` legality is `false`.
+- [x] Node/browser parity test passes for result and gas outputs.
+
+**Current state (P12 T-130):**
+
+- `@blue-quickjs/test-harness` now includes chess fixture assets/constants (`CHESS_LIBRARY_ENTRY_PATH`, expected result, gas/input/manifest defaults).
+- `libs/quickjs-runtime/src/lib/chess-library-reuse.spec.ts` bundles chess.js via `@blue-quickjs/deterministic-bundler`, evaluates with `executionProfile: "compat-regexp-v1"`, and asserts deterministic repeated gas.
+- `apps/smoke-node/src/lib/chess-library-reuse.spec.ts` validates chess bundling/evaluation in the Node smoke project.
+- `apps/smoke-web/chess-library-reuse.html`, `apps/smoke-web/src/chess-library-reuse.ts`, and `apps/smoke-web/tests/chess-library-reuse.spec.ts` provide browser execution and Node/browser parity checks for the chess fixture.
+
+---
+
 ## Appendix A — Minimal required ABI surface (v1)
 
 The initial manifest should define at least:

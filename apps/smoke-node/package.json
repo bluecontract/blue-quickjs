@@ -32,6 +32,7 @@
     }
   },
   "dependencies": {
+    "@blue-quickjs/deterministic-bundler": "workspace:*",
     "@blue-quickjs/dv": "workspace:*",
     "@blue-quickjs/quickjs-runtime": "workspace:*",
     "@blue-quickjs/test-harness": "workspace:*",

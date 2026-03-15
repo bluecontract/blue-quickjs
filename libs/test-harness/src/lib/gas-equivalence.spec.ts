@@ -198,6 +198,7 @@ let wasmInit:
       contextPtr: WasmPtr,
       contextLength: number,
       gasLimit: bigint,
+      featureFlags: number,
     ) => WasmPtr)
   | null = null;
 let wasmEval: ((code: string) => WasmPtr) | null = null;
@@ -228,6 +229,7 @@ beforeAll(async () => {
     ptrArgType,
     'number',
     'bigint',
+    'number',
   ]);
   wasmEval = wasmModule.cwrap('qjs_det_eval', ptrReturnType, ['string']);
   wasmFreeRuntime = wasmModule.cwrap('qjs_det_free', null, []);
@@ -285,6 +287,7 @@ function runWasm(code: string, gasLimit: bigint): DeterministicOutput {
       contextPtr,
       CONTEXT_BLOB.length,
       gasLimit,
+      0,
     );
     if (errorPtr !== 0) {
       const message = readCString(wasmModule, errorPtr);

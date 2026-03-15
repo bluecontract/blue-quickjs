@@ -14,6 +14,16 @@ Scope: capture the deterministic VM configuration required by Baseline #1 for bo
   - optionally copies a context blob (max 5 MiB) and installs ergonomic globals
   - sets the gas limit to `options.gas_limit`
 
+## Execution profiles
+
+`program.executionProfile` controls deterministic feature flags:
+
+- `baseline-v1` (default): canonical baseline restrictions.
+- `compat-regexp-v1`: baseline + deterministic RegExp compatibility.
+
+`compat-regexp-v1` only re-enables RegExp support. All other disabled surfaces
+remain disabled unless explicitly documented otherwise.
+
 ## Enabled intrinsics
 
 The deterministic init only loads these intrinsic sets:
@@ -32,7 +42,7 @@ The following globals or methods exist but throw the exact TypeError shown:
 - `eval(...)` -> `TypeError: eval is disabled in deterministic mode`
 - `Function(...)` -> `TypeError: Function is disabled in deterministic mode`
 - Function constructor paths (`Function.prototype.constructor`, arrow/generator constructors) -> `TypeError: Function constructor is disabled in deterministic mode`
-- `RegExp` and regex literals -> `TypeError: RegExp is disabled in deterministic mode`
+- `RegExp` and regex literals -> `TypeError: RegExp is disabled in deterministic mode` (**baseline-v1 only**)
 - `Proxy` -> `TypeError: Proxy is disabled in deterministic mode`
 - `Promise` and statics (`resolve`, `reject`, `all`, `race`, `any`, `allSettled`) -> `TypeError: Promise is disabled in deterministic mode`
 - `Math.random()` -> `TypeError: Math.random is disabled in deterministic mode`

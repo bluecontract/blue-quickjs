@@ -2,6 +2,7 @@ import { encodeAbiManifest } from '@blue-quickjs/abi-manifest';
 import { encodeDv } from '@blue-quickjs/dv';
 import type { QuickjsWasmModule } from './runtime.js';
 import {
+  type ExecutionProfile,
   type InputEnvelope,
   type ProgramArtifact,
   validateInputEnvelope,
@@ -19,6 +20,7 @@ type DetInitFn = (
   contextPtr: number,
   contextLength: number,
   gasLimit: bigint,
+  featureFlags: number,
 ) => number;
 
 type DetEvalFn = (code: string) => number;
@@ -48,6 +50,8 @@ export interface DeterministicVm {
   readGasTrace(): string;
   dispose(): void;
 }
+
+const DETERMINISTIC_FEATURE_REGEXP = 1 << 0;
 
 export function initializeDeterministicVm(
   runtime: RuntimeInstance,
@@ -85,6 +89,7 @@ export function initializeDeterministicVm(
       contextPtr,
       contextBlob.length,
       normalizedGasLimit,
+      executionProfileToFeatureFlags(validatedProgram.executionProfile),
     );
     if (errorPtr !== 0) {
       const message = readAndFreeCString(runtime.module, errorPtr);
@@ -161,6 +166,7 @@ function createDeterministicExports(
     'number',
     'number',
     'bigint',
+    'number',
   ]) as unknown as DetInitFn;
 
   const evalFn = module.cwrap('qjs_det_eval', 'number', [
@@ -228,6 +234,18 @@ function normalizeGasLimit(value: bigint | number): bigint {
   }
 
   return value;
+}
+
+function executionProfileToFeatureFlags(
+  profile?: ExecutionProfile,
+): number {
+  if (!profile || profile === 'baseline-v1') {
+    return 0;
+  }
+  if (profile === 'compat-regexp-v1') {
+    return DETERMINISTIC_FEATURE_REGEXP;
+  }
+  return 0;
 }
 
 function writeBytes(module: QuickjsWasmModule, data: Uint8Array): number {

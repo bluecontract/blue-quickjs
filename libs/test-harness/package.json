@@ -34,6 +34,7 @@
   "dependencies": {
     "@blue-quickjs/abi-manifest": "workspace:*",
     "@blue-quickjs/dv": "workspace:*",
+    "chess.js": "^1.4.0",
     "tslib": "^2.3.0"
   }
 }
