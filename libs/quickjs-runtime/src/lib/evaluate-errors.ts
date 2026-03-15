@@ -27,6 +27,13 @@ export type EvaluateVmErrorDetail =
       message: string;
     }
   | {
+      kind: 'execution-surface-mismatch';
+      code: 'EXECUTION_SURFACE_MISMATCH';
+      tag: 'vm/execution_surface';
+      name: string;
+      message: string;
+    }
+  | {
       kind: 'unknown';
       code: 'UNKNOWN';
       tag: 'vm/unknown';
@@ -75,6 +82,16 @@ export function mapVmError(
       code: deriveManifestErrorCode(normalizedMessage),
       tag: 'vm/manifest',
       message: detailMessage,
+    };
+  }
+
+  if (isExecutionSurfaceMismatch(name, normalizedMessage)) {
+    return {
+      kind: 'execution-surface-mismatch',
+      code: 'EXECUTION_SURFACE_MISMATCH',
+      tag: 'vm/execution_surface',
+      name: name || 'SyntaxError',
+      message: normalizedMessage,
     };
   }
 
@@ -149,4 +166,17 @@ function deriveManifestErrorCode(message: string): string {
     return 'ABI_MANIFEST_HASH_MISMATCH';
   }
   return 'MANIFEST_ERROR';
+}
+
+function isExecutionSurfaceMismatch(name: string, message: string): boolean {
+  if (name !== 'SyntaxError') {
+    return false;
+  }
+
+  const normalized = message.toLowerCase();
+  return (
+    normalized.includes('return not in a function') ||
+    normalized.includes('illegal return') ||
+    normalized.includes('return outside of function')
+  );
 }

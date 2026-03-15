@@ -22,6 +22,64 @@ const BASE_INPUT: InputEnvelope = {
 };
 
 describe('evaluate', () => {
+  it('evaluates raw script mode using final expression result', async () => {
+    const result = await evaluate({
+      program: { ...BASE_PROGRAM, code: 'const n = 2; n + 3' },
+      input: BASE_INPUT,
+      gasLimit: TEST_GAS_LIMIT,
+      manifest: HOST_V1_MANIFEST,
+      handlers: createHandlers(),
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error(result.message);
+    }
+    expect(result.value).toBe(5);
+  });
+
+  it('classifies top-level return as execution surface mismatch', async () => {
+    const result = await evaluate({
+      program: { ...BASE_PROGRAM, code: 'return 1' },
+      input: BASE_INPUT,
+      gasLimit: TEST_GAS_LIMIT,
+      manifest: HOST_V1_MANIFEST,
+      handlers: createHandlers(),
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      throw new Error('expected vm failure');
+    }
+    expect(result.type).toBe('vm-error');
+    expect(result.error.kind).toBe('execution-surface-mismatch');
+    expect(result.error.code).toBe('EXECUTION_SURFACE_MISMATCH');
+    expect(result.error.tag).toBe('vm/execution_surface');
+    expect(result.error.message).toMatch(/return/i);
+  });
+
+  it('supports emit side effects in raw script mode', async () => {
+    const handlers = createHandlers();
+    const result = await evaluate({
+      program: {
+        ...BASE_PROGRAM,
+        code: 'emit({ marker: "raw-script" }); ({ status: "ok" })',
+      },
+      input: BASE_INPUT,
+      gasLimit: TEST_GAS_LIMIT,
+      manifest: HOST_V1_MANIFEST,
+      handlers,
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error(result.message);
+    }
+    expect(result.value).toEqual({ status: 'ok' });
+    expect(handlers.emit).toHaveBeenCalledTimes(1);
+    expect(handlers.emit).toHaveBeenCalledWith({ marker: 'raw-script' });
+  });
+
   it('returns DV results with gas accounting', async () => {
     const handlers = createHandlers();
     const result = await evaluate({

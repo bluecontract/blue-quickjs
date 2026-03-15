@@ -131,6 +131,8 @@ Ergonomics and injected globals: [Determinism profile](./determinism-profile.md)
 
 The evaluator runs JS with deterministic gas metering enabled. The final return value must be DV-encodable, otherwise evaluation fails deterministically.
 
+Evaluation semantics in this repo are **raw script mode**: `program.code` is evaluated as a global script, the resulting value comes from the script’s final expression, and top-level `return` is invalid. `emit(...)` side effects are allowed through Host.v1 wrappers, but wrapper-specific conventions (for example function-body wrappers in external workflow engines) are out of scope for this evaluator.
+
 Return encoding details: [DV wire format](./dv-wire-format.md).  
 Evaluation API: [TypeScript SDK usage](./sdk.md).
 

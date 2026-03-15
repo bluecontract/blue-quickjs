@@ -72,6 +72,45 @@ console.log('gas used:', result.gasUsed.toString());
 console.log('gas remaining:', result.gasRemaining.toString());
 ```
 
+## Execution semantics (raw script mode)
+
+`blue-quickjs` evaluates `program.code` as a **raw global script**.
+
+- The result is the DV-encodable value of the script’s final expression.
+- Top-level `return` is invalid in this mode and fails deterministically.
+- Side effects can be emitted through `emit(value)` / `Host.v1.emit(value)`.
+
+Raw script with final expression:
+
+```ts
+const program = {
+  abiId: 'Host.v1',
+  abiVersion: 1,
+  abiManifestHash: '…',
+  code: `
+    const base = 40;
+    base + 2
+  `,
+};
+```
+
+Emit side effects plus explicit final result:
+
+```ts
+const program = {
+  abiId: 'Host.v1',
+  abiVersion: 1,
+  abiManifestHash: '…',
+  code: `
+    emit({ type: 'trace', step: 'start' });
+    ({ ok: true })
+  `,
+};
+```
+
+If your surrounding workflow uses function wrappers or custom return conventions,
+that wrapper behavior belongs to the embedder/orchestrator layer, not this evaluator.
+
 ### What you get back
 
 `evaluate()` returns a structured `EvaluateResult`:

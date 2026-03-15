@@ -1920,6 +1920,44 @@ Deterministic ABI entrypoints are available; wasm gas consumers have been migrat
 
 ---
 
+## Phase P9 — Execution surface semantics hardening
+
+### T-100: Clarify raw script evaluation semantics and regressions
+
+**Phase:** P9 – Execution surface semantics hardening  
+**Status:** DONE  
+**Depends on:** T-064, T-065, T-066
+
+**Goal:**  
+Make it unambiguous what `blue-quickjs` means by “evaluate code”, and lock the common `return` vs final-expression confusion with deterministic errors and tests.
+
+**Detailed tasks:**
+
+- [x] Update docs to define raw script mode clearly:
+  - [x] `program.code` is evaluated as a global script.
+  - [x] The final expression value is used as the result.
+  - [x] Top-level `return` is invalid in this repo’s execution mode.
+  - [x] `emit(...)` side effects are supported through Host.v1 wrappers.
+- [x] Add runtime error classification for execution-surface mismatches (`EXECUTION_SURFACE_MISMATCH`).
+- [x] Add regression tests for:
+  - [x] final-expression result in raw script mode,
+  - [x] top-level return mismatch classification,
+  - [x] emit side effects with explicit final result.
+
+**Acceptance criteria:**
+
+- [x] A single docs paragraph defines evaluator semantics unambiguously.
+- [x] `return` vs final-expression confusion is covered by automated regression tests.
+- [x] Runtime error surfaces distinguish execution-surface mismatch from generic JS exceptions and invalid-output failures.
+
+**Current state (P9 T-100):**
+
+- `docs/sdk.md` and `docs/implementation-summary.md` now explicitly document raw script semantics, final-expression results, top-level `return` behavior, and `emit` side effects.
+- `libs/quickjs-runtime/src/lib/evaluate-errors.ts` introduces `execution-surface-mismatch` mapping (`code: EXECUTION_SURFACE_MISMATCH`, `tag: vm/execution_surface`) for top-level return syntax errors.
+- `libs/quickjs-runtime/src/lib/evaluate.spec.ts` includes targeted regression coverage for raw script final expressions, top-level return mismatch, and emit side effects.
+
+---
+
 ## Appendix A — Minimal required ABI surface (v1)
 
 The initial manifest should define at least:
