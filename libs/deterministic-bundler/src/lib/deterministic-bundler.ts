@@ -103,6 +103,7 @@ export async function bundleDeterministicProgram(
     outfile: 'bundle.js',
     format: 'iife',
     platform: 'neutral',
+    mainFields: ['module', 'main'],
     target: 'es2020',
     globalName,
     legalComments: 'none',
@@ -346,7 +347,7 @@ function safeParseModule(
       ecmaVersion: 'latest',
       sourceType: 'module',
       allowHashBang: true,
-    }) as AstNode;
+    }) as unknown as AstNode;
     return { ok: true, ast };
   } catch (error) {
     return { ok: false, message: stringifyError(error) };

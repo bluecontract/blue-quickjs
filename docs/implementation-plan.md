@@ -2032,6 +2032,40 @@ Support real-world regex-dependent libraries (for example chess.js) without chan
 
 ---
 
+## Phase P12 — Chess.js deterministic reuse acceptance
+
+### T-130: Bundle chess.js and validate `e2e6` legality check
+
+**Phase:** P12 – Library reuse acceptance  
+**Status:** DONE  
+**Depends on:** T-110, T-120
+
+**Goal:**  
+Prove end-to-end third-party library reuse by bundling chess.js and evaluating whether `e2e6` is legal from the initial board position.
+
+**Detailed tasks:**
+
+- [x] Add chess fixture entry source under `libs/test-harness/fixtures/library-reuse/chess-entry.ts`.
+- [x] Add shared chess fixture constants for program/input/gas/manifest expectations.
+- [x] Add runtime-level test that bundles chess.js and evaluates the bundled code deterministically.
+- [x] Add smoke-node acceptance coverage for chess library reuse.
+- [x] Add smoke-web Playwright parity coverage comparing browser and Node outputs for the bundled chess fixture.
+
+**Acceptance criteria:**
+
+- [x] Chess.js is bundled into deterministic single-source code.
+- [x] Evaluated result for `e2e6` legality is `false`.
+- [x] Node/browser parity test passes for result and gas outputs.
+
+**Current state (P12 T-130):**
+
+- `@blue-quickjs/test-harness` now includes chess fixture assets/constants (`CHESS_LIBRARY_ENTRY_PATH`, expected result, gas/input/manifest defaults).
+- `libs/quickjs-runtime/src/lib/chess-library-reuse.spec.ts` bundles chess.js via `@blue-quickjs/deterministic-bundler`, evaluates with `executionProfile: "compat-regexp-v1"`, and asserts deterministic repeated gas.
+- `apps/smoke-node/src/lib/chess-library-reuse.spec.ts` validates chess bundling/evaluation in the Node smoke project.
+- `apps/smoke-web/chess-library-reuse.html`, `apps/smoke-web/src/chess-library-reuse.ts`, and `apps/smoke-web/tests/chess-library-reuse.spec.ts` provide browser execution and Node/browser parity checks for the chess fixture.
+
+---
+
 ## Appendix A — Minimal required ABI surface (v1)
 
 The initial manifest should define at least:

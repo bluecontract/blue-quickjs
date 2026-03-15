@@ -101,6 +101,9 @@ importers:
 
   apps/smoke-node:
     dependencies:
+      '@blue-quickjs/deterministic-bundler':
+        specifier: workspace:*
+        version: link:../../libs/deterministic-bundler
       '@blue-quickjs/dv':
         specifier: workspace:*
         version: link:../../libs/dv
@@ -116,6 +119,9 @@ importers:
 
   apps/smoke-web:
     dependencies:
+      '@blue-quickjs/deterministic-bundler':
+        specifier: workspace:*
+        version: link:../../libs/deterministic-bundler
       '@blue-quickjs/dv':
         specifier: workspace:*
         version: link:../../libs/dv
@@ -174,6 +180,9 @@ importers:
         specifier: ^2.3.0
         version: 2.8.1
     devDependencies:
+      '@blue-quickjs/deterministic-bundler':
+        specifier: workspace:*
+        version: link:../deterministic-bundler
       '@blue-quickjs/test-harness':
         specifier: workspace:*
         version: link:../test-harness
@@ -214,6 +223,9 @@ importers:
       '@blue-quickjs/dv':
         specifier: workspace:*
         version: link:../dv
+      chess.js:
+        specifier: ^1.4.0
+        version: 1.4.0
       tslib:
         specifier: ^2.3.0
         version: 2.8.1
@@ -2203,6 +2215,9 @@ packages:
   chalk@4.1.2:
     resolution: {integrity: sha512-oKnbhFyRIXpUuez8iBMmyEa4nbj4IOQyuhc/wy9kY7/WVPcwIO9VA668Pu8RkO7+0G76SLROeyw9CpQ061i4mA==}
     engines: {node: '>=10'}
+
+  chess.js@1.4.0:
+    resolution: {integrity: sha512-BBJgrrtKQOzFLonR0l+k64A98NLemPwNsCskwb+29bRwobUa4iTm51E1kwGPbWXAcfdDa18nad6vpPPKPWarqw==}
 
   chrome-trace-event@1.0.4:
     resolution: {integrity: sha512-rNjApaLzuwaOTjCiT8lSDdGN1APCiqkChLMJxJPWLunPAt5fy8xgU9/jNOchV84wfIxrA0lRQB7oCT8jrn/wrQ==}
@@ -6585,6 +6600,8 @@ snapshots:
     dependencies:
       ansi-styles: 4.3.0
       supports-color: 7.2.0
+
+  chess.js@1.4.0: {}
 
   chrome-trace-event@1.0.4: {}
 

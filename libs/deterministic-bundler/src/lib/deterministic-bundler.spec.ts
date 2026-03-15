@@ -78,6 +78,27 @@ describe('bundleDeterministicProgram', () => {
     expect(bundled.meta.compatibility.ok).toBe(true);
     expect(bundled.meta.profile).toBe('compat-regexp-v1');
   });
+
+  it('bundles chess.js fixture only under compat-regexp profile', async () => {
+    const workspaceRoot = path.resolve(process.cwd(), '../..');
+
+    await expect(
+      bundleDeterministicProgram({
+        absWorkingDir: workspaceRoot,
+        entryPath: 'libs/test-harness/fixtures/library-reuse/chess-entry.ts',
+      }),
+    ).rejects.toBeInstanceOf(DeterministicBundlerError);
+
+    const bundled = await bundleDeterministicProgram({
+      absWorkingDir: workspaceRoot,
+      entryPath: 'libs/test-harness/fixtures/library-reuse/chess-entry.ts',
+      profile: 'compat-regexp-v1',
+    });
+
+    expect(bundled.meta.compatibility.ok).toBe(true);
+    expect(bundled.contentHash).toMatch(/^[0-9a-f]{64}$/);
+    expect(bundled.code.length).toBeGreaterThan(1000);
+  });
 });
 
 describe('scanCompatibility', () => {

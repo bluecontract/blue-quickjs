@@ -22,6 +22,9 @@
     },
     {
       "path": "../test-harness/tsconfig.lib.json"
+    },
+    {
+      "path": "../deterministic-bundler/tsconfig.lib.json"
     }
   ],
   "exclude": [
