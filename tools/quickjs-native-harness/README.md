@@ -13,6 +13,12 @@ Minimal native harness for the QuickJS fork. Builds a standalone binary that eva
   `--context-blob-hex <hex>` can be provided for future context blobs.
 - Execution profile: `--execution-profile baseline-v1|compat-regexp-v1|compat-general-v1|compat-binary-v1`
   selects deterministic feature flags for initialization (`baseline-v1` is the default).
+- Module-pack eval: `--module-entry-specifier <specifier>` plus either
+  `--module-pack-json "<json-array>"` or `--module-pack-file <path>` executes
+  deterministic static ESM module packs; `--module-entry-export <name>` selects
+  the exported binding (defaults to `default`).
+- Tape reporting: `--report-tape` appends host tape JSON (`TAPE [...]`) to
+  output lines for parity checks.
 - SHA helper: `--sha256-hex <hex>` prints the SHA-256 digest for the provided hex bytes (handy for
   cross-checking vectors).
 

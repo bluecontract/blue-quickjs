@@ -197,6 +197,34 @@ export const MODULE_PACK_FIXTURES: ModulePackFixture[] = [
     },
   },
   {
+    name: 'module-pack-host-call-tape',
+    program: {
+      ...MODULE_PACK_BASE,
+      source: {
+        modulePack: createModulePack({
+          entrySpecifier: './entry.js',
+          graphHash:
+            '2cad30ee71aa78376357c526292004b4efc4864af0c93b0196a84a8e2730e67d',
+          modules: [
+            {
+              specifier: './entry.js',
+              source:
+                "globalThis.Host.v1.emit({ kind: 'module-pack', path: 'path/to/module-pack-doc' });\nexport default { path: 'path/to/module-pack-doc', len: 23 };\n",
+            },
+          ],
+        }),
+      },
+    },
+    input: DETERMINISM_INPUT,
+    gasLimit: DETERMINISM_GAS_LIMIT,
+    manifest: HOST_V1_MANIFEST,
+    createHost: createDeterminismHost,
+    expected: {
+      ok: true,
+      value: { path: 'path/to/module-pack-doc', len: 23 },
+    },
+  },
+  {
     name: 'module-pack-missing-entry-specifier',
     program: {
       ...MODULE_PACK_BASE,

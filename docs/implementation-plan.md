@@ -2207,7 +2207,7 @@ bridge toward first-class module-pack execution.
 - [x] Add test coverage for ProgramArtifact.v2 script execution.
 - [x] Implement in-memory deterministic module loader for `ModulePack.v1`.
 - [x] Execute module entry and selected export in runtime (not script bridge).
-- [ ] Add module-pack parity fixtures (node/browser/native result+gas+tape).
+- [x] Add module-pack parity fixtures (node/browser/native result+gas+tape).
 
 **Current state (P15 T-160):**
 
@@ -2232,8 +2232,11 @@ bridge toward first-class module-pack execution.
   - `apps/smoke-web/module-pack-fixtures.html`
   - `apps/smoke-web/src/module-pack-fixtures.ts`
   - `apps/smoke-web/tests/module-pack-fixtures.spec.ts`
-- Remaining P15 parity work: extend the same module-pack fixture matrix to
-  explicit native harness parity assertions (result + gas + tape).
+- Added native parity assertion suite for module-pack fixtures:
+  - `tools/quickjs-native-harness/scripts/module-pack-parity.mjs`
+  - wired into `tools/quickjs-native-harness/scripts/test.sh`
+  - enforces native fixture baselines for result hash, error code/tag,
+    gas used/remaining, and tape hash/length (including host-call tape case).
 
 ---
 

@@ -3,6 +3,7 @@
 #include "quickjs-internal.h"
 #include <errno.h>
 #include <inttypes.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -27,9 +28,14 @@ typedef struct {
 
 typedef struct {
   const char *code;
+  const char *module_pack_json;
+  const char *module_pack_file;
+  const char *module_entry_specifier;
+  const char *module_entry_export;
   uint64_t gas_limit;
   int report_gas;
   int report_trace;
+  int report_tape;
   const char *dump_global;
   int dv_encode;
   const char *dv_decode_hex;
@@ -61,9 +67,21 @@ typedef struct {
   size_t count;
 } HostErrorTable;
 
+typedef struct {
+  char *specifier;
+  char *source;
+  size_t source_len;
+} ModulePackEntry;
+
+typedef struct {
+  ModulePackEntry *entries;
+  uint32_t entry_count;
+} ModulePack;
+
 static int print_exception(JSContext *ctx, const HarnessOptions *options);
 static void free_runtime(HarnessRuntime *runtime);
 static int run_sha256(const HarnessOptions *options);
+static int eval_module_pack(HarnessRuntime *runtime, const HarnessOptions *options);
 
 static uint32_t deterministic_feature_flags_for_profile(const char *profile) {
   if (!profile || strcmp(profile, "baseline-v1") == 0) {
@@ -148,6 +166,269 @@ static int parse_hex_string(const char *hex, uint8_t **out, size_t *out_len) {
   *out = buf;
   *out_len = byte_len;
   return 0;
+}
+
+static char *copy_cstring_len(const char *value, size_t length) {
+  char *out = malloc(length + 1);
+  if (!out) {
+    return NULL;
+  }
+  memcpy(out, value, length);
+  out[length] = '\0';
+  return out;
+}
+
+static char *hex_bytes(const uint8_t *bytes, size_t length) {
+  static const char *HEX = "0123456789abcdef";
+  char *out;
+
+  if (length > 0 && !bytes) {
+    return NULL;
+  }
+
+  out = malloc((length * 2) + 1);
+  if (!out) {
+    return NULL;
+  }
+
+  for (size_t i = 0; i < length; i++) {
+    out[i * 2] = HEX[(bytes[i] >> 4) & 0x0f];
+    out[i * 2 + 1] = HEX[bytes[i] & 0x0f];
+  }
+  out[length * 2] = '\0';
+  return out;
+}
+
+static int js_set_prop(JSContext *ctx, JSValue obj, const char *name, JSValue val) {
+  if (JS_IsException(val)) {
+    return -1;
+  }
+  if (JS_DefinePropertyValueStr(ctx, obj, name, val, JS_PROP_C_W_E) < 0) {
+    JS_FreeValue(ctx, val);
+    return -1;
+  }
+  return 0;
+}
+
+static void free_module_pack(ModulePack *pack) {
+  if (!pack) {
+    return;
+  }
+
+  if (pack->entries) {
+    for (uint32_t i = 0; i < pack->entry_count; i++) {
+      free(pack->entries[i].specifier);
+      free(pack->entries[i].source);
+    }
+    free(pack->entries);
+  }
+  pack->entries = NULL;
+  pack->entry_count = 0;
+}
+
+static ModulePackEntry *find_module_pack_entry(ModulePack *pack, const char *specifier) {
+  if (!pack || !specifier) {
+    return NULL;
+  }
+
+  for (uint32_t i = 0; i < pack->entry_count; i++) {
+    if (strcmp(pack->entries[i].specifier, specifier) == 0) {
+      return &pack->entries[i];
+    }
+  }
+  return NULL;
+}
+
+static int parse_module_pack_json(JSContext *ctx, const char *module_pack_json, ModulePack *out_pack) {
+  JSValue parsed = JS_UNDEFINED;
+  JSValue length_value = JS_UNDEFINED;
+  uint32_t module_count = 0;
+
+  memset(out_pack, 0, sizeof(*out_pack));
+
+  parsed = JS_ParseJSON(ctx, module_pack_json, strlen(module_pack_json), "<module-pack>");
+  if (JS_IsException(parsed)) {
+    goto fail;
+  }
+
+  if (!JS_IsArray(ctx, parsed)) {
+    JS_ThrowTypeError(ctx, "module pack json must be an array");
+    goto fail;
+  }
+
+  length_value = JS_GetPropertyStr(ctx, parsed, "length");
+  if (JS_IsException(length_value)) {
+    goto fail;
+  }
+
+  if (JS_ToUint32(ctx, &module_count, length_value) != 0) {
+    goto fail;
+  }
+  JS_FreeValue(ctx, length_value);
+  length_value = JS_UNDEFINED;
+
+  if (module_count == 0) {
+    JS_ThrowTypeError(ctx, "module pack must contain at least one module");
+    goto fail;
+  }
+
+  out_pack->entries = calloc(module_count, sizeof(*out_pack->entries));
+  if (!out_pack->entries) {
+    JS_ThrowOutOfMemory(ctx);
+    goto fail;
+  }
+  out_pack->entry_count = module_count;
+
+  for (uint32_t i = 0; i < module_count; i++) {
+    JSValue item = JS_GetPropertyUint32(ctx, parsed, i);
+    JSValue specifier_value = JS_UNDEFINED;
+    JSValue source_value = JS_UNDEFINED;
+    const char *specifier_cstr = NULL;
+    const char *source_cstr = NULL;
+    size_t source_len = 0;
+
+    if (JS_IsException(item)) {
+      goto fail;
+    }
+    if (!JS_IsObject(item)) {
+      JS_FreeValue(ctx, item);
+      JS_ThrowTypeError(ctx, "module pack entry must be an object");
+      goto fail;
+    }
+
+    specifier_value = JS_GetPropertyStr(ctx, item, "specifier");
+    source_value = JS_GetPropertyStr(ctx, item, "source");
+    if (JS_IsException(specifier_value) || JS_IsException(source_value)) {
+      JS_FreeValue(ctx, specifier_value);
+      JS_FreeValue(ctx, source_value);
+      JS_FreeValue(ctx, item);
+      goto fail;
+    }
+
+    specifier_cstr = JS_ToCString(ctx, specifier_value);
+    source_cstr = JS_ToCStringLen(ctx, &source_len, source_value);
+    if (!specifier_cstr || !source_cstr) {
+      JS_FreeCString(ctx, specifier_cstr);
+      JS_FreeCString(ctx, source_cstr);
+      JS_FreeValue(ctx, specifier_value);
+      JS_FreeValue(ctx, source_value);
+      JS_FreeValue(ctx, item);
+      goto fail;
+    }
+
+    out_pack->entries[i].specifier = copy_cstring_len(specifier_cstr, strlen(specifier_cstr));
+    out_pack->entries[i].source = copy_cstring_len(source_cstr, source_len);
+    out_pack->entries[i].source_len = source_len;
+
+    JS_FreeCString(ctx, specifier_cstr);
+    JS_FreeCString(ctx, source_cstr);
+    JS_FreeValue(ctx, specifier_value);
+    JS_FreeValue(ctx, source_value);
+    JS_FreeValue(ctx, item);
+
+    if (!out_pack->entries[i].specifier || !out_pack->entries[i].source) {
+      JS_ThrowOutOfMemory(ctx);
+      goto fail;
+    }
+  }
+
+  JS_FreeValue(ctx, parsed);
+  return 0;
+
+fail:
+  if (!JS_IsUndefined(length_value)) {
+    JS_FreeValue(ctx, length_value);
+  }
+  if (!JS_IsUndefined(parsed)) {
+    JS_FreeValue(ctx, parsed);
+  }
+  free_module_pack(out_pack);
+  return -1;
+}
+
+static JSModuleDef *module_pack_loader(JSContext *ctx,
+                                       const char *module_name,
+                                       void *opaque,
+                                       JSValueConst attributes) {
+  ModulePack *pack = (ModulePack *)opaque;
+  ModulePackEntry *entry = find_module_pack_entry(pack, module_name);
+  JSValue module_obj = JS_UNDEFINED;
+
+  (void)attributes;
+
+  if (!entry) {
+    JS_ThrowReferenceError(ctx, "ModuleResolutionError: module specifier not found: %s", module_name);
+    return NULL;
+  }
+
+  module_obj = JS_Eval(ctx,
+                       entry->source,
+                       entry->source_len,
+                       entry->specifier,
+                       JS_EVAL_TYPE_MODULE | JS_EVAL_FLAG_COMPILE_ONLY);
+  if (JS_IsException(module_obj)) {
+    return NULL;
+  }
+
+  JSModuleDef *module_def = (JSModuleDef *)JS_VALUE_GET_PTR(module_obj);
+  JS_FreeValue(ctx, module_obj);
+  return module_def;
+}
+
+static char *escape_js_string(const char *input) {
+  size_t needed = 2;
+  for (const unsigned char *p = (const unsigned char *)input; *p; p++) {
+    switch (*p) {
+    case '\\':
+    case '"':
+    case '\n':
+    case '\r':
+    case '\t':
+      needed += 2;
+      break;
+    default:
+      needed += 1;
+      break;
+    }
+  }
+
+  char *out = malloc(needed + 1);
+  if (!out) {
+    return NULL;
+  }
+
+  char *cursor = out;
+  *cursor++ = '"';
+  for (const unsigned char *p = (const unsigned char *)input; *p; p++) {
+    switch (*p) {
+    case '\\':
+      *cursor++ = '\\';
+      *cursor++ = '\\';
+      break;
+    case '"':
+      *cursor++ = '\\';
+      *cursor++ = '"';
+      break;
+    case '\n':
+      *cursor++ = '\\';
+      *cursor++ = 'n';
+      break;
+    case '\r':
+      *cursor++ = '\\';
+      *cursor++ = 'r';
+      break;
+    case '\t':
+      *cursor++ = '\\';
+      *cursor++ = 't';
+      break;
+    default:
+      *cursor++ = (char)*p;
+      break;
+    }
+  }
+  *cursor++ = '"';
+  *cursor = '\0';
+  return out;
 }
 
 static void free_default_host_errors(JSContext *ctx, HostErrorTable *table) {
@@ -395,6 +676,31 @@ static char *read_file_to_string(const char *path) {
   fclose(file);
   buffer[read_bytes] = '\0';
   return buffer;
+}
+
+static char *dup_printf(const char *fmt, ...) {
+  va_list args;
+  va_start(args, fmt);
+  int needed = vsnprintf(NULL, 0, fmt, args);
+  va_end(args);
+  if (needed < 0) {
+    return NULL;
+  }
+
+  char *out = malloc((size_t)needed + 1);
+  if (!out) {
+    return NULL;
+  }
+
+  va_start(args, fmt);
+  int written = vsnprintf(out, (size_t)needed + 1, fmt, args);
+  va_end(args);
+  if (written < 0) {
+    free(out);
+    return NULL;
+  }
+
+  return out;
 }
 
 static void print_hex_buffer(const uint8_t *data, size_t len) {
@@ -659,6 +965,123 @@ static void print_trace_suffix(const HarnessOptions *options, const HarnessSnaps
   fputc('}', stdout);
 }
 
+static void print_tape_suffix(JSContext *ctx, const HarnessOptions *options) {
+  if (!options->report_tape) {
+    return;
+  }
+
+  JSHostTapeRecord *records = NULL;
+  size_t count = JS_GetHostTapeLength(ctx);
+  size_t to_read = 0;
+  JSValue arr = JS_UNDEFINED;
+  JSValue json = JS_UNDEFINED;
+  const char *json_str = NULL;
+  int wrote = 0;
+
+  if (count == 0) {
+    fprintf(stdout, " TAPE []");
+    return;
+  }
+
+  to_read = count > JS_HOST_TAPE_MAX_CAPACITY ? JS_HOST_TAPE_MAX_CAPACITY : count;
+  records = js_mallocz(ctx, sizeof(JSHostTapeRecord) * to_read);
+  if (!records) {
+    goto done;
+  }
+
+  if (JS_ReadHostTape(ctx, records, to_read, &count) != 0) {
+    goto done;
+  }
+
+  arr = JS_NewArray(ctx);
+  if (JS_IsException(arr)) {
+    goto done;
+  }
+
+  for (size_t i = 0; i < count; i++) {
+    JSValue obj = JS_NewObjectProto(ctx, JS_NULL);
+    char *req_hex = NULL;
+    char *resp_hex = NULL;
+    char gas_pre_buf[32];
+    char gas_post_buf[32];
+
+    if (JS_IsException(obj)) {
+      JS_FreeValue(ctx, obj);
+      goto done;
+    }
+
+    if (js_set_prop(ctx, obj, "fnId", JS_NewUint32(ctx, records[i].fn_id)) < 0 ||
+        js_set_prop(ctx, obj, "reqLen", JS_NewUint32(ctx, records[i].req_len)) < 0 ||
+        js_set_prop(ctx, obj, "respLen", JS_NewUint32(ctx, records[i].resp_len)) < 0 ||
+        js_set_prop(ctx, obj, "units", JS_NewUint32(ctx, records[i].units)) < 0) {
+      JS_FreeValue(ctx, obj);
+      goto done;
+    }
+
+    snprintf(gas_pre_buf, sizeof(gas_pre_buf), "%" PRIu64, records[i].gas_pre);
+    snprintf(gas_post_buf, sizeof(gas_post_buf), "%" PRIu64, records[i].gas_post);
+    if (js_set_prop(ctx, obj, "gasPre", JS_NewString(ctx, gas_pre_buf)) < 0 ||
+        js_set_prop(ctx, obj, "gasPost", JS_NewString(ctx, gas_post_buf)) < 0 ||
+        js_set_prop(ctx, obj, "isError", JS_NewBool(ctx, records[i].is_error)) < 0 ||
+        js_set_prop(ctx, obj, "chargeFailed", JS_NewBool(ctx, records[i].charge_failed)) < 0) {
+      JS_FreeValue(ctx, obj);
+      goto done;
+    }
+
+    req_hex = hex_bytes(records[i].req_hash, sizeof(records[i].req_hash));
+    resp_hex = hex_bytes(records[i].resp_hash, sizeof(records[i].resp_hash));
+    if (!req_hex || !resp_hex) {
+      free(req_hex);
+      free(resp_hex);
+      JS_FreeValue(ctx, obj);
+      goto done;
+    }
+
+    if (js_set_prop(ctx, obj, "reqHash", JS_NewString(ctx, req_hex)) < 0 ||
+        js_set_prop(ctx, obj, "respHash", JS_NewString(ctx, resp_hex)) < 0) {
+      free(req_hex);
+      free(resp_hex);
+      JS_FreeValue(ctx, obj);
+      goto done;
+    }
+    free(req_hex);
+    free(resp_hex);
+
+    if (JS_SetPropertyUint32(ctx, arr, (uint32_t)i, obj) < 0) {
+      JS_FreeValue(ctx, obj);
+      goto done;
+    }
+  }
+
+  json = JS_JSONStringify(ctx, arr, JS_UNDEFINED, JS_UNDEFINED);
+  if (JS_IsException(json)) {
+    goto done;
+  }
+
+  json_str = JS_ToCString(ctx, json);
+  if (!json_str) {
+    goto done;
+  }
+
+  fprintf(stdout, " TAPE %s", json_str);
+  wrote = 1;
+  JS_FreeCString(ctx, json_str);
+
+done:
+  if (records) {
+    js_free(ctx, records);
+  }
+  if (!JS_IsUndefined(arr)) {
+    JS_FreeValue(ctx, arr);
+  }
+  if (!JS_IsUndefined(json)) {
+    JS_FreeValue(ctx, json);
+  }
+  if (!wrote) {
+    fprintf(stdout, " TAPE []");
+  }
+}
+
 static int print_exception(JSContext *ctx, const HarnessOptions *options) {
   HarnessSnapshot snapshot = {0};
   JSValue exception = JS_GetException(ctx);
@@ -670,6 +1093,7 @@ static int print_exception(JSContext *ctx, const HarnessOptions *options) {
     print_gas_suffix(options, &snapshot);
     print_state_suffix(ctx, options);
     print_trace_suffix(options, &snapshot);
+    print_tape_suffix(ctx, options);
     fprintf(stdout, "\n");
     JS_FreeCString(ctx, msg);
   } else {
@@ -677,6 +1101,7 @@ static int print_exception(JSContext *ctx, const HarnessOptions *options) {
     print_gas_suffix(options, &snapshot);
     print_state_suffix(ctx, options);
     print_trace_suffix(options, &snapshot);
+    print_tape_suffix(ctx, options);
     fprintf(stdout, "\n");
   }
   JS_FreeValue(ctx, exception);
@@ -896,6 +1321,7 @@ static int run_host_call(HarnessRuntime *runtime, const HarnessOptions *options)
       print_gas_suffix(options, &snapshot);
       print_state_suffix(runtime->ctx, options);
       print_trace_suffix(options, &snapshot);
+      print_tape_suffix(runtime->ctx, options);
       fprintf(stdout, "\n");
       return 1;
     }
@@ -908,6 +1334,7 @@ static int run_host_call(HarnessRuntime *runtime, const HarnessOptions *options)
     print_gas_suffix(options, &snapshot);
     print_state_suffix(runtime->ctx, options);
     print_trace_suffix(options, &snapshot);
+    print_tape_suffix(runtime->ctx, options);
     fprintf(stdout, "\n");
     free(req_bytes);
     return 0;
@@ -922,6 +1349,7 @@ static int run_host_call(HarnessRuntime *runtime, const HarnessOptions *options)
   print_gas_suffix(options, &snapshot);
   print_state_suffix(runtime->ctx, options);
   print_trace_suffix(options, &snapshot);
+  print_tape_suffix(runtime->ctx, options);
   fprintf(stdout, "\n");
 
   free(req_bytes);
@@ -972,6 +1400,7 @@ static int eval_source(JSContext *ctx, const char *code, const HarnessOptions *o
   print_gas_suffix(options, &snapshot);
   print_state_suffix(ctx, options);
   print_trace_suffix(options, &snapshot);
+  print_tape_suffix(ctx, options);
   fprintf(stdout, "\n");
 
   JS_FreeCString(ctx, json_str);
@@ -979,14 +1408,226 @@ static int eval_source(JSContext *ctx, const char *code, const HarnessOptions *o
   return 0;
 }
 
+static int eval_module_pack(HarnessRuntime *runtime, const HarnessOptions *options) {
+  JSContext *ctx = runtime->ctx;
+  JSRuntime *rt = runtime->rt;
+  ModulePack pack = {0};
+  JSValue module_eval = JS_UNDEFINED;
+  JSValue global_obj = JS_UNDEFINED;
+  JSValue export_value = JS_UNDEFINED;
+  JSValue decoded_result = JS_UNDEFINED;
+  JSValue json = JS_UNDEFINED;
+  JSDvBuffer dv = {0};
+  char *module_pack_from_file = NULL;
+  const char *module_pack_json = options->module_pack_json;
+  const char *entry_specifier = options->module_entry_specifier;
+  const char *target_export = NULL;
+  const char *json_str = NULL;
+  char *entry_specifier_escaped = NULL;
+  char *entry_export_escaped = NULL;
+  char *wrapper_source = NULL;
+  JSAtom result_atom = JS_ATOM_NULL;
+  const char *result_global_name = "__blue_module_pack_result";
+  int rc = 1;
+
+  if (options->module_pack_file) {
+    module_pack_from_file = read_file_to_string(options->module_pack_file);
+    if (!module_pack_from_file) {
+      return 1;
+    }
+    module_pack_json = module_pack_from_file;
+  }
+
+  target_export = (options->module_entry_export && options->module_entry_export[0] != '\0')
+                      ? options->module_entry_export
+                      : "default";
+
+  if (run_gc_checkpoint(ctx, options) != 0) {
+    rc = 1;
+    goto cleanup;
+  }
+
+  if (!module_pack_json || module_pack_json[0] == '\0') {
+    JS_ThrowReferenceError(ctx, "ModuleEvaluationError: empty module pack json");
+    goto cleanup;
+  }
+
+  if (!entry_specifier || entry_specifier[0] == '\0') {
+    JS_ThrowReferenceError(ctx, "ModuleSpecifierNotFound: empty entry specifier");
+    goto cleanup;
+  }
+
+  if (parse_module_pack_json(ctx, module_pack_json, &pack) != 0) {
+    goto cleanup;
+  }
+
+  if (!find_module_pack_entry(&pack, entry_specifier)) {
+    JS_ThrowReferenceError(ctx, "ModuleSpecifierNotFound: entry module not found");
+    goto cleanup;
+  }
+
+  if (JS_AddIntrinsicPromise(ctx) != 0) {
+    goto cleanup;
+  }
+
+  JS_SetModuleLoaderFunc2(rt, NULL, module_pack_loader, NULL, &pack);
+
+  entry_specifier_escaped = escape_js_string(entry_specifier);
+  entry_export_escaped = escape_js_string(target_export);
+  if (!entry_specifier_escaped || !entry_export_escaped) {
+    JS_ThrowOutOfMemory(ctx);
+    goto cleanup;
+  }
+
+  wrapper_source = dup_printf(
+      "import * as __blue_entry_ns from %s;\n"
+      "if (typeof __blue_entry_ns[%s] === 'undefined') {\n"
+      "  throw new Error('ModuleExportMissing: export not found');\n"
+      "}\n"
+      "globalThis.%s = __blue_entry_ns[%s];\n",
+      entry_specifier_escaped,
+      entry_export_escaped,
+      result_global_name,
+      entry_export_escaped);
+  if (!wrapper_source) {
+    JS_ThrowOutOfMemory(ctx);
+    goto cleanup;
+  }
+
+  module_eval = JS_Eval(ctx,
+                        wrapper_source,
+                        strlen(wrapper_source),
+                        "./__module_pack_entry__.js",
+                        JS_EVAL_TYPE_MODULE);
+  if (JS_IsException(module_eval)) {
+    goto cleanup;
+  }
+
+  global_obj = JS_GetGlobalObject(ctx);
+  if (JS_IsException(global_obj)) {
+    goto cleanup;
+  }
+
+  export_value = JS_GetPropertyStr(ctx, global_obj, result_global_name);
+  if (JS_IsException(export_value)) {
+    goto cleanup;
+  }
+  if (JS_IsUndefined(export_value)) {
+    JS_ThrowReferenceError(ctx, "ModuleExportMissing: export not found");
+    goto cleanup;
+  }
+
+  result_atom = JS_NewAtom(ctx, result_global_name);
+  if (result_atom != JS_ATOM_NULL) {
+    JS_DeleteProperty(ctx, global_obj, result_atom, 0);
+  }
+
+  if (JS_EncodeDV(ctx, export_value, NULL, &dv) != 0) {
+    goto cleanup;
+  }
+
+  if (run_gc_checkpoint(ctx, options) != 0) {
+    rc = 1;
+    goto cleanup;
+  }
+
+  HarnessSnapshot snapshot = {0};
+  capture_snapshot(ctx, options, &snapshot);
+  disable_gas_metering(ctx);
+
+  decoded_result = JS_DecodeDV(ctx, dv.data, dv.length, NULL);
+  if (JS_IsException(decoded_result)) {
+    goto cleanup;
+  }
+
+  json = JS_JSONStringify(ctx, decoded_result, JS_UNDEFINED, JS_UNDEFINED);
+  if (JS_IsException(json)) {
+    goto cleanup;
+  }
+
+  json_str = JS_ToCString(ctx, json);
+  if (!json_str) {
+    fprintf(stdout, "ERROR <stringify>");
+    print_gas_suffix(options, &snapshot);
+    print_state_suffix(ctx, options);
+    print_trace_suffix(options, &snapshot);
+    print_tape_suffix(ctx, options);
+    fprintf(stdout, "\n");
+    rc = 1;
+    goto cleanup;
+  }
+
+  fprintf(stdout, "RESULT %s", json_str);
+  print_gas_suffix(options, &snapshot);
+  print_state_suffix(ctx, options);
+  print_trace_suffix(options, &snapshot);
+  print_tape_suffix(ctx, options);
+  fprintf(stdout, "\n");
+  rc = 0;
+
+cleanup:
+  if (json_str) {
+    JS_FreeCString(ctx, json_str);
+  }
+  if (!JS_IsUndefined(json)) {
+    JS_FreeValue(ctx, json);
+  }
+  if (!JS_IsUndefined(decoded_result)) {
+    JS_FreeValue(ctx, decoded_result);
+  }
+  if (dv.data) {
+    JS_FreeDVBuffer(ctx, &dv);
+  }
+
+  JS_SetModuleLoaderFunc2(rt, NULL, NULL, NULL, NULL);
+  if (result_atom != JS_ATOM_NULL) {
+    JS_FreeAtom(ctx, result_atom);
+  }
+
+  if (!JS_IsUndefined(export_value)) {
+    JS_FreeValue(ctx, export_value);
+  }
+  if (!JS_IsUndefined(global_obj)) {
+    JS_FreeValue(ctx, global_obj);
+  }
+  if (!JS_IsUndefined(module_eval)) {
+    JS_FreeValue(ctx, module_eval);
+  }
+
+  if (wrapper_source) {
+    free(wrapper_source);
+  }
+  if (entry_specifier_escaped) {
+    free(entry_specifier_escaped);
+  }
+  if (entry_export_escaped) {
+    free(entry_export_escaped);
+  }
+
+  JS_FreeContextLoadedModules(ctx);
+  free_module_pack(&pack);
+  free(module_pack_from_file);
+
+  if (rc != 0) {
+    if (!JS_HasException(ctx)) {
+      JS_ThrowInternalError(ctx, "ModuleEvaluationError: module-pack execution failed");
+    }
+    return print_exception(ctx, options);
+  }
+
+  return 0;
+}
+
 static void print_usage(const char *prog) {
   fprintf(stderr,
           "Usage:\n"
-          "  %s [--gas-limit <u64>] [--report-gas] [--gas-trace] [--dump-global <name>] [--execution-profile <baseline-v1|compat-regexp-v1|compat-general-v1|compat-binary-v1>] [--abi-manifest-hex <hex> | --abi-manifest-hex-file <path>] [--abi-manifest-hash <hex>] [--context-blob-hex <hex>] --eval \"<js-source>\"\n"
+          "  %s [--gas-limit <u64>] [--report-gas] [--report-tape] [--gas-trace] [--dump-global <name>] [--execution-profile <baseline-v1|compat-regexp-v1|compat-general-v1|compat-binary-v1>] [--abi-manifest-hex <hex> | --abi-manifest-hex-file <path>] [--abi-manifest-hash <hex>] [--context-blob-hex <hex>] --eval \"<js-source>\"\n"
+          "  %s [--gas-limit <u64>] [--report-gas] [--report-tape] [--gas-trace] [--execution-profile <baseline-v1|compat-regexp-v1|compat-general-v1|compat-binary-v1>] [--abi-manifest-hex <hex> | --abi-manifest-hex-file <path>] [--abi-manifest-hash <hex>] --module-entry-specifier <specifier> [--module-entry-export <name>] (--module-pack-json \"<json>\" | --module-pack-file <path>)\n"
           "  %s --dv-encode --eval \"<js-source>\"\n"
           "  %s --dv-decode <hex-string>\n"
-          "  %s --host-call <hex-string> [--host-fn-id <u32>] [--host-max-request <u32>] [--host-max-response <u32>] [--host-max-units <u32>] [--host-parse-envelope] [--host-reentrant] [--host-exception] [--gas-limit <u64>] [--report-gas] [--gas-trace] [--execution-profile <baseline-v1|compat-regexp-v1|compat-general-v1|compat-binary-v1>] [--abi-manifest-hex <hex> | --abi-manifest-hex-file <path>] [--abi-manifest-hash <hex>] [--context-blob-hex <hex>]\n"
+          "  %s --host-call <hex-string> [--host-fn-id <u32>] [--host-max-request <u32>] [--host-max-response <u32>] [--host-max-units <u32>] [--host-parse-envelope] [--host-reentrant] [--host-exception] [--gas-limit <u64>] [--report-gas] [--report-tape] [--gas-trace] [--execution-profile <baseline-v1|compat-regexp-v1|compat-general-v1|compat-binary-v1>] [--abi-manifest-hex <hex> | --abi-manifest-hex-file <path>] [--abi-manifest-hash <hex>] [--context-blob-hex <hex>]\n"
           "  %s --sha256-hex <hex-string>\n",
+          prog,
           prog,
           prog,
           prog,
@@ -996,9 +1637,14 @@ static void print_usage(const char *prog) {
 
 static int parse_args(int argc, char **argv, HarnessOptions *opts) {
   opts->code = NULL;
+  opts->module_pack_json = NULL;
+  opts->module_pack_file = NULL;
+  opts->module_entry_specifier = NULL;
+  opts->module_entry_export = NULL;
   opts->gas_limit = JS_GAS_UNLIMITED;
   opts->report_gas = 0;
   opts->report_trace = 0;
+  opts->report_tape = 0;
   opts->dump_global = NULL;
   opts->dv_encode = 0;
   opts->dv_decode_hex = NULL;
@@ -1047,6 +1693,11 @@ static int parse_args(int argc, char **argv, HarnessOptions *opts) {
 
     if (strcmp(argv[i], "--report-gas") == 0) {
       opts->report_gas = 1;
+      continue;
+    }
+
+    if (strcmp(argv[i], "--report-tape") == 0) {
+      opts->report_tape = 1;
       continue;
     }
 
@@ -1129,6 +1780,42 @@ static int parse_args(int argc, char **argv, HarnessOptions *opts) {
         return 2;
       }
       opts->dump_global = argv[++i];
+      continue;
+    }
+
+    if (strcmp(argv[i], "--module-pack-json") == 0) {
+      if (i + 1 >= argc) {
+        print_usage(argv[0]);
+        return 2;
+      }
+      opts->module_pack_json = argv[++i];
+      continue;
+    }
+
+    if (strcmp(argv[i], "--module-pack-file") == 0) {
+      if (i + 1 >= argc) {
+        print_usage(argv[0]);
+        return 2;
+      }
+      opts->module_pack_file = argv[++i];
+      continue;
+    }
+
+    if (strcmp(argv[i], "--module-entry-specifier") == 0) {
+      if (i + 1 >= argc) {
+        print_usage(argv[0]);
+        return 2;
+      }
+      opts->module_entry_specifier = argv[++i];
+      continue;
+    }
+
+    if (strcmp(argv[i], "--module-entry-export") == 0) {
+      if (i + 1 >= argc) {
+        print_usage(argv[0]);
+        return 2;
+      }
+      opts->module_entry_export = argv[++i];
       continue;
     }
 
@@ -1233,9 +1920,13 @@ static int parse_args(int argc, char **argv, HarnessOptions *opts) {
   }
 
   const int host_call_mode = opts->host_call_hex != NULL || opts->host_call_parse_envelope;
+  const int module_pack_mode = opts->module_pack_json != NULL || opts->module_pack_file != NULL ||
+                               opts->module_entry_specifier != NULL ||
+                               opts->module_entry_export != NULL;
 
   if (opts->dv_decode_hex) {
-    if (opts->code != NULL || opts->dv_encode || host_call_mode || opts->sha256_hex) {
+    if (opts->code != NULL || opts->dv_encode || host_call_mode || opts->sha256_hex ||
+        module_pack_mode) {
       print_usage(argv[0]);
       return 2;
     }
@@ -1244,7 +1935,7 @@ static int parse_args(int argc, char **argv, HarnessOptions *opts) {
 
   if (opts->sha256_hex) {
     if (opts->code != NULL || opts->dv_encode || opts->dv_decode_hex ||
-        host_call_mode) {
+        host_call_mode || module_pack_mode) {
       print_usage(argv[0]);
       return 2;
     }
@@ -1252,11 +1943,27 @@ static int parse_args(int argc, char **argv, HarnessOptions *opts) {
   }
 
   if (host_call_mode) {
-    if (opts->code != NULL || opts->dv_encode) {
+    if (opts->code != NULL || opts->dv_encode || module_pack_mode) {
       print_usage(argv[0]);
       return 2;
     }
     if (opts->host_call_hex == NULL) {
+      print_usage(argv[0]);
+      return 2;
+    }
+    return 0;
+  }
+
+  if (module_pack_mode) {
+    if (opts->code != NULL || opts->dv_encode) {
+      print_usage(argv[0]);
+      return 2;
+    }
+    if ((opts->module_pack_json != NULL) == (opts->module_pack_file != NULL)) {
+      print_usage(argv[0]);
+      return 2;
+    }
+    if (opts->module_entry_specifier == NULL) {
       print_usage(argv[0]);
       return 2;
     }
@@ -1299,11 +2006,22 @@ int main(int argc, char **argv) {
     }
   }
 
+  if (options.report_tape) {
+    if (JS_EnableHostTape(runtime.ctx, 64) != 0 || JS_ResetHostTape(runtime.ctx) != 0) {
+      fprintf(stderr, "init: failed to enable host tape\n");
+      free_runtime(&runtime);
+      return 1;
+    }
+  }
+
   int rc = 0;
+  const int module_pack_mode = options.module_pack_json != NULL || options.module_pack_file != NULL;
   if (options.dv_decode_hex) {
     rc = decode_dv_hex(runtime.ctx, &options);
   } else if (options.host_call_hex) {
     rc = run_host_call(&runtime, &options);
+  } else if (module_pack_mode) {
+    rc = eval_module_pack(&runtime, &options);
   } else {
     if (run_gc_checkpoint(runtime.ctx, &options) != 0) {
       free_runtime(&runtime);
