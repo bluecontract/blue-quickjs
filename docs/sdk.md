@@ -91,6 +91,7 @@ const program = {
   abiId: 'Host.v1',
   abiVersion: 1,
   abiManifestHash: '…',
+  executionProfile: 'baseline-v1',
   code: bundled.code,
 };
 ```
@@ -166,6 +167,7 @@ Some environments also provide `engineBuildHash` pinning; if present, the SDK ch
 Optional fields:
 
 - `engineBuildHash` (lowercase hex; sha256 of the wasm bytes)
+- `executionProfile` (`"baseline-v1"` default, or `"compat-regexp-v1"` for explicit regex compatibility mode)
 
 Program artifact limits (validation defaults used by `evaluate()` and `initializeDeterministicVm()`):
 

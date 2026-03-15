@@ -58,6 +58,32 @@ describe('validateProgramArtifact', () => {
       }),
     ).toThrow(RuntimeValidationError);
   });
+
+  it('accepts supported execution profiles', () => {
+    expect(
+      validateProgramArtifact({
+        ...baseProgram,
+        executionProfile: 'baseline-v1',
+      }),
+    ).toMatchObject({ executionProfile: 'baseline-v1' });
+
+    expect(
+      validateProgramArtifact({
+        ...baseProgram,
+        executionProfile: 'compat-regexp-v1',
+      }),
+    ).toMatchObject({ executionProfile: 'compat-regexp-v1' });
+  });
+
+  it('rejects unsupported execution profiles', () => {
+    expect(() =>
+      validateProgramArtifact({
+        ...baseProgram,
+        executionProfile: 'compat-unknown' as unknown as
+          ProgramArtifact['executionProfile'],
+      }),
+    ).toThrow(RuntimeValidationError);
+  });
 });
 
 describe('validateInputEnvelope', () => {

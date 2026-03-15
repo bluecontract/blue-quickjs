@@ -1994,6 +1994,44 @@ Enable practical multi-file JS library reuse by deterministically bundling sourc
 
 ---
 
+## Phase P11 — Profile-gated RegExp compatibility
+
+### T-120: Add explicit `compat-regexp-v1` execution profile
+
+**Phase:** P11 – Compatibility profile gating  
+**Status:** DONE  
+**Depends on:** T-100, T-110
+
+**Goal:**  
+Support real-world regex-dependent libraries (for example chess.js) without changing baseline defaults.
+
+**Detailed tasks:**
+
+- [x] Extend program artifact validation with optional `executionProfile`:
+  - [x] `baseline-v1` (default behavior)
+  - [x] `compat-regexp-v1` (opt-in compatibility mode)
+- [x] Propagate profile feature flags through runtime init:
+  - [x] TS runtime -> wasm `qjs_det_init(..., feature_flags)` -> `JS_InitDeterministicContext`.
+- [x] Keep baseline behavior unchanged:
+  - [x] baseline still disables RegExp and regex literals deterministically.
+- [x] Enable regexp only when profile flag is explicitly set.
+- [x] Add tests for baseline-vs-compat profile behavior in runtime and harness layers.
+
+**Acceptance criteria:**
+
+- [x] Baseline profile still rejects regexp usage deterministically.
+- [x] `compat-regexp-v1` runs regexp code successfully.
+- [x] Profile selection is explicit in the program artifact and test-covered.
+
+**Current state (P11 T-120):**
+
+- `libs/quickjs-runtime/src/lib/quickjs-runtime.ts` validates `executionProfile`, and `deterministic-init.ts` maps it to deterministic feature flags passed into wasm init.
+- `libs/quickjs-wasm-build/src/wasm/quickjs_wasm.c` now accepts `feature_flags` in `qjs_det_init` and forwards them to `JS_InitDeterministicContext`.
+- `vendor/quickjs/quickjs.h` defines `JS_DETERMINISTIC_FEATURE_REGEXP`, and `vendor/quickjs/quickjs-host.c` gates RegExp disablement/enablement on this flag.
+- `libs/quickjs-runtime/src/lib/evaluate.spec.ts` and `tools/quickjs-native-harness/scripts/test.sh` verify baseline rejection and compat acceptance for regexp behavior.
+
+---
+
 ## Appendix A — Minimal required ABI surface (v1)
 
 The initial manifest should define at least:

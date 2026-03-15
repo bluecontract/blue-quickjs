@@ -11,6 +11,8 @@ Minimal native harness for the QuickJS fork. Builds a standalone binary that eva
 - Manifest validation: pass `--abi-manifest-hex <hex>` (or `--abi-manifest-hex-file <path>`) and
   `--abi-manifest-hash <sha256-hex>` to initialize the VM with a pinned ABI manifest. An optional
   `--context-blob-hex <hex>` can be provided for future context blobs.
+- Execution profile: `--execution-profile baseline-v1|compat-regexp-v1` selects deterministic
+  feature flags for initialization (`baseline-v1` is the default).
 - SHA helper: `--sha256-hex <hex>` prints the SHA-256 digest for the provided hex bytes (handy for
   cross-checking vectors).
 

@@ -47,6 +47,7 @@ typedef struct {
   int host_call_parse_envelope;
   uint32_t host_call_max_units;
   int host_call_max_units_provided;
+  const char *execution_profile;
 } HarnessOptions;
 
 typedef struct {
@@ -63,6 +64,16 @@ typedef struct {
 static int print_exception(JSContext *ctx, const HarnessOptions *options);
 static void free_runtime(HarnessRuntime *runtime);
 static int run_sha256(const HarnessOptions *options);
+
+static uint32_t deterministic_feature_flags_for_profile(const char *profile) {
+  if (!profile || strcmp(profile, "baseline-v1") == 0) {
+    return 0;
+  }
+  if (strcmp(profile, "compat-regexp-v1") == 0) {
+    return JS_DETERMINISTIC_FEATURE_REGEXP;
+  }
+  return UINT32_MAX;
+}
 
 static int hex_value(char c) {
   if (c >= '0' && c <= '9') {
@@ -475,7 +486,14 @@ static int init_runtime(HarnessRuntime *runtime, const HarnessOptions *options) 
         .context_blob = context_blob,
         .context_blob_size = context_blob_len,
         .gas_limit = options->gas_limit,
+        .feature_flags = deterministic_feature_flags_for_profile(options->execution_profile),
     };
+
+    if (init_opts.feature_flags == UINT32_MAX) {
+      fprintf(stderr, "Unsupported --execution-profile: %s\n", options->execution_profile);
+      rc = 2;
+      goto cleanup;
+    }
 
     if (JS_InitDeterministicContext(runtime->ctx, &init_opts) != 0) {
       rc = print_exception(runtime->ctx, options);
@@ -962,10 +980,10 @@ static int eval_source(JSContext *ctx, const char *code, const HarnessOptions *o
 static void print_usage(const char *prog) {
   fprintf(stderr,
           "Usage:\n"
-          "  %s [--gas-limit <u64>] [--report-gas] [--gas-trace] [--dump-global <name>] [--abi-manifest-hex <hex> | --abi-manifest-hex-file <path>] [--abi-manifest-hash <hex>] [--context-blob-hex <hex>] --eval \"<js-source>\"\n"
+          "  %s [--gas-limit <u64>] [--report-gas] [--gas-trace] [--dump-global <name>] [--execution-profile <baseline-v1|compat-regexp-v1>] [--abi-manifest-hex <hex> | --abi-manifest-hex-file <path>] [--abi-manifest-hash <hex>] [--context-blob-hex <hex>] --eval \"<js-source>\"\n"
           "  %s --dv-encode --eval \"<js-source>\"\n"
           "  %s --dv-decode <hex-string>\n"
-          "  %s --host-call <hex-string> [--host-fn-id <u32>] [--host-max-request <u32>] [--host-max-response <u32>] [--host-max-units <u32>] [--host-parse-envelope] [--host-reentrant] [--host-exception] [--gas-limit <u64>] [--report-gas] [--gas-trace] [--abi-manifest-hex <hex> | --abi-manifest-hex-file <path>] [--abi-manifest-hash <hex>] [--context-blob-hex <hex>]\n"
+          "  %s --host-call <hex-string> [--host-fn-id <u32>] [--host-max-request <u32>] [--host-max-response <u32>] [--host-max-units <u32>] [--host-parse-envelope] [--host-reentrant] [--host-exception] [--gas-limit <u64>] [--report-gas] [--gas-trace] [--execution-profile <baseline-v1|compat-regexp-v1>] [--abi-manifest-hex <hex> | --abi-manifest-hex-file <path>] [--abi-manifest-hash <hex>] [--context-blob-hex <hex>]\n"
           "  %s --sha256-hex <hex-string>\n",
           prog,
           prog,
@@ -996,6 +1014,7 @@ static int parse_args(int argc, char **argv, HarnessOptions *opts) {
   opts->host_call_parse_envelope = 0;
   opts->host_call_max_units = 0;
   opts->host_call_max_units_provided = 0;
+  opts->execution_profile = "baseline-v1";
 
   for (int i = 1; i < argc; i++) {
     if (strcmp(argv[i], "--eval") == 0) {
@@ -1081,6 +1100,15 @@ static int parse_args(int argc, char **argv, HarnessOptions *opts) {
         return 2;
       }
       opts->context_blob_hex = argv[++i];
+      continue;
+    }
+
+    if (strcmp(argv[i], "--execution-profile") == 0) {
+      if (i + 1 >= argc) {
+        print_usage(argv[0]);
+        return 2;
+      }
+      opts->execution_profile = argv[++i];
       continue;
     }
 
