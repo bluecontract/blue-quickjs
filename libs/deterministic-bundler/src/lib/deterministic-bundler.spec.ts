@@ -125,6 +125,28 @@ describe('scanCompatibility', () => {
       },
     ]);
   });
+
+  it('allows regexp and console usage under compat-general profile', () => {
+    const scan = scanCompatibility({
+      profile: 'compat-general-v1',
+      sourceByPath: {
+        '/tmp/sample.ts': "console.log(/a/.test('a')); export default true;",
+      },
+    });
+
+    expect(scan.ok).toBe(true);
+  });
+
+  it('allows typed arrays under compat-binary profile', () => {
+    const scan = scanCompatibility({
+      profile: 'compat-binary-v1',
+      sourceByPath: {
+        '/tmp/sample.ts': 'export default new Uint8Array([1, 2, 3]).length;',
+      },
+    });
+
+    expect(scan.ok).toBe(true);
+  });
 });
 
 describe('buildDeterministicModulePack', () => {

@@ -4,8 +4,12 @@ import { builtinModules } from 'node:module';
 import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
+import {
+  executionProfileHasCapability,
+  type PublicExecutionProfile,
+} from '@blue-quickjs/execution-profiles';
 
-export type DeterministicExecutionProfile = 'baseline-v1' | 'compat-regexp-v1';
+export type DeterministicExecutionProfile = PublicExecutionProfile;
 
 export interface BundleDeterministicProgramOptions {
   entryPath: string;
@@ -135,15 +139,17 @@ const NODE_BUILTINS = new Set(
 
 const FORBIDDEN_IDENTIFIER_RULES = new Map<string, string>([
   ['WebAssembly', 'webassembly_disabled'],
-  ['ArrayBuffer', 'arraybuffer_disabled'],
-  ['SharedArrayBuffer', 'sharedarraybuffer_disabled'],
-  ['DataView', 'dataview_disabled'],
   ['Atomics', 'atomics_disabled'],
   ['Proxy', 'proxy_disabled'],
   ['Date', 'date_disabled'],
   ['setTimeout', 'timers_disabled'],
   ['setInterval', 'timers_disabled'],
-  ['queueMicrotask', 'microtasks_disabled'],
+]);
+
+const BINARY_IDENTIFIER_RULES = new Map<string, string>([
+  ['ArrayBuffer', 'arraybuffer_disabled'],
+  ['SharedArrayBuffer', 'sharedarraybuffer_disabled'],
+  ['DataView', 'dataview_disabled'],
 ]);
 
 const FORBIDDEN_TYPED_ARRAYS = new Set([
@@ -458,6 +464,32 @@ function scanNode(
           `forbidden API used: ${identifier}`,
         );
       }
+
+      if (
+        identifier &&
+        identifier === 'queueMicrotask' &&
+        !executionProfileHasCapability(profile, 'queueMicrotask')
+      ) {
+        addDiagnostic(
+          diagnostics,
+          filePath,
+          'microtasks_disabled',
+          `forbidden API used: ${identifier}`,
+        );
+      }
+
+      if (
+        identifier &&
+        BINARY_IDENTIFIER_RULES.has(identifier) &&
+        !executionProfileHasCapability(profile, 'typedArrays')
+      ) {
+        addDiagnostic(
+          diagnostics,
+          filePath,
+          BINARY_IDENTIFIER_RULES.get(identifier) ?? 'binary_api_disabled',
+          `forbidden API used: ${identifier}`,
+        );
+      }
     }
 
     if (isMathRandomCall(callee)) {
@@ -469,7 +501,10 @@ function scanNode(
       );
     }
 
-    if (isConsoleCall(callee)) {
+    if (
+      isConsoleCall(callee) &&
+      !executionProfileHasCapability(profile, 'consoleShim')
+    ) {
       addDiagnostic(
         diagnostics,
         filePath,
@@ -478,7 +513,10 @@ function scanNode(
       );
     }
 
-    if (isRegExpCall(callee) && profile === 'baseline-v1') {
+    if (
+      isRegExpCall(callee) &&
+      !executionProfileHasCapability(profile, 'regexp')
+    ) {
       addDiagnostic(
         diagnostics,
         filePath,
@@ -498,7 +536,10 @@ function scanNode(
         return;
       }
 
-      if (FORBIDDEN_TYPED_ARRAYS.has(identifier)) {
+      if (
+        FORBIDDEN_TYPED_ARRAYS.has(identifier) &&
+        !executionProfileHasCapability(profile, 'typedArrays')
+      ) {
         addDiagnostic(
           diagnostics,
           filePath,
@@ -518,7 +559,23 @@ function scanNode(
         return;
       }
 
-      if (identifier === 'RegExp' && profile === 'baseline-v1') {
+      if (
+        BINARY_IDENTIFIER_RULES.has(identifier) &&
+        !executionProfileHasCapability(profile, 'typedArrays')
+      ) {
+        addDiagnostic(
+          diagnostics,
+          filePath,
+          BINARY_IDENTIFIER_RULES.get(identifier) ?? 'binary_api_disabled',
+          `forbidden API used: ${identifier}`,
+        );
+        return;
+      }
+
+      if (
+        identifier === 'RegExp' &&
+        !executionProfileHasCapability(profile, 'regexp')
+      ) {
         addDiagnostic(
           diagnostics,
           filePath,
@@ -530,7 +587,10 @@ function scanNode(
     return;
   }
 
-  if (isRegExpLiteral(node) && profile === 'baseline-v1') {
+  if (
+    isRegExpLiteral(node) &&
+    !executionProfileHasCapability(profile, 'regexp')
+  ) {
     addDiagnostic(
       diagnostics,
       filePath,

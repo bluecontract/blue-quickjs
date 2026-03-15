@@ -2223,6 +2223,48 @@ bridge toward first-class module-pack execution.
 
 ---
 
+## Phase P16 — Capability registry and composite profiles
+
+### T-170: Centralize execution-profile capability registry
+
+**Phase:** P16 – Capability registry  
+**Status:** IN PROGRESS  
+**Depends on:** T-150
+
+**Goal:**  
+Replace scattered profile checks with a single capability registry consumed by
+builder/runtime/harness surfaces.
+
+**Detailed tasks:**
+
+- [x] Add shared execution-profile registry package.
+- [x] Define profile capabilities for:
+  - `baseline-v1`
+  - `compat-regexp-v1` (transitional alias)
+  - `compat-general-v1`
+  - `compat-binary-v1`
+- [x] Integrate registry into deterministic-bundler compatibility scanning.
+- [x] Integrate registry validation into quickjs-runtime artifact validation and
+      deterministic init feature-flag mapping.
+- [x] Update quickjs-native-harness profile parsing/help to accept new profile
+      names.
+- [ ] Remove transitional `compat-regexp-v1` usage from fixtures and docs once
+      `compat-general-v1` parity coverage is complete.
+
+**Current state (P16 T-170):**
+
+- New package `libs/execution-profiles` now provides canonical profile/capability
+  definitions and helpers.
+- `libs/deterministic-bundler` now consults capability checks (regexp/console/
+  queueMicrotask/typed-arrays gates) instead of ad-hoc profile string checks.
+- `libs/quickjs-runtime` now validates execution profiles via the shared
+  registry and uses capability checks for QuickJS feature-flag mapping.
+- `tools/quickjs-native-harness` now accepts
+  `compat-general-v1|compat-binary-v1` profile names (currently mapped to
+  regexp feature-flag behavior in C until later capability widening phases).
+
+---
+
 ## Appendix A — Minimal required ABI surface (v1)
 
 The initial manifest should define at least:

@@ -22,6 +22,7 @@
     "name": "deterministic-bundler"
   },
   "dependencies": {
+    "@blue-quickjs/execution-profiles": "workspace:*",
     "acorn": "^8.15.0",
     "esbuild": "^0.27.4",
     "tslib": "^2.3.0"

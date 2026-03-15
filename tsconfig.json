@@ -35,6 +35,9 @@
     },
     {
       "path": "./libs/deterministic-builder"
+    },
+    {
+      "path": "./libs/execution-profiles"
     }
   ]
 }

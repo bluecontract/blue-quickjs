@@ -1,5 +1,6 @@
 import { encodeAbiManifest } from '@blue-quickjs/abi-manifest';
 import { encodeDv } from '@blue-quickjs/dv';
+import { executionProfileHasCapability } from '@blue-quickjs/execution-profiles';
 import type { QuickjsWasmModule } from './runtime.js';
 import {
   type ExecutionProfile,
@@ -237,14 +238,10 @@ function normalizeGasLimit(value: bigint | number): bigint {
 }
 
 function executionProfileToFeatureFlags(profile?: ExecutionProfile): number {
-  if (!profile || profile === 'baseline-v1') {
+  if (!profile) {
     return 0;
   }
-  if (
-    profile === 'compat-regexp-v1' ||
-    profile === 'compat-general-v1' ||
-    profile === 'compat-binary-v1'
-  ) {
+  if (executionProfileHasCapability(profile, 'regexp')) {
     return DETERMINISTIC_FEATURE_REGEXP;
   }
   return 0;

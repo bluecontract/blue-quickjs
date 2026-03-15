@@ -63,6 +63,15 @@ Deterministic baseline close to current behavior:
 - `typedArrays`
 - `dvBytes`
 
+## Transitional compatibility profile
+
+`compat-regexp-v1` remains accepted as a transitional compatibility alias during
+the migration from P11/P12 fixtures. It currently maps to:
+
+- `baseline-v1` + `regexp`
+
+New integrations should prefer `compat-general-v1` / `compat-binary-v1`.
+
 ## Artifact rule
 
 `ProgramArtifact.v2.executionProfile` is required for build outputs and runtime

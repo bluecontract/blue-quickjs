@@ -5,16 +5,16 @@ import {
   DvLimits,
   validateDv,
 } from '@blue-quickjs/dv';
+import {
+  isKnownExecutionProfile,
+  type PublicExecutionProfile,
+} from '@blue-quickjs/execution-profiles';
 
 const UINT32_MAX = 0xffffffff;
 const SHA256_HEX_LENGTH = 64;
 const HEX_RE = /^[0-9a-f]+$/;
 
-export type ExecutionProfile =
-  | 'baseline-v1'
-  | 'compat-regexp-v1'
-  | 'compat-general-v1'
-  | 'compat-binary-v1';
+export type ExecutionProfile = PublicExecutionProfile;
 
 export interface ModulePackV1Module {
   specifier: string;
@@ -442,12 +442,7 @@ function expectExecutionProfile(
   value: unknown,
   path: string,
 ): ExecutionProfile {
-  if (
-    value !== 'baseline-v1' &&
-    value !== 'compat-regexp-v1' &&
-    value !== 'compat-general-v1' &&
-    value !== 'compat-binary-v1'
-  ) {
+  if (!isKnownExecutionProfile(value)) {
     throw runtimeError(
       'INVALID_VALUE',
       `${path} must be one of baseline-v1, compat-regexp-v1, compat-general-v1, compat-binary-v1`,
