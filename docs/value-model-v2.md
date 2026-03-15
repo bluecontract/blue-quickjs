@@ -27,6 +27,8 @@ SDK surface:
 
 - `encodeDv2(...)`, `decodeDv2(...)`, `validateDv2(...)`, `isDv2(...)`
   in `@blue-quickjs/dv`.
+- QuickJS C surface: `JS_EncodeDV2(...)` / `JS_DecodeDV2(...)` (DV1 APIs remain
+  unchanged).
 - DV1 APIs (`encodeDv`, `decodeDv`) remain unchanged and continue rejecting byte
   strings.
 

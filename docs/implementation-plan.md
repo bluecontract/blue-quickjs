@@ -2381,6 +2381,9 @@ DV1 behavior in place.
 
 - `@blue-quickjs/dv` now includes DV2 APIs with canonical CBOR byte-string
   support and byte-length limit enforcement.
+- QuickJS fork now exposes versioned C DV2 codec entrypoints:
+  `JS_EncodeDV2(...)` / `JS_DecodeDV2(...)` with byte-string support while
+  preserving DV1 behavior in `JS_EncodeDV(...)` / `JS_DecodeDV(...)`.
 - DV1 paths remain strict and still reject CBOR major type 2 values.
 - Runtime DvLimit normalization now carries `maxByteStringBytes` for upcoming
   Host.v2/DV2 integration.
