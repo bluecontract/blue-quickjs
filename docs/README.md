@@ -49,6 +49,7 @@ Most people end up reading some docs and then jumping into these locations:
   - Wasm entrypoints: `vendor/quickjs/quickjs-wasm-entry.c`
 
 - **TypeScript libraries**
+  - Deterministic library bundling + compatibility scan: `libs/deterministic-bundler/`
   - DV reference implementation: `libs/dv/`
   - Manifest schema + canonical encoding/hashing: `libs/abi-manifest/`
   - Wasm constants + metadata types: `libs/quickjs-wasm-constants/`

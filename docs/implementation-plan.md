@@ -1958,6 +1958,42 @@ Make it unambiguous what `blue-quickjs` means by “evaluate code”, and lock t
 
 ---
 
+## Phase P10 — Deterministic bundling for library reuse
+
+### T-110: Add deterministic source bundler + compatibility scan
+
+**Phase:** P10 – Deterministic bundling  
+**Status:** DONE  
+**Depends on:** T-064, T-066
+
+**Goal:**  
+Enable practical multi-file JS library reuse by deterministically bundling source graphs into a single `program.code` string before VM execution.
+
+**Detailed tasks:**
+
+- [x] Add new library `libs/deterministic-bundler`.
+- [x] Implement deterministic bundle output (stable code + SHA-256 content hash).
+- [x] Add compatibility scanner with deterministic diagnostics for forbidden surfaces.
+- [x] Keep scanner profile-aware (`baseline-v1` vs `compat-regexp-v1`).
+- [x] Add unit tests for hash stability, rejection diagnostics, and profile-aware regexp handling.
+- [x] Document bundling workflow in SDK/docs.
+
+**Acceptance criteria:**
+
+- [x] Multi-file source graphs bundle into a single deterministic source string.
+- [x] Same inputs yield the same output hash across repeated runs.
+- [x] Compatibility violations are deterministic and test-covered.
+
+**Current state (P10 T-110):**
+
+- `@blue-quickjs/deterministic-bundler` now exposes:
+  - `bundleDeterministicProgram(...)` → `{ code, contentHash, meta }`
+  - `scanCompatibility(...)` → deterministic diagnostics with profile awareness.
+- Bundles are emitted with stable line endings and an explicit default-export expression suffix so they can be evaluated directly as `program.code`.
+- Tests in `libs/deterministic-bundler/src/lib/deterministic-bundler.spec.ts` verify deterministic hash stability, baseline rejection of forbidden surfaces, and compat-regexp acceptance.
+
+---
+
 ## Appendix A — Minimal required ABI surface (v1)
 
 The initial manifest should define at least:

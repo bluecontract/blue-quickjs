@@ -72,6 +72,32 @@ console.log('gas used:', result.gasUsed.toString());
 console.log('gas remaining:', result.gasRemaining.toString());
 ```
 
+## Bundling libraries into deterministic source
+
+`evaluate()` expects `program.code` to be a single source string. For reusable
+multi-file libraries, bundle first:
+
+```ts
+import { bundleDeterministicProgram } from '@blue-quickjs/deterministic-bundler';
+
+const bundled = await bundleDeterministicProgram({
+  absWorkingDir: process.cwd(),
+  entryPath: 'src/program-entry.ts',
+  // baseline-v1 rejects RegExp; compat-regexp-v1 allows it explicitly.
+  profile: 'baseline-v1',
+});
+
+const program = {
+  abiId: 'Host.v1',
+  abiVersion: 1,
+  abiManifestHash: '…',
+  code: bundled.code,
+};
+```
+
+Bundling returns a deterministic content hash and compatibility diagnostics. By
+default, compatibility violations fail fast before VM execution.
+
 ## Execution semantics (raw script mode)
 
 `blue-quickjs` evaluates `program.code` as a **raw global script**.

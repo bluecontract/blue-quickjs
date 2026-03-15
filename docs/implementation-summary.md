@@ -136,6 +136,19 @@ Evaluation semantics in this repo are **raw script mode**: `program.code` is eva
 Return encoding details: [DV wire format](./dv-wire-format.md).  
 Evaluation API: [TypeScript SDK usage](./sdk.md).
 
+### 6) Deterministic library reuse is done by bundling to one source string
+
+The runtime contract still evaluates a single `program.code` string. To reuse
+normal multi-file libraries, this repo now provides a deterministic bundling
+step (`@blue-quickjs/deterministic-bundler`) that:
+
+- flattens static module graphs into one script string,
+- emits a stable content hash for the bundled code,
+- runs a compatibility scan for deterministic-profile restrictions before VM execution.
+
+This keeps the evaluator contract simple while enabling practical third-party
+library reuse in a controlled way.
+
 ---
 
 ## Deterministic Value (DV)
