@@ -432,6 +432,37 @@ describe('evaluate', () => {
     expect(compat.value).toBe('first,second');
   });
 
+  it('routes compat-general console shim calls through Host.v1.emit', async () => {
+    const handlers = createHandlers();
+    const compat = await evaluate({
+      program: {
+        ...BASE_PROGRAM,
+        code: `
+          (() => {
+            console.log('hello', 7);
+            return null;
+          })()
+        `,
+        executionProfile: 'compat-general-v1',
+      },
+      input: BASE_INPUT,
+      gasLimit: TEST_GAS_LIMIT,
+      manifest: HOST_V1_MANIFEST,
+      handlers,
+    });
+
+    expect(compat.ok).toBe(true);
+    if (!compat.ok) {
+      throw new Error(compat.message);
+    }
+    expect(compat.value).toBeNull();
+    expect(handlers.emit).toHaveBeenCalledWith({
+      type: 'console',
+      level: 'log',
+      args: ['hello', 7],
+    });
+  });
+
   it('returns DV results with gas accounting', async () => {
     const handlers = createHandlers();
     const result = await evaluate({

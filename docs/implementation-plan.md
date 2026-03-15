@@ -2323,6 +2323,37 @@ preserving baseline restrictions.
 
 ---
 
+## Phase P18 — Compatibility expansion (console shim + stable sort)
+
+### T-190: Expand compat-general behavior without widening baseline
+
+**Phase:** P18 – Compatibility expansion  
+**Status:** IN PROGRESS  
+**Depends on:** T-180
+
+**Goal:**  
+Improve practical compatibility in compatibility profiles while keeping
+baseline strict.
+
+**Detailed tasks:**
+
+- [x] Enable deterministic console shim in `compat-general-v1` /
+      `compat-binary-v1`, routing console methods through `Host.v1.emit`.
+- [ ] Implement deterministic stable `Array.prototype.sort` for compatibility
+      profiles.
+- [ ] Extend parity fixtures for compatibility expansion behaviors (result + gas
+      + tape where applicable).
+
+**Current state (P18 T-190):**
+
+- Console remains disabled in baseline.
+- Compatibility profiles now expose console methods (`log/info/warn/error/debug`)
+  and route payloads through `Host.v1.emit` deterministically.
+- Runtime and native harness tests now verify compatibility profile console
+  behavior.
+
+---
+
 ## Appendix A — Minimal required ABI surface (v1)
 
 The initial manifest should define at least:
