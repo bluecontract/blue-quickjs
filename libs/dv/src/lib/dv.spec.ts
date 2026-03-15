@@ -7,8 +7,11 @@ import {
   DvError,
   DvErrorCode,
   decodeDv,
+  decodeDv2,
   encodeDv,
+  encodeDv2,
   isDv,
+  isDv2,
 } from './dv.js';
 
 const hex = (bytes: Uint8Array): string =>
@@ -132,6 +135,47 @@ describe('encodeDv / decodeDv', () => {
     );
   });
 
+  it('supports byte-string values in DV2 mode', () => {
+    const bytes = Uint8Array.from([0xde, 0xad, 0xbe, 0xef]);
+    expect(hex(encodeDv2(bytes))).toBe('44deadbeef');
+
+    const decoded = decodeDv2(Uint8Array.from([0x44, 0xde, 0xad, 0xbe, 0xef]));
+    expect(decoded).toBeInstanceOf(Uint8Array);
+    expect(Array.from(decoded as Uint8Array)).toEqual([0xde, 0xad, 0xbe, 0xef]);
+
+    const nested = decodeDv2(
+      Uint8Array.from([
+        0xa1, 0x65, 0x62, 0x79, 0x74, 0x65, 0x73, 0x44, 0x00, 0x01, 0x02, 0x03,
+      ]),
+    ) as { bytes: Uint8Array };
+    expect(Array.from(nested.bytes)).toEqual([0, 1, 2, 3]);
+
+    expect(isDv2({ payload: bytes })).toBe(true);
+    expect(isDv({ payload: bytes })).toBe(false);
+  });
+
+  it('keeps DV1 byte strings unsupported and enforces DV2 byte limits', () => {
+    expectCode(() => encodeDv(Uint8Array.from([1, 2, 3])), 'UNSUPPORTED_TYPE');
+    expectCode(
+      () => decodeDv(Uint8Array.from([0x41, 0x01])),
+      'UNSUPPORTED_CBOR',
+    );
+    expectCode(
+      () =>
+        encodeDv2(Uint8Array.from([1, 2, 3]), {
+          limits: { maxByteStringBytes: 2 },
+        }),
+      'BYTE_STRING_TOO_LONG',
+    );
+    expectCode(
+      () =>
+        decodeDv2(Uint8Array.from([0x43, 0x01, 0x02, 0x03]), {
+          limits: { maxByteStringBytes: 2 },
+        }),
+      'BYTE_STRING_TOO_LONG',
+    );
+  });
+
   it('roundtrips and canonicalizes under property-based generation', () => {
     const limits = {
       maxDepth: 4,
@@ -177,5 +221,25 @@ describe('encodeDv / decodeDv', () => {
       }),
       { numRuns: 150 },
     );
+  });
+
+  it('roundtrips DV2 values containing byte strings', () => {
+    const value = {
+      kind: 'bytes',
+      payload: Uint8Array.from([1, 2, 3, 4]),
+      nested: [Uint8Array.from([9, 8]), { ok: true }],
+    };
+    const encoded = encodeDv2(value);
+    const decoded = decodeDv2(encoded) as {
+      kind: string;
+      payload: Uint8Array;
+      nested: [Uint8Array, { ok: boolean }];
+    };
+
+    expect(decoded.kind).toBe('bytes');
+    expect(Array.from(decoded.payload)).toEqual([1, 2, 3, 4]);
+    expect(Array.from(decoded.nested[0])).toEqual([9, 8]);
+    expect(decoded.nested[1]).toEqual({ ok: true });
+    expect(hex(encodeDv2(decoded))).toBe(hex(encoded));
   });
 });

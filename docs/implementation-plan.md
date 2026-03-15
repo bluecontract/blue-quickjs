@@ -2356,6 +2356,37 @@ baseline strict.
 
 ---
 
+## Phase P19 — DV2 / Host.v2 binary compatibility track
+
+### T-200: Introduce DV2 bytes-capable codec foundation
+
+**Phase:** P19 – DV2 foundation  
+**Status:** IN PROGRESS  
+**Depends on:** T-190
+
+**Goal:**  
+Introduce a versioned bytes-capable deterministic value codec without mutating
+DV1 behavior in place.
+
+**Detailed tasks:**
+
+- [x] Add DV2 codec APIs with canonical byte-string support:
+      `encodeDv2`, `decodeDv2`, `validateDv2`, `isDv2`.
+- [x] Preserve DV1 behavior (`encodeDv` / `decodeDv`) so byte strings remain
+      rejected outside DV2 mode.
+- [ ] Wire DV2 bytes to Host.v2/runtime boundaries under `compat-binary-v1`.
+- [ ] Add Host.v2 bytes roundtrip fixtures and parity coverage.
+
+**Current state (P19 T-200):**
+
+- `@blue-quickjs/dv` now includes DV2 APIs with canonical CBOR byte-string
+  support and byte-length limit enforcement.
+- DV1 paths remain strict and still reject CBOR major type 2 values.
+- Runtime DvLimit normalization now carries `maxByteStringBytes` for upcoming
+  Host.v2/DV2 integration.
+
+---
+
 ## Appendix A — Minimal required ABI surface (v1)
 
 The initial manifest should define at least:

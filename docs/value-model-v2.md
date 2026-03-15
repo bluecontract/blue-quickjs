@@ -23,6 +23,13 @@ DV2 extends DV1 with canonical byte strings:
 
 - `bytes` type (canonical CBOR byte string form, definite-length only).
 
+SDK surface:
+
+- `encodeDv2(...)`, `decodeDv2(...)`, `validateDv2(...)`, `isDv2(...)`
+  in `@blue-quickjs/dv`.
+- DV1 APIs (`encodeDv`, `decodeDv`) remain unchanged and continue rejecting byte
+  strings.
+
 All existing DV1 canonical constraints still apply (finite numbers, canonical
 ordering, deterministic size/depth limits).
 

@@ -605,6 +605,8 @@ function normalizeDvLimits(limits?: Partial<DvLimits>): DvLimits {
     maxEncodedBytes:
       limits?.maxEncodedBytes ?? DV_LIMIT_DEFAULTS.maxEncodedBytes,
     maxStringBytes: limits?.maxStringBytes ?? DV_LIMIT_DEFAULTS.maxStringBytes,
+    maxByteStringBytes:
+      limits?.maxByteStringBytes ?? DV_LIMIT_DEFAULTS.maxByteStringBytes,
     maxArrayLength: limits?.maxArrayLength ?? DV_LIMIT_DEFAULTS.maxArrayLength,
     maxMapLength: limits?.maxMapLength ?? DV_LIMIT_DEFAULTS.maxMapLength,
   };
