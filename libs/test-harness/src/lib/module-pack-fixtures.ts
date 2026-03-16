@@ -238,7 +238,7 @@ export const MODULE_PACK_FIXTURES: ModulePackFixture[] = [
             {
               specifier: './entry.js',
               source:
-                "import { plusOne } from \"./lib.js\";\nexport default Promise.resolve(plusOne(41)).then((value) => { Host.v1.emit({ phase: \"async-lib\", value }); return value; });\n",
+                'import { plusOne } from "./lib.js";\nexport default Promise.resolve(plusOne(41)).then((value) => { Host.v1.emit({ phase: "async-lib", value }); return value; });\n',
             },
             {
               specifier: './lib.js',
@@ -271,12 +271,12 @@ export const MODULE_PACK_FIXTURES: ModulePackFixture[] = [
             {
               specifier: './entry.js',
               source:
-                "import { summarize } from \"./workflow.js\";\nexport default (async () => {\n  const doc = document(\"path/to/doc\");\n  const canonical = document.canonical(\"path/to/doc\");\n  const result = await summarize(doc.path, canonical.canonical);\n  Host.v1.emit({ kind: \"kitchen\", result });\n  return result;\n})();\n",
+                'import { summarize } from "./workflow.js";\nexport default (async () => {\n  const doc = document("path/to/doc");\n  const canonical = document.canonical("path/to/doc");\n  const result = await summarize(doc.path, canonical.canonical);\n  Host.v1.emit({ kind: "kitchen", result });\n  return result;\n})();\n',
             },
             {
               specifier: './workflow.js',
               source:
-                "export async function summarize(path, canonical) {\n  const queue = [];\n  queueMicrotask(() => queue.push(\"micro\"));\n  await Promise.resolve();\n  const records = [\n    { id: \"b\", rank: 2 },\n    { id: \"a\", rank: 1 },\n    { id: \"c\", rank: 2 },\n  ];\n  records.sort((left, right) => left.rank - right.rank);\n  return {\n    path,\n    canonical,\n    order: records.map((record) => record.id).join(\",\"),\n    queue: queue.join(\",\"),\n  };\n}\n",
+                'export async function summarize(path, canonical) {\n  const queue = [];\n  queueMicrotask(() => queue.push("micro"));\n  await Promise.resolve();\n  const records = [\n    { id: "b", rank: 2 },\n    { id: "a", rank: 1 },\n    { id: "c", rank: 2 },\n  ];\n  records.sort((left, right) => left.rank - right.rank);\n  return {\n    path,\n    canonical,\n    order: records.map((record) => record.id).join(","),\n    queue: queue.join(","),\n  };\n}\n',
             },
           ],
         }),

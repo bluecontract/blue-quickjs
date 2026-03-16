@@ -28,7 +28,12 @@ if (!existsSync(harnessPath)) {
   );
 }
 
-const GAS_SPEC_PATH = path.join(repoRoot, 'tools', 'gas-spec', 'gas-spec.v3.json');
+const GAS_SPEC_PATH = path.join(
+  repoRoot,
+  'tools',
+  'gas-spec',
+  'gas-spec.v3.json',
+);
 const GAS_VERSION = readGasVersion();
 
 const { encodeDv, encodeDv2 } = require('../../../libs/dv/src/index.ts');
@@ -480,11 +485,8 @@ function parseNativeSnapshot(stdout, manifest, options) {
   const gasRemaining = gasMatch[1];
   const gasUsed = gasMatch[2] ?? '0';
   const trace = parseNativeTrace(stdout, tapeIndex, options);
-  const tapeEnd =
-    chargeTapeIndex > tapeIndex ? chargeTapeIndex : stdout.length;
-  const tapeJson = stdout
-    .slice(tapeIndex + tapeMarker.length, tapeEnd)
-    .trim();
+  const tapeEnd = chargeTapeIndex > tapeIndex ? chargeTapeIndex : stdout.length;
+  const tapeJson = stdout.slice(tapeIndex + tapeMarker.length, tapeEnd).trim();
   const tape = parseNativeTape(tapeJson);
   const gasChargeTape =
     options.includeGasChargeTape && chargeTapeIndex > tapeIndex
@@ -745,7 +747,10 @@ function compareGasChargeTape(nodeRecords, nativeRecords) {
   const nodeHash = hashGasChargeTape(nodeRecords);
   const nativeHash = hashGasChargeTape(nativeRecords);
   const maxLength = Math.max(nodeRecords.length, nativeRecords.length);
-  const siteDeltaSummary = summarizeChargeSiteDeltas(nodeRecords, nativeRecords);
+  const siteDeltaSummary = summarizeChargeSiteDeltas(
+    nodeRecords,
+    nativeRecords,
+  );
   let firstDivergence = null;
   for (let index = 0; index < maxLength; index += 1) {
     const left = nodeRecords[index];
@@ -753,9 +758,7 @@ function compareGasChargeTape(nodeRecords, nativeRecords) {
     if (JSON.stringify(left) !== JSON.stringify(right)) {
       firstDivergence = {
         index,
-        siteId: Number(
-          (right && right.siteId) ?? (left && left.siteId) ?? -1,
-        ),
+        siteId: Number((right && right.siteId) ?? (left && left.siteId) ?? -1),
         nodeGasBefore: left?.gasBefore ?? null,
         nativeGasBefore: right?.gasBefore ?? null,
         nodeGasAfter: left?.gasAfter ?? null,
@@ -1155,7 +1158,9 @@ function parseArgs(args) {
     if (arg === '--gas-charge-tape-capacity') {
       const value = args[i + 1] ? Number.parseInt(args[i + 1], 10) : NaN;
       if (!Number.isInteger(value) || value < 0) {
-        throw new Error('--gas-charge-tape-capacity must be a non-negative integer');
+        throw new Error(
+          '--gas-charge-tape-capacity must be a non-negative integer',
+        );
       }
       gasChargeTapeCapacity = value;
       i += 1;

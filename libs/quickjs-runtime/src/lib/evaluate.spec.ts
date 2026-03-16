@@ -51,6 +51,18 @@ const BASE_INPUT: InputEnvelope = {
   currentContractCanonical: { id: { value: 'contract-1' } },
 };
 
+function createModulePackProgram(
+  modulePack: ReturnType<typeof createModulePack>,
+): ProgramArtifactV2 {
+  return {
+    ...BASE_PROGRAM_V2_SCRIPT,
+    sourceKind: 'module-pack',
+    source: {
+      modulePack,
+    },
+  };
+}
+
 describe('evaluate', () => {
   it('evaluates raw script mode using final expression result', async () => {
     const result = await evaluate({
@@ -101,13 +113,7 @@ describe('evaluate', () => {
     });
 
     const result = await evaluate({
-      program: {
-        ...BASE_PROGRAM_V2_SCRIPT,
-        sourceKind: 'module-pack',
-        source: {
-          modulePack,
-        },
-      },
+      program: createModulePackProgram(modulePack),
       input: BASE_INPUT,
       gasLimit: TEST_GAS_LIMIT,
       manifest: HOST_V1_MANIFEST,
@@ -134,13 +140,7 @@ describe('evaluate', () => {
     });
 
     const result = await evaluate({
-      program: {
-        ...BASE_PROGRAM_V2_SCRIPT,
-        sourceKind: 'module-pack',
-        source: {
-          modulePack,
-        },
-      },
+      program: createModulePackProgram(modulePack),
       input: BASE_INPUT,
       gasLimit: TEST_GAS_LIMIT,
       manifest: HOST_V1_MANIFEST,
@@ -177,13 +177,7 @@ describe('evaluate', () => {
     });
 
     const result = await evaluate({
-      program: {
-        ...BASE_PROGRAM_V2_SCRIPT,
-        sourceKind: 'module-pack',
-        source: {
-          modulePack,
-        },
-      },
+      program: createModulePackProgram(modulePack),
       input: BASE_INPUT,
       gasLimit: TEST_GAS_LIMIT,
       manifest: HOST_V1_MANIFEST,
@@ -209,13 +203,7 @@ describe('evaluate', () => {
     });
 
     const result = await evaluate({
-      program: {
-        ...BASE_PROGRAM_V2_SCRIPT,
-        sourceKind: 'module-pack',
-        source: {
-          modulePack,
-        },
-      },
+      program: createModulePackProgram(modulePack),
       input: BASE_INPUT,
       gasLimit: TEST_GAS_LIMIT,
       manifest: HOST_V1_MANIFEST,
@@ -247,13 +235,7 @@ describe('evaluate', () => {
     });
 
     const result = await evaluate({
-      program: {
-        ...BASE_PROGRAM_V2_SCRIPT,
-        sourceKind: 'module-pack',
-        source: {
-          modulePack,
-        },
-      },
+      program: createModulePackProgram(modulePack),
       input: BASE_INPUT,
       gasLimit: TEST_GAS_LIMIT,
       manifest: HOST_V1_MANIFEST,
@@ -286,15 +268,11 @@ describe('evaluate', () => {
     await expect(
       evaluate({
         program: {
-          ...BASE_PROGRAM_V2_SCRIPT,
-          sourceKind: 'module-pack',
-          source: {
-            modulePack: {
-              ...modulePack,
-              graphHash:
-                'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
-            },
-          },
+          ...createModulePackProgram({
+            ...modulePack,
+            graphHash:
+              'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+          }),
         },
         input: BASE_INPUT,
         gasLimit: TEST_GAS_LIMIT,
@@ -320,7 +298,9 @@ describe('evaluate', () => {
     expect(result.type).toBe('vm-error');
     expect(result.error.kind).toBe('execution-surface-mismatch');
     expect(result.error.code).toBe('EXECUTION_SURFACE_MISMATCH');
-    expect(result.error.tag).toBe('vm/execution_surface');
+    expect('tag' in result.error ? result.error.tag : null).toBe(
+      'vm/execution_surface',
+    );
     expect(result.error.message).toMatch(/return/i);
   });
 
@@ -520,7 +500,11 @@ describe('evaluate', () => {
     expect(compat.value).toBe(1);
     expect(handlers.document.get).toHaveBeenCalledWith('bytes/payload');
     expect(handlers.emit).toHaveBeenCalledTimes(1);
-    const [emitArg] = handlers.emit.mock.calls[0] ?? [];
+    if (!handlers.emit) {
+      throw new Error('expected emit handler');
+    }
+    const emitMock = handlers.emit as ReturnType<typeof vi.fn>;
+    const [emitArg] = emitMock.mock.calls[0] ?? [];
     expect(emitArg).toBeInstanceOf(Uint8Array);
     expect(Array.from(emitArg as Uint8Array)).toEqual([222, 173, 190, 239]);
   });

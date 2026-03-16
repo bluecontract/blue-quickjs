@@ -7,8 +7,23 @@
   },
   "include": [
     "vite.config.ts",
+    "src/**/*.ts",
     "src/**/*.test.ts",
     "src/**/*.spec.ts",
     "src/**/*.d.ts"
+  ],
+  "references": [
+    {
+      "path": "../../libs/test-harness/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/quickjs-runtime/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/deterministic-builder/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/abi-manifest/tsconfig.lib.json"
+    }
   ]
 }

@@ -28,7 +28,10 @@ if (args.strict) {
   reportArgs.push('--assert-match');
 }
 if (args.chargeTapeCapacity !== null) {
-  reportArgs.push('--gas-charge-tape-capacity', String(args.chargeTapeCapacity));
+  reportArgs.push(
+    '--gas-charge-tape-capacity',
+    String(args.chargeTapeCapacity),
+  );
 }
 
 const run = spawnSync(process.execPath, reportArgs, {
@@ -61,7 +64,11 @@ if (
 
 const fileDigest = sha256Hex(reportText);
 const digestPath = `${reportPath}.sha256`;
-await writeFile(digestPath, `${fileDigest}  ${path.basename(reportPath)}\n`, 'utf8');
+await writeFile(
+  digestPath,
+  `${fileDigest}  ${path.basename(reportPath)}\n`,
+  'utf8',
+);
 
 process.stdout.write(
   [
@@ -95,7 +102,9 @@ function parseArgs(argv) {
     if (arg === '--gas-charge-tape-capacity') {
       const parsed = Number.parseInt(argv[i + 1] ?? '', 10);
       if (!Number.isInteger(parsed) || parsed < 0) {
-        throw new Error('--gas-charge-tape-capacity must be a non-negative integer');
+        throw new Error(
+          '--gas-charge-tape-capacity must be a non-negative integer',
+        );
       }
       chargeTapeCapacity = parsed;
       i += 1;

@@ -104,6 +104,28 @@ const MODULE_PACK_NATIVE_BASELINES = {
       'a5b1bdd5ceb469c9dbe33cceebff0225b36b30496f7af9a7d124bdaf7976b52d',
     tapeLength: 1,
   },
+  'module-pack-async-import-host-call': {
+    ok: true,
+    valueHash:
+      '7f83f7bda2d63959d34767689f06d47576683d378d9eb8d09386c9a020395c53',
+    errorCode: null,
+    errorTag: null,
+    gasUsed: '344',
+    gasRemaining: '49656',
+    tapeHash:
+      'd4d5b078527e86afe555a5e7b3bfe31dc80f0325d14b15d5642dee7d4dc4566c',
+    tapeLength: 1,
+  },
+  'module-pack-kitchen-sink': {
+    ok: false,
+    valueHash: null,
+    errorCode: null,
+    errorTag: null,
+    gasUsed: '425',
+    gasRemaining: '49575',
+    tapeHash: null,
+    tapeLength: 0,
+  },
   'module-pack-missing-entry-specifier': {
     ok: false,
     valueHash: null,

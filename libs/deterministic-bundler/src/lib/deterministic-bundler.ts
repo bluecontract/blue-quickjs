@@ -246,7 +246,10 @@ export async function buildDeterministicModulePack(
   const outputDir = path.join(absWorkingDir, BUILDER_OUT_DIR);
   const dependencyIntegrity =
     options.dependencyIntegrity !== undefined
-      ? expectHexStringOption(options.dependencyIntegrity, 'dependencyIntegrity')
+      ? expectHexStringOption(
+          options.dependencyIntegrity,
+          'dependencyIntegrity',
+        )
       : computeDependencyIntegrity(absWorkingDir);
 
   const result = await build({
@@ -739,9 +742,7 @@ function collectModulePackModules(
     return module;
   });
 
-  return modules.sort((a, b) =>
-    compareUtf8ByteOrder(a.specifier, b.specifier),
-  );
+  return modules.sort((a, b) => compareUtf8ByteOrder(a.specifier, b.specifier));
 }
 
 function resolveEntrySpecifier(
