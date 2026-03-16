@@ -63,12 +63,14 @@ const argv = parseArgs(process.argv.slice(2));
 /** @typedef {{resultHash: string | null, errorCode: string | null, errorTag: string | null, gasUsed: string, gasRemaining: string, tapeHash: string | null, tapeLength: number}} Snapshot */
 
 async function main() {
-  const gasDeltaBaselineMap = argv.gasDeltaBaselinePath
-    ? await loadGasDeltaBaselineMap(argv.gasDeltaBaselinePath)
-    : new Map();
+  const gasDeltaBaselineMap =
+    !argv.includeGasTrace && argv.gasDeltaBaselinePath
+      ? await loadGasDeltaBaselineMap(argv.gasDeltaBaselinePath)
+      : new Map();
   const comparison = {
-    ignoreGas: argv.ignoreGas,
+    ignoreGas: argv.ignoreGas || argv.includeGasTrace,
     gasDeltaBaselineMap,
+    includeGasTrace: argv.includeGasTrace,
   };
   const suites = [];
   const fixtureReports = [];
@@ -115,6 +117,7 @@ async function main() {
       manifest: BINARY_LIBRARY_MANIFEST,
       gasLimit: BINARY_LIBRARY_GAS_LIMIT,
       handlers: host.handlers,
+      includeGasTrace: comparison.includeGasTrace,
     });
     assert.deepStrictEqual(
       normalizeJsonValue(nodeSnapshot.okValue),
@@ -126,6 +129,7 @@ async function main() {
       manifest: BINARY_LIBRARY_MANIFEST,
       input: BINARY_LIBRARY_INPUT,
       gasLimit: BINARY_LIBRARY_GAS_LIMIT,
+      includeGasTrace: comparison.includeGasTrace,
     });
     const report = compareSnapshots(
       'binary-library',
@@ -182,7 +186,7 @@ async function main() {
     process.exitCode = 1;
   }
 
-  if (argv.gasDeltaBaselinePath) {
+  if (argv.gasDeltaBaselinePath && !argv.includeGasTrace) {
     const gasDeltaResult = await compareGasDeltaBaseline(
       report,
       argv.gasDeltaBaselinePath,
@@ -194,6 +198,10 @@ async function main() {
       console.error(JSON.stringify(gasDeltaResult.differences, null, 2));
       process.exitCode = 1;
     }
+  } else if (argv.gasDeltaBaselinePath && argv.includeGasTrace) {
+    console.error(
+      'gas delta baseline check skipped because --include-gas-trace perturbs gas counters',
+    );
   }
 }
 
@@ -227,12 +235,14 @@ async function runFixtureSuite(
       manifest,
       gasLimit,
       handlers: host.handlers,
+      includeGasTrace: comparison.includeGasTrace,
     });
     const native = runNativeEvaluation({
       program,
       manifest,
       input,
       gasLimit,
+      includeGasTrace: comparison.includeGasTrace,
     });
     reports.push(
       compareSnapshots(
@@ -300,7 +310,7 @@ function createNativeCompatibleHost() {
 }
 
 /**
- * @param {{program: any, input: any, manifest: any, gasLimit: bigint, handlers: any}} options
+ * @param {{program: any, input: any, manifest: any, gasLimit: bigint, handlers: any, includeGasTrace?: boolean}} options
  */
 async function runNodeEvaluation(options) {
   const manifest = validateAbiManifest(options.manifest);
@@ -313,6 +323,7 @@ async function runNodeEvaluation(options) {
     manifest,
     handlers: options.handlers,
     tape: { capacity: TAPE_CAPACITY },
+    gasTrace: options.includeGasTrace ?? false,
   });
 
   if (result.ok) {
@@ -326,6 +337,9 @@ async function runNodeEvaluation(options) {
         gasRemaining: result.gasRemaining.toString(),
         tapeHash: hashTape(result.tape ?? []),
         tapeLength: (result.tape ?? []).length,
+        ...(options.includeGasTrace && result.gasTrace
+          ? { gasTrace: normalizeNodeGasTrace(result.gasTrace) }
+          : {}),
       },
     };
   }
@@ -340,12 +354,15 @@ async function runNodeEvaluation(options) {
       gasRemaining: result.gasRemaining.toString(),
       tapeHash: hashTape(result.tape ?? []),
       tapeLength: (result.tape ?? []).length,
+      ...(options.includeGasTrace && result.gasTrace
+        ? { gasTrace: normalizeNodeGasTrace(result.gasTrace) }
+        : {}),
     },
   };
 }
 
 /**
- * @param {{program: any, manifest: any, input: any, gasLimit: bigint}} options
+ * @param {{program: any, manifest: any, input: any, gasLimit: bigint, includeGasTrace?: boolean}} options
  * @returns {Snapshot}
  */
 function runNativeEvaluation(options) {
@@ -366,6 +383,7 @@ function runNativeEvaluation(options) {
     options.gasLimit.toString(),
     '--report-gas',
     '--report-tape',
+    ...(options.includeGasTrace ? ['--gas-trace'] : []),
     ...buildProgramArgs(options.program),
   ];
   const result = spawnSync(harnessPath, args, { encoding: 'utf8' });
@@ -378,7 +396,9 @@ function runNativeEvaluation(options) {
       `native harness emitted empty output: ${result.stderr ?? ''}`,
     );
   }
-  return parseNativeSnapshot(stdout, manifest);
+  return parseNativeSnapshot(stdout, manifest, {
+    includeGasTrace: options.includeGasTrace ?? false,
+  });
 }
 
 function inferExecutionProfile(program) {
@@ -405,7 +425,7 @@ function buildProgramArgs(program) {
   return ['--eval', program.code];
 }
 
-function parseNativeSnapshot(stdout, manifest) {
+function parseNativeSnapshot(stdout, manifest, options) {
   const gasMatch = stdout.match(/ GAS remaining=(\d+)(?: used=(\d+))?/);
   if (!gasMatch || gasMatch.index == null) {
     throw new Error(`missing gas trailer in native output: ${stdout}`);
@@ -419,6 +439,7 @@ function parseNativeSnapshot(stdout, manifest) {
   const gasStart = gasMatch.index;
   const gasRemaining = gasMatch[1];
   const gasUsed = gasMatch[2] ?? '0';
+  const trace = parseNativeTrace(stdout, tapeIndex, options);
   const tapeJson = stdout.slice(tapeIndex + tapeMarker.length).trim();
   const tape = parseNativeTape(tapeJson);
 
@@ -433,6 +454,7 @@ function parseNativeSnapshot(stdout, manifest) {
       gasRemaining,
       tapeHash: hashTape(tape),
       tapeLength: tape.length,
+      ...(trace ? { gasTrace: trace } : {}),
     };
   }
 
@@ -447,10 +469,28 @@ function parseNativeSnapshot(stdout, manifest) {
       gasRemaining,
       tapeHash: hashTape(tape),
       tapeLength: tape.length,
+      ...(trace ? { gasTrace: trace } : {}),
     };
   }
 
   throw new Error(`unexpected native output prefix: ${stdout}`);
+}
+
+function parseNativeTrace(stdout, tapeIndex, options) {
+  if (!options.includeGasTrace) {
+    return null;
+  }
+  const marker = ' TRACE ';
+  const traceIndex = stdout.lastIndexOf(marker);
+  if (traceIndex < 0 || traceIndex > tapeIndex) {
+    return null;
+  }
+  const traceJson = stdout.slice(traceIndex + marker.length, tapeIndex).trim();
+  if (!traceJson) {
+    return null;
+  }
+  const parsed = JSON.parse(traceJson);
+  return normalizeNativeGasTrace(parsed);
 }
 
 function parseNativeTape(tapeJson) {
@@ -491,6 +531,12 @@ function compareSnapshots(
     BigInt(snapshots.native.gasUsed) - BigInt(snapshots.node.gasUsed);
   const gasDeltaRemaining =
     BigInt(snapshots.native.gasRemaining) - BigInt(snapshots.node.gasRemaining);
+  const gasTraceDelta =
+    comparison.includeGasTrace &&
+    snapshots.node.gasTrace &&
+    snapshots.native.gasTrace
+      ? computeGasTraceDelta(snapshots.node.gasTrace, snapshots.native.gasTrace)
+      : null;
   return {
     suite,
     fixtureName,
@@ -501,6 +547,11 @@ function compareSnapshots(
       ? {
           expectedGasDeltaUsed: baselineEntry.gasDeltaUsed,
           expectedGasDeltaRemaining: baselineEntry.gasDeltaRemaining,
+        }
+      : {}),
+    ...(gasTraceDelta
+      ? {
+          gasTraceDelta,
         }
       : {}),
     node: snapshots.node,
@@ -657,6 +708,81 @@ function normalizeJsonValue(value) {
   return value;
 }
 
+function normalizeNodeGasTrace(trace) {
+  const normalizeBigIntString = (value) => value.toString();
+  return {
+    opcodeCount: normalizeBigIntString(trace.opcodeCount),
+    opcodeGas: normalizeBigIntString(trace.opcodeGas),
+    arrayCbBaseCount: normalizeBigIntString(trace.arrayCbBaseCount),
+    arrayCbBaseGas: normalizeBigIntString(trace.arrayCbBaseGas),
+    arrayCbPerElCount: normalizeBigIntString(trace.arrayCbPerElCount),
+    arrayCbPerElGas: normalizeBigIntString(trace.arrayCbPerElGas),
+    allocationCount: normalizeBigIntString(trace.allocationCount),
+    allocationBytes: normalizeBigIntString(trace.allocationBytes),
+    allocationGas: normalizeBigIntString(trace.allocationGas),
+    jsonParseCount: normalizeBigIntString(trace.jsonParseCount),
+    jsonParseGas: normalizeBigIntString(trace.jsonParseGas),
+    jsonParseInputBytes: normalizeBigIntString(trace.jsonParseInputBytes),
+    jsonParseValues: normalizeBigIntString(trace.jsonParseValues),
+    jsonParseObjectEntries: normalizeBigIntString(trace.jsonParseObjectEntries),
+    jsonParseArrayElements: normalizeBigIntString(trace.jsonParseArrayElements),
+    jsonStringifyCount: normalizeBigIntString(trace.jsonStringifyCount),
+    jsonStringifyGas: normalizeBigIntString(trace.jsonStringifyGas),
+    jsonStringifyOutputBytes: normalizeBigIntString(
+      trace.jsonStringifyOutputBytes,
+    ),
+    jsonStringifyValues: normalizeBigIntString(trace.jsonStringifyValues),
+    jsonStringifyObjectEntries: normalizeBigIntString(
+      trace.jsonStringifyObjectEntries,
+    ),
+    jsonStringifyArrayElements: normalizeBigIntString(
+      trace.jsonStringifyArrayElements,
+    ),
+    jsonStringifySortComparisons: normalizeBigIntString(
+      trace.jsonStringifySortComparisons,
+    ),
+  };
+}
+
+function normalizeNativeGasTrace(trace) {
+  const from = (value) => String(value ?? '0');
+  return {
+    opcodeCount: from(trace.opcodeCount),
+    opcodeGas: from(trace.opcodeGas),
+    arrayCbBaseCount: from(trace.arrayCbBase?.count),
+    arrayCbBaseGas: from(trace.arrayCbBase?.gas),
+    arrayCbPerElCount: from(trace.arrayCbPerEl?.count),
+    arrayCbPerElGas: from(trace.arrayCbPerEl?.gas),
+    allocationCount: from(trace.alloc?.count),
+    allocationBytes: from(trace.alloc?.bytes),
+    allocationGas: from(trace.alloc?.gas),
+    jsonParseCount: from(trace.jsonParse?.count),
+    jsonParseGas: from(trace.jsonParse?.gas),
+    jsonParseInputBytes: from(trace.jsonParse?.inputBytes),
+    jsonParseValues: from(trace.jsonParse?.values),
+    jsonParseObjectEntries: from(trace.jsonParse?.objectEntries),
+    jsonParseArrayElements: from(trace.jsonParse?.arrayElements),
+    jsonStringifyCount: from(trace.jsonStringify?.count),
+    jsonStringifyGas: from(trace.jsonStringify?.gas),
+    jsonStringifyOutputBytes: from(trace.jsonStringify?.outputBytes),
+    jsonStringifyValues: from(trace.jsonStringify?.values),
+    jsonStringifyObjectEntries: from(trace.jsonStringify?.objectEntries),
+    jsonStringifyArrayElements: from(trace.jsonStringify?.arrayElements),
+    jsonStringifySortComparisons: from(trace.jsonStringify?.sortComparisons),
+  };
+}
+
+function computeGasTraceDelta(nodeTrace, nativeTrace) {
+  const delta = {};
+  const keys = Object.keys(nodeTrace);
+  for (const key of keys) {
+    const left = BigInt(nodeTrace[key] ?? '0');
+    const right = BigInt(nativeTrace[key] ?? '0');
+    delta[key] = (right - left).toString();
+  }
+  return delta;
+}
+
 function readGitCommit() {
   const result = spawnSync('git', ['rev-parse', 'HEAD'], {
     cwd: repoRoot,
@@ -673,6 +799,7 @@ function parseArgs(args) {
   let comparePath = null;
   let assertMatch = false;
   let ignoreGas = false;
+  let includeGasTrace = false;
   let gasDeltaBaselinePath = null;
   let writeGasDeltaBaselinePath = null;
   for (let i = 0; i < args.length; i += 1) {
@@ -695,6 +822,10 @@ function parseArgs(args) {
       ignoreGas = true;
       continue;
     }
+    if (arg === '--include-gas-trace') {
+      includeGasTrace = true;
+      continue;
+    }
     if (arg === '--gas-delta-baseline') {
       gasDeltaBaselinePath = args[i + 1] ? args[i + 1] : null;
       i += 1;
@@ -710,6 +841,7 @@ function parseArgs(args) {
     comparePath,
     assertMatch,
     ignoreGas,
+    includeGasTrace,
     gasDeltaBaselinePath,
     writeGasDeltaBaselinePath,
   };

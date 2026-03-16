@@ -2485,6 +2485,11 @@ snapshots and can be compared across environments.
     workflows,
   - baseline file is currently maintained at
     `tools/quickjs-native-harness/scripts/parity-gas-delta-baseline.json`.
+- Added optional gas-trace diff diagnostics in parity reports:
+  - `--include-gas-trace` captures node/native trace counters and per-counter
+    deltas per fixture to support gas-reconciliation investigations.
+  - when enabled, gas-delta baseline checks are intentionally skipped because
+    trace instrumentation itself perturbs gas counters.
 
 ---
 
