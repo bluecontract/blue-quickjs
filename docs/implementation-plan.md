@@ -2480,6 +2480,11 @@ snapshots and can be compared across environments.
 - Native harness test workflow now executes the parity report in
   `--assert-match --ignore-gas` mode to enforce cross-runtime result/error/tape
   parity continuously while gas reconciliation remains open.
+- Added gas-delta baseline enforcement hook:
+  - `--gas-delta-baseline <path>` validates per-fixture gas deltas in CI/test
+    workflows,
+  - baseline file is currently maintained at
+    `tools/quickjs-native-harness/scripts/parity-gas-delta-baseline.json`.
 
 ---
 

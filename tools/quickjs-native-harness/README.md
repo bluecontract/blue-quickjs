@@ -15,9 +15,13 @@ Minimal native harness for the QuickJS fork. Builds a standalone binary that eva
   - `--assert-match` fail when node/native snapshots diverge,
   - `--ignore-gas` compare only result/error/tape fields while still reporting
     gas deltas,
+  - `--gas-delta-baseline <path>` require per-fixture gas deltas to match an
+    expected baseline file,
+  - `--write-gas-delta-baseline <path>` emit the current gas delta baseline,
   - `--compare <report.json>` compare current run against a prior report.
   The harness test script runs this report in `--assert-match --ignore-gas`
-  mode as part of `pnpm nx test quickjs-native-harness`.
+  mode plus `--gas-delta-baseline` as part of
+  `pnpm nx test quickjs-native-harness`.
 - Manifest validation: pass `--abi-manifest-hex <hex>` (or `--abi-manifest-hex-file <path>`) and
   `--abi-manifest-hash <sha256-hex>` to initialize the VM with a pinned ABI manifest. An optional
   `--context-blob-hex <hex>` can be provided for future context blobs.

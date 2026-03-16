@@ -151,6 +151,16 @@ async function main() {
     await writeFile(outPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
   }
 
+  if (argv.writeGasDeltaBaselinePath) {
+    const baselinePath = path.resolve(argv.writeGasDeltaBaselinePath);
+    await mkdir(path.dirname(baselinePath), { recursive: true });
+    await writeFile(
+      baselinePath,
+      `${JSON.stringify(buildGasDeltaBaseline(report), null, 2)}\n`,
+      'utf8',
+    );
+  }
+
   console.log(JSON.stringify(report, null, 2));
 
   if (argv.comparePath) {
@@ -166,6 +176,20 @@ async function main() {
 
   if (argv.assertMatch && mismatchCount > 0) {
     process.exitCode = 1;
+  }
+
+  if (argv.gasDeltaBaselinePath) {
+    const gasDeltaResult = await compareGasDeltaBaseline(
+      report,
+      argv.gasDeltaBaselinePath,
+    );
+    console.error(
+      `gas delta baseline summary: differing fixtures=${gasDeltaResult.differenceCount}`,
+    );
+    if (gasDeltaResult.differenceCount > 0) {
+      console.error(JSON.stringify(gasDeltaResult.differences, null, 2));
+      process.exitCode = 1;
+    }
   }
 }
 
@@ -621,6 +645,8 @@ function parseArgs(args) {
   let comparePath = null;
   let assertMatch = false;
   let ignoreGas = false;
+  let gasDeltaBaselinePath = null;
+  let writeGasDeltaBaselinePath = null;
   for (let i = 0; i < args.length; i += 1) {
     const arg = args[i];
     if (arg === '--out') {
@@ -639,9 +665,26 @@ function parseArgs(args) {
     }
     if (arg === '--ignore-gas') {
       ignoreGas = true;
+      continue;
+    }
+    if (arg === '--gas-delta-baseline') {
+      gasDeltaBaselinePath = args[i + 1] ? args[i + 1] : null;
+      i += 1;
+      continue;
+    }
+    if (arg === '--write-gas-delta-baseline') {
+      writeGasDeltaBaselinePath = args[i + 1] ? args[i + 1] : null;
+      i += 1;
     }
   }
-  return { outPath, comparePath, assertMatch, ignoreGas };
+  return {
+    outPath,
+    comparePath,
+    assertMatch,
+    ignoreGas,
+    gasDeltaBaselinePath,
+    writeGasDeltaBaselinePath,
+  };
 }
 
 async function compareWithReport(currentReport, comparePath) {
@@ -693,6 +736,77 @@ function stableFixtureSnapshot(report) {
 
 function bigIntAbs(value) {
   return value < 0n ? -value : value;
+}
+
+function buildGasDeltaBaseline(report) {
+  const entries = report.fixtureReports
+    .map((fixtureReport) => ({
+      suite: fixtureReport.suite,
+      fixtureName: fixtureReport.fixtureName,
+      gasDeltaUsed: fixtureReport.gasDeltaUsed,
+      gasDeltaRemaining: fixtureReport.gasDeltaRemaining,
+    }))
+    .sort((left, right) => {
+      const leftKey = `${left.suite}:${left.fixtureName}`;
+      const rightKey = `${right.suite}:${right.fixtureName}`;
+      return leftKey.localeCompare(rightKey);
+    });
+
+  return {
+    version: 1,
+    entries,
+  };
+}
+
+async function compareGasDeltaBaseline(currentReport, baselinePath) {
+  const baselineText = await readFile(path.resolve(baselinePath), 'utf8');
+  const baseline = JSON.parse(baselineText);
+  const baselineEntries = Array.isArray(baseline.entries)
+    ? baseline.entries
+    : [];
+
+  const baselineByFixture = new Map();
+  for (const entry of baselineEntries) {
+    baselineByFixture.set(`${entry.suite}:${entry.fixtureName}`, entry);
+  }
+
+  const differences = [];
+  for (const fixtureReport of currentReport.fixtureReports) {
+    const key = `${fixtureReport.suite}:${fixtureReport.fixtureName}`;
+    const expected = baselineByFixture.get(key);
+    if (!expected) {
+      differences.push({
+        suite: fixtureReport.suite,
+        fixtureName: fixtureReport.fixtureName,
+        reason: 'missing fixture in gas delta baseline',
+      });
+      continue;
+    }
+    if (
+      String(expected.gasDeltaUsed) !== String(fixtureReport.gasDeltaUsed) ||
+      String(expected.gasDeltaRemaining) !==
+        String(fixtureReport.gasDeltaRemaining)
+    ) {
+      differences.push({
+        suite: fixtureReport.suite,
+        fixtureName: fixtureReport.fixtureName,
+        reason: 'gas delta mismatch',
+        expected: {
+          gasDeltaUsed: String(expected.gasDeltaUsed),
+          gasDeltaRemaining: String(expected.gasDeltaRemaining),
+        },
+        actual: {
+          gasDeltaUsed: String(fixtureReport.gasDeltaUsed),
+          gasDeltaRemaining: String(fixtureReport.gasDeltaRemaining),
+        },
+      });
+    }
+  }
+
+  return {
+    differenceCount: differences.length,
+    differences,
+  };
 }
 
 await main();
