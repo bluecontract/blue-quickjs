@@ -793,6 +793,42 @@ describe('evaluate', () => {
     ).rejects.toThrow(/release-mode requires/i);
   });
 
+  it('rejects executionProfile pin mismatches when expected profile is provided', async () => {
+    const program: ProgramArtifact = {
+      ...BASE_PROGRAM,
+      executionProfile: 'baseline-v1',
+    };
+
+    await expect(
+      evaluate({
+        program,
+        input: BASE_INPUT,
+        gasLimit: TEST_GAS_LIMIT,
+        manifest: HOST_V1_MANIFEST,
+        handlers: createHandlers(),
+        expectedExecutionProfile: 'compat-general-v1',
+      }),
+    ).rejects.toThrow(/executionprofile mismatch/i);
+  });
+
+  it('accepts matching expected executionProfile pin', async () => {
+    const program: ProgramArtifact = {
+      ...BASE_PROGRAM,
+      executionProfile: 'baseline-v1',
+    };
+
+    const result = await evaluate({
+      program,
+      input: BASE_INPUT,
+      gasLimit: TEST_GAS_LIMIT,
+      manifest: HOST_V1_MANIFEST,
+      handlers: createHandlers(),
+      expectedExecutionProfile: 'baseline-v1',
+    });
+
+    expect(result.ok).toBe(true);
+  });
+
   it('returns host-call tape when requested', async () => {
     const result = await evaluate({
       program: BASE_PROGRAM,

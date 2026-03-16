@@ -165,6 +165,10 @@ A program artifact is “code + ABI identity/pinning metadata”. The SDK valida
 
 Some environments also provide `engineBuildHash` pinning; if present, the SDK checks that the wasm runtime build hash matches.
 
+For release-mode runners that pin an expected execution surface, pass
+`expectedExecutionProfile` to `evaluate()` so the SDK rejects artifacts whose
+`program.executionProfile` does not match the runtime's expected profile.
+
 Optional fields:
 
 - `engineBuildHash` (lowercase hex; sha256 of the wasm bytes)

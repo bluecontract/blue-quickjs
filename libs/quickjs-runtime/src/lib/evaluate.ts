@@ -11,6 +11,7 @@ import type {
   HostDispatcherOptions,
 } from './host-dispatcher.js';
 import {
+  type ExecutionProfile,
   type InputEnvelope,
   type InputValidationOptions,
   type ModulePackV1,
@@ -62,6 +63,11 @@ export interface EvaluateOptions
    * Enforce release-mode artifact pin requirements.
    */
   releaseMode?: boolean;
+  /**
+   * Optional execution-profile pin asserted by the embedding runtime.
+   * When provided, evaluation rejects artifacts whose executionProfile differs.
+   */
+  expectedExecutionProfile?: ExecutionProfile;
 }
 
 export type EvaluateSuccess = {
@@ -114,6 +120,12 @@ export async function evaluate(
   const input = validateInputEnvelope(options.input, options.inputValidation);
   if (options.releaseMode) {
     assertReleaseArtifactPins(program.legacyArtifact);
+  }
+  if (options.expectedExecutionProfile) {
+    assertExecutionProfile(
+      program.legacyArtifact,
+      options.expectedExecutionProfile,
+    );
   }
 
   const runtime = await createRuntime({
@@ -714,6 +726,22 @@ function assertReleaseArtifactPins(program: {
   if (!program.executionProfile) {
     throw new Error(
       'release-mode requires program.executionProfile to be provided',
+    );
+  }
+}
+
+function assertExecutionProfile(
+  program: { executionProfile?: string },
+  expectedExecutionProfile: string,
+): void {
+  if (!program.executionProfile) {
+    throw new Error(
+      'executionProfile pin cannot be validated because program.executionProfile is missing',
+    );
+  }
+  if (program.executionProfile !== expectedExecutionProfile) {
+    throw new Error(
+      `executionProfile mismatch: program=${program.executionProfile} runtime=${expectedExecutionProfile}`,
     );
   }
 }
