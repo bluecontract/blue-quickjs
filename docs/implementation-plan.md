@@ -2193,7 +2193,7 @@ capabilities centered on `ModulePack.v1`, while preserving script-mode bridging.
 ### T-160: Wire ProgramArtifact.v2 into evaluate pipeline
 
 **Phase:** P15 – Runtime module-pack execution  
-**Status:** IN PROGRESS  
+**Status:** COMPLETE  
 **Depends on:** T-150
 
 **Goal:**  
@@ -2502,7 +2502,7 @@ supported consensus executors.
 
 - [x] Enforce strict zero gas delta (no baseline normalization) for:
       `wasm-node` vs `wasm-browser`.
-- [ ] Enforce exact OOG boundary parity for the same consensus corpus.
+- [x] Enforce exact OOG boundary parity for the same consensus corpus.
 - [x] Surface first-divergent gas event metadata in parity reports once
       charge-event tracing lands.
 - [x] Keep native parity reporting, but treat it as diagnostic unless native is
@@ -2529,7 +2529,8 @@ supported consensus executors.
   OOG checks via binary-search boundary tests in
   `libs/test-harness/src/lib/gas-equivalence.spec.ts`.
 - Browser/Node consensus checks now include binary-search OOG boundary parity
-  for representative fixture classes (`return-1`, `loop-1k`, `array-ops`) via
+  for the gas fixture corpus (`return-1`, `loop-1k`, `loop-10k`,
+  `string-concat`, `object-alloc`, `array-ops`) via
   `apps/smoke-web/tests/gas-boundaries.spec.ts`.
 
 ---
