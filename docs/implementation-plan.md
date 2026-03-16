@@ -2517,11 +2517,12 @@ snapshots and can be compared across environments.
 - Deterministic allocation-size normalization tuned further for cross-runtime
   reconciliation:
   - 64-bit deterministic allocation metering now scales request sizes to a
-    3/4 canonical model before gas charging/trace accounting,
+    `26/31` canonical model with zero allocation base gas before
+    charging/trace accounting,
   - native baselines were refreshed to this model,
   - raw strict parity still remains open, but max absolute gas delta was
-    reduced across suites (determinism `442→184`, module-pack `337→79`,
-    binary `2087→1271`).
+    reduced further across suites (determinism `442→139`,
+    module-pack `337→120`, binary `2087→67`).
 
 ---
 
