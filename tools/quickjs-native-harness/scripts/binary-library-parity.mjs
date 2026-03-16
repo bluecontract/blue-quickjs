@@ -48,9 +48,9 @@ const hostV2ManifestHash = readFileSync(
 ).trim();
 
 const require = jiti(import.meta.url);
-const { bundleDeterministicProgram } = require(
-  '../../../libs/deterministic-bundler/src/index.ts',
-);
+const {
+  bundleDeterministicProgram,
+} = require('../../../libs/deterministic-bundler/src/index.ts');
 const {
   BINARY_LIBRARY_FIXTURES,
   BINARY_LIBRARY_GAS_LIMIT,
@@ -61,7 +61,8 @@ const { encodeDv } = require('../../../libs/dv/src/index.ts');
 const BINARY_NATIVE_BASELINES = {
   'base64-js-roundtrip': {
     ok: true,
-    valueHash: '87dbcca4f5403c38f1d4259ba4d152240ab993b6d54d2bc5be615294634398d2',
+    valueHash:
+      '87dbcca4f5403c38f1d4259ba4d152240ab993b6d54d2bc5be615294634398d2',
     errorCode: null,
     errorTag: null,
     gasUsed: '14208',
@@ -71,7 +72,8 @@ const BINARY_NATIVE_BASELINES = {
   },
   'noble-sha256-hex': {
     ok: true,
-    valueHash: '137c77da6a39cb7439836094805726f43751c3d4df281f9268ba4bf03b523afd',
+    valueHash:
+      '137c77da6a39cb7439836094805726f43751c3d4df281f9268ba4bf03b523afd',
     errorCode: null,
     errorTag: null,
     gasUsed: '43772',
@@ -81,8 +83,7 @@ const BINARY_NATIVE_BASELINES = {
   },
 };
 
-const sha256Hex = (input) =>
-  createHash('sha256').update(input).digest('hex');
+const sha256Hex = (input) => createHash('sha256').update(input).digest('hex');
 
 const hashDv = (value) => sha256Hex(Buffer.from(encodeDv(value)));
 

@@ -8,6 +8,12 @@ Minimal native harness for the QuickJS fork. Builds a standalone binary that eva
 - Manual run: `tools/quickjs-native-harness/dist/quickjs-native-harness --eval "1 + 2"`
 - Gas goldens: `tools/quickjs-native-harness/scripts/gas-goldens.mjs` consumes fixtures under
   `tools/quickjs-native-harness/fixtures/gas` and is invoked by the test script.
+- Parity report: `tools/quickjs-native-harness/scripts/parity-report.mjs` runs
+  determinism/module-pack/binary fixture suites through wasm-node + native,
+  emits signed JSON snapshots, and supports:
+  - `--out <path>` write report artifact,
+  - `--assert-match` fail when node/native snapshots diverge,
+  - `--compare <report.json>` compare current run against a prior report.
 - Manifest validation: pass `--abi-manifest-hex <hex>` (or `--abi-manifest-hex-file <path>`) and
   `--abi-manifest-hash <sha256-hex>` to initialize the VM with a pinned ABI manifest. An optional
   `--context-blob-hex <hex>` can be provided for future context blobs.

@@ -52,15 +52,17 @@ if (!existsSync(harnessPath)) {
 }
 
 const require = jiti(import.meta.url);
-const { MODULE_PACK_FIXTURES, serializeHostTape } = require(
-  '../../../libs/test-harness/src/index.ts',
-);
+const {
+  MODULE_PACK_FIXTURES,
+  serializeHostTape,
+} = require('../../../libs/test-harness/src/index.ts');
 const { encodeDv } = require('../../../libs/dv/src/index.ts');
 
 const MODULE_PACK_NATIVE_BASELINES = {
   'module-pack-default-export': {
     ok: true,
-    valueHash: 'ca358758f6d27e6cf45272937977a748fd88391db679ceda7dc7bf1f005ee879',
+    valueHash:
+      'ca358758f6d27e6cf45272937977a748fd88391db679ceda7dc7bf1f005ee879',
     errorCode: null,
     errorTag: null,
     gasUsed: '2168',
@@ -70,7 +72,8 @@ const MODULE_PACK_NATIVE_BASELINES = {
   },
   'module-pack-named-export': {
     ok: true,
-    valueHash: '7f83f7bda2d63959d34767689f06d47576683d378d9eb8d09386c9a020395c53',
+    valueHash:
+      '7f83f7bda2d63959d34767689f06d47576683d378d9eb8d09386c9a020395c53',
     errorCode: null,
     errorTag: null,
     gasUsed: '2216',
@@ -80,7 +83,8 @@ const MODULE_PACK_NATIVE_BASELINES = {
   },
   'module-pack-cyclic-imports': {
     ok: true,
-    valueHash: '7f83f7bda2d63959d34767689f06d47576683d378d9eb8d09386c9a020395c53',
+    valueHash:
+      '7f83f7bda2d63959d34767689f06d47576683d378d9eb8d09386c9a020395c53',
     errorCode: null,
     errorTag: null,
     gasUsed: '2887',
@@ -90,12 +94,14 @@ const MODULE_PACK_NATIVE_BASELINES = {
   },
   'module-pack-host-call-tape': {
     ok: true,
-    valueHash: 'da95a2e5e931c6478e2dbc7d03b381337d481020e16179cc7c45e0b4e3bf13fd',
+    valueHash:
+      'da95a2e5e931c6478e2dbc7d03b381337d481020e16179cc7c45e0b4e3bf13fd',
     errorCode: null,
     errorTag: null,
     gasUsed: '2341',
     gasRemaining: '47659',
-    tapeHash: 'a5b1bdd5ceb469c9dbe33cceebff0225b36b30496f7af9a7d124bdaf7976b52d',
+    tapeHash:
+      'a5b1bdd5ceb469c9dbe33cceebff0225b36b30496f7af9a7d124bdaf7976b52d',
     tapeLength: 1,
   },
   'module-pack-missing-entry-specifier': {
@@ -127,8 +133,7 @@ const MODULE_PACK_ERROR_CODE_MAP = [
   ['ModuleEvaluationError', 'MODULE_EVALUATION_ERROR'],
 ];
 
-const sha256Hex = (input) =>
-  createHash('sha256').update(input).digest('hex');
+const sha256Hex = (input) => createHash('sha256').update(input).digest('hex');
 
 const hashDv = (value) => sha256Hex(Buffer.from(encodeDv(value)));
 

@@ -1,0 +1,640 @@
+#!/usr/bin/env node
+import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { existsSync } from 'node:fs';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import process from 'node:process';
+import { fileURLToPath } from 'node:url';
+import jiti from 'jiti';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(__dirname, '../../..');
+const require = jiti(import.meta.url, { interopDefault: true });
+
+const harnessPath = path.join(
+  repoRoot,
+  'tools',
+  'quickjs-native-harness',
+  'dist',
+  'quickjs-native-harness',
+);
+
+if (!existsSync(harnessPath)) {
+  throw new Error(
+    `Native harness not found at ${harnessPath}. Build quickjs-native-harness first.`,
+  );
+}
+
+const { encodeDv, encodeDv2 } = require('../../../libs/dv/src/index.ts');
+const {
+  evaluate,
+  validateProgramArtifact,
+  validateProgramArtifactV2,
+  validateInputEnvelope,
+} = require('../../../libs/quickjs-runtime/src/index.ts');
+const {
+  mapVmError,
+} = require('../../../libs/quickjs-runtime/src/lib/evaluate-errors.ts');
+const {
+  hashAbiManifest,
+  validateAbiManifest,
+} = require('../../../libs/abi-manifest/src/index.ts');
+const {
+  bundleDeterministicProgram,
+} = require('../../../libs/deterministic-bundler/src/index.ts');
+const {
+  BINARY_LIBRARY_FIXTURES,
+  BINARY_LIBRARY_GAS_LIMIT,
+  BINARY_LIBRARY_INPUT,
+  BINARY_LIBRARY_MANIFEST,
+  BINARY_LIBRARY_PROGRAM_BASE,
+  DETERMINISM_FIXTURES,
+  MODULE_PACK_FIXTURES,
+  serializeHostTape,
+} = require('../../../libs/test-harness/src/index.ts');
+
+const TAPE_CAPACITY = 64;
+
+const argv = parseArgs(process.argv.slice(2));
+
+/** @typedef {{resultHash: string | null, errorCode: string | null, errorTag: string | null, gasUsed: string, gasRemaining: string, tapeHash: string | null, tapeLength: number}} Snapshot */
+
+async function main() {
+  const suites = [];
+  const fixtureReports = [];
+
+  const determinism = await runFixtureSuite(
+    'determinism',
+    DETERMINISM_FIXTURES,
+    (fixture) => fixture.program,
+    (fixture) => fixture.input,
+    (fixture) => fixture.manifest,
+    (fixture) => fixture.gasLimit,
+  );
+  suites.push(determinism.summary);
+  fixtureReports.push(...determinism.reports);
+
+  const modulePack = await runFixtureSuite(
+    'module-pack',
+    MODULE_PACK_FIXTURES,
+    (fixture) => fixture.program,
+    (fixture) => fixture.input,
+    (fixture) => fixture.manifest,
+    (fixture) => fixture.gasLimit,
+  );
+  suites.push(modulePack.summary);
+  fixtureReports.push(...modulePack.reports);
+
+  const binaryFixtureReports = [];
+  for (const fixture of BINARY_LIBRARY_FIXTURES) {
+    const bundled = await bundleDeterministicProgram({
+      absWorkingDir: repoRoot,
+      entryPath: fixture.entryPath,
+      profile: 'compat-binary-v1',
+    });
+    const program = {
+      ...BINARY_LIBRARY_PROGRAM_BASE,
+      code: bundled.code,
+    };
+    const host = createNativeCompatibleHost();
+    const nodeSnapshot = await runNodeEvaluation({
+      program,
+      input: BINARY_LIBRARY_INPUT,
+      manifest: BINARY_LIBRARY_MANIFEST,
+      gasLimit: BINARY_LIBRARY_GAS_LIMIT,
+      handlers: host.handlers,
+    });
+    assert.deepStrictEqual(
+      normalizeJsonValue(nodeSnapshot.okValue),
+      fixture.expectedValue,
+      `binary fixture "${fixture.name}" produced unexpected node value`,
+    );
+    const nativeSnapshot = runNativeEvaluation({
+      program,
+      manifest: BINARY_LIBRARY_MANIFEST,
+      input: BINARY_LIBRARY_INPUT,
+      gasLimit: BINARY_LIBRARY_GAS_LIMIT,
+    });
+    const report = compareSnapshots('binary-library', fixture.name, {
+      node: nodeSnapshot.snapshot,
+      native: nativeSnapshot,
+    });
+    binaryFixtureReports.push(report);
+  }
+
+  fixtureReports.push(...binaryFixtureReports);
+  suites.push(createSuiteSummary('binary-library', binaryFixtureReports));
+
+  const mismatchCount = fixtureReports.filter((report) => !report.match).length;
+  const report = buildReport({
+    fixtureReports,
+    suites,
+    mismatchCount,
+  });
+
+  if (argv.outPath) {
+    const outPath = path.resolve(argv.outPath);
+    await mkdir(path.dirname(outPath), { recursive: true });
+    await writeFile(outPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
+  }
+
+  console.log(JSON.stringify(report, null, 2));
+
+  if (argv.comparePath) {
+    const compareResult = await compareWithReport(report, argv.comparePath);
+    console.error(
+      `comparison summary: differing fixtures=${compareResult.differenceCount}`,
+    );
+    if (compareResult.differenceCount > 0) {
+      console.error(JSON.stringify(compareResult.differences, null, 2));
+      process.exitCode = 1;
+    }
+  }
+
+  if (argv.assertMatch && mismatchCount > 0) {
+    process.exitCode = 1;
+  }
+}
+
+/**
+ * @param {string} suiteName
+ * @param {Array<any>} fixtures
+ * @param {(fixture: any) => any} getProgram
+ * @param {(fixture: any) => any} getInput
+ * @param {(fixture: any) => any} getManifest
+ * @param {(fixture: any) => bigint} getGasLimit
+ */
+async function runFixtureSuite(
+  suiteName,
+  fixtures,
+  getProgram,
+  getInput,
+  getManifest,
+  getGasLimit,
+) {
+  const reports = [];
+  for (const fixture of fixtures) {
+    const program = getProgram(fixture);
+    const manifest = getManifest(fixture);
+    const input = getInput(fixture);
+    const gasLimit = getGasLimit(fixture);
+    const host = createNativeCompatibleHost();
+    const node = await runNodeEvaluation({
+      program,
+      input,
+      manifest,
+      gasLimit,
+      handlers: host.handlers,
+    });
+    const native = runNativeEvaluation({
+      program,
+      manifest,
+      input,
+      gasLimit,
+    });
+    reports.push(
+      compareSnapshots(suiteName, fixture.name, {
+        node: node.snapshot,
+        native,
+      }),
+    );
+  }
+
+  return {
+    summary: createSuiteSummary(suiteName, reports),
+    reports,
+  };
+}
+
+function createNativeCompatibleHost() {
+  return {
+    handlers: {
+      document: {
+        get: (docPath) => {
+          if (docPath === 'missing') {
+            return {
+              err: { code: 'NOT_FOUND', tag: 'host/not_found' },
+              units: 2,
+            };
+          }
+          if (docPath === 'limit') {
+            return {
+              err: { code: 'LIMIT_EXCEEDED', tag: 'host/limit' },
+              units: 3,
+            };
+          }
+          if (docPath === 'bytes/payload') {
+            return { ok: Uint8Array.from([222, 173, 190, 239]), units: 4 };
+          }
+          return { ok: docPath, units: 1 };
+        },
+        getCanonical: (docPath) => {
+          if (docPath === 'missing') {
+            return {
+              err: { code: 'NOT_FOUND', tag: 'host/not_found' },
+              units: 2,
+            };
+          }
+          if (docPath === 'limit') {
+            return {
+              err: { code: 'LIMIT_EXCEEDED', tag: 'host/limit' },
+              units: 3,
+            };
+          }
+          if (docPath === 'bytes/payload') {
+            return { ok: Uint8Array.from([222, 173, 190, 239]), units: 4 };
+          }
+          return { ok: docPath, units: 1 };
+        },
+      },
+      emit: () => ({ ok: null, units: 0 }),
+    },
+  };
+}
+
+/**
+ * @param {{program: any, input: any, manifest: any, gasLimit: bigint, handlers: any}} options
+ */
+async function runNodeEvaluation(options) {
+  const manifest = validateAbiManifest(options.manifest);
+  const program = normalizeProgram(options.program);
+  const input = validateInputEnvelope(options.input);
+  const result = await evaluate({
+    program,
+    input,
+    gasLimit: options.gasLimit,
+    manifest,
+    handlers: options.handlers,
+    tape: { capacity: TAPE_CAPACITY },
+  });
+
+  if (result.ok) {
+    return {
+      okValue: result.value,
+      snapshot: {
+        resultHash: hashDv(result.value),
+        errorCode: null,
+        errorTag: null,
+        gasUsed: result.gasUsed.toString(),
+        gasRemaining: result.gasRemaining.toString(),
+        tapeHash: hashTape(result.tape ?? []),
+        tapeLength: (result.tape ?? []).length,
+      },
+    };
+  }
+
+  return {
+    okValue: null,
+    snapshot: {
+      resultHash: null,
+      errorCode: result.error.code,
+      errorTag: 'tag' in result.error ? result.error.tag : null,
+      gasUsed: result.gasUsed.toString(),
+      gasRemaining: result.gasRemaining.toString(),
+      tapeHash: hashTape(result.tape ?? []),
+      tapeLength: (result.tape ?? []).length,
+    },
+  };
+}
+
+/**
+ * @param {{program: any, manifest: any, input: any, gasLimit: bigint}} options
+ * @returns {Snapshot}
+ */
+function runNativeEvaluation(options) {
+  const manifest = validateAbiManifest(options.manifest);
+  const manifestCanonical = hashAbiManifest(manifest);
+  const contextBlobHex = bytesToHex(encodeDv(options.input));
+  const profile = inferExecutionProfile(options.program);
+  const args = [
+    '--abi-manifest-hex',
+    bytesToHex(manifestCanonical.bytes),
+    '--abi-manifest-hash',
+    manifestCanonical.hash,
+    '--execution-profile',
+    profile,
+    '--context-blob-hex',
+    contextBlobHex,
+    '--gas-limit',
+    options.gasLimit.toString(),
+    '--report-gas',
+    '--report-tape',
+    ...buildProgramArgs(options.program),
+  ];
+  const result = spawnSync(harnessPath, args, { encoding: 'utf8' });
+  if (result.error) {
+    throw result.error;
+  }
+  const stdout = (result.stdout ?? '').trim();
+  if (!stdout) {
+    throw new Error(
+      `native harness emitted empty output: ${result.stderr ?? ''}`,
+    );
+  }
+  return parseNativeSnapshot(stdout, manifest);
+}
+
+function inferExecutionProfile(program) {
+  return program.executionProfile ?? 'baseline-v1';
+}
+
+function buildProgramArgs(program) {
+  if (program.version === 2 && program.sourceKind === 'module-pack') {
+    const modulePack = program.source.modulePack;
+    return [
+      '--module-entry-specifier',
+      modulePack.entrySpecifier,
+      '--module-entry-export',
+      modulePack.entryExport ?? 'default',
+      '--module-pack-json',
+      JSON.stringify(modulePack.modules),
+    ];
+  }
+
+  if (program.version === 2 && program.sourceKind === 'script') {
+    return ['--eval', program.source.code];
+  }
+
+  return ['--eval', program.code];
+}
+
+function parseNativeSnapshot(stdout, manifest) {
+  const gasMatch = stdout.match(/ GAS remaining=(\d+)(?: used=(\d+))?/);
+  if (!gasMatch || gasMatch.index == null) {
+    throw new Error(`missing gas trailer in native output: ${stdout}`);
+  }
+  const tapeMarker = ' TAPE ';
+  const tapeIndex = stdout.lastIndexOf(tapeMarker);
+  if (tapeIndex < 0) {
+    throw new Error(`missing tape trailer in native output: ${stdout}`);
+  }
+
+  const gasStart = gasMatch.index;
+  const gasRemaining = gasMatch[1];
+  const gasUsed = gasMatch[2] ?? '0';
+  const tapeJson = stdout.slice(tapeIndex + tapeMarker.length).trim();
+  const tape = parseNativeTape(tapeJson);
+
+  if (stdout.startsWith('RESULT ')) {
+    const valueJson = stdout.slice('RESULT '.length, gasStart);
+    const value = JSON.parse(valueJson);
+    return {
+      resultHash: hashDv(value),
+      errorCode: null,
+      errorTag: null,
+      gasUsed,
+      gasRemaining,
+      tapeHash: hashTape(tape),
+      tapeLength: tape.length,
+    };
+  }
+
+  if (stdout.startsWith('ERROR ')) {
+    const message = stdout.slice('ERROR '.length, gasStart);
+    const mapped = mapVmError(message, validateAbiManifest(manifest));
+    return {
+      resultHash: null,
+      errorCode: mapped.code,
+      errorTag: mapped.tag,
+      gasUsed,
+      gasRemaining,
+      tapeHash: hashTape(tape),
+      tapeLength: tape.length,
+    };
+  }
+
+  throw new Error(`unexpected native output prefix: ${stdout}`);
+}
+
+function parseNativeTape(tapeJson) {
+  const parsed = JSON.parse(tapeJson);
+  if (!Array.isArray(parsed)) {
+    throw new Error(`native tape must be array JSON: ${tapeJson}`);
+  }
+  return parsed.map((record) => ({
+    fnId: Number(record.fnId),
+    reqLen: Number(record.reqLen),
+    respLen: Number(record.respLen),
+    units: Number(record.units),
+    gasPre: BigInt(record.gasPre),
+    gasPost: BigInt(record.gasPost),
+    isError: Boolean(record.isError),
+    chargeFailed: Boolean(record.chargeFailed),
+    reqHash: String(record.reqHash),
+    respHash: String(record.respHash),
+  }));
+}
+
+function compareSnapshots(suite, fixtureName, snapshots) {
+  const match = isSnapshotEqual(snapshots.node, snapshots.native);
+  return {
+    suite,
+    fixtureName,
+    match,
+    node: snapshots.node,
+    native: snapshots.native,
+    ...(match
+      ? {}
+      : {
+          differences: listSnapshotDifferences(
+            snapshots.node,
+            snapshots.native,
+          ),
+        }),
+  };
+}
+
+function isSnapshotEqual(left, right) {
+  return (
+    left.resultHash === right.resultHash &&
+    left.errorCode === right.errorCode &&
+    left.errorTag === right.errorTag &&
+    left.gasUsed === right.gasUsed &&
+    left.gasRemaining === right.gasRemaining &&
+    left.tapeHash === right.tapeHash &&
+    left.tapeLength === right.tapeLength
+  );
+}
+
+function listSnapshotDifferences(nodeSnapshot, nativeSnapshot) {
+  const differences = [];
+  for (const key of [
+    'resultHash',
+    'errorCode',
+    'errorTag',
+    'gasUsed',
+    'gasRemaining',
+    'tapeHash',
+    'tapeLength',
+  ]) {
+    if (nodeSnapshot[key] !== nativeSnapshot[key]) {
+      differences.push({
+        field: key,
+        node: nodeSnapshot[key],
+        native: nativeSnapshot[key],
+      });
+    }
+  }
+  return differences;
+}
+
+function createSuiteSummary(suite, reports) {
+  const mismatches = reports.filter((report) => !report.match).length;
+  return {
+    suite,
+    totalFixtures: reports.length,
+    mismatches,
+    matched: reports.length - mismatches,
+  };
+}
+
+function buildReport({ fixtureReports, suites, mismatchCount }) {
+  const payload = {
+    generatedAt: new Date().toISOString(),
+    gitCommit: readGitCommit(),
+    environment: {
+      platform: process.platform,
+      arch: process.arch,
+      release: os.release(),
+      hostname: os.hostname(),
+      nodeVersion: process.version,
+    },
+    suites,
+    fixtureReports,
+    mismatchCount,
+  };
+  const digest = sha256Hex(JSON.stringify(payload));
+  return {
+    ...payload,
+    signature: {
+      algorithm: 'sha256',
+      digest,
+    },
+  };
+}
+
+function hashDv(value) {
+  return sha256Hex(Buffer.from(encodeDv2(value)));
+}
+
+function hashTape(tape) {
+  if (tape.length === 0) {
+    return null;
+  }
+  return sha256Hex(Buffer.from(serializeHostTape(tape)));
+}
+
+function bytesToHex(bytes) {
+  return Buffer.from(bytes).toString('hex');
+}
+
+function sha256Hex(input) {
+  return createHash('sha256').update(input).digest('hex');
+}
+
+function normalizeProgram(program) {
+  if (program.version === 2) {
+    return validateProgramArtifactV2(program);
+  }
+  return validateProgramArtifact(program);
+}
+
+function normalizeJsonValue(value) {
+  if (Array.isArray(value)) {
+    return value.map((entry) => normalizeJsonValue(entry));
+  }
+  if (value && typeof value === 'object') {
+    const normalized = {};
+    for (const [key, entry] of Object.entries(value)) {
+      normalized[key] = normalizeJsonValue(entry);
+    }
+    return normalized;
+  }
+  return value;
+}
+
+function readGitCommit() {
+  const result = spawnSync('git', ['rev-parse', 'HEAD'], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+  });
+  if (result.status !== 0) {
+    return 'unknown';
+  }
+  return (result.stdout ?? '').trim() || 'unknown';
+}
+
+function parseArgs(args) {
+  let outPath = null;
+  let comparePath = null;
+  let assertMatch = false;
+  for (let i = 0; i < args.length; i += 1) {
+    const arg = args[i];
+    if (arg === '--out') {
+      outPath = args[i + 1] ? args[i + 1] : null;
+      i += 1;
+      continue;
+    }
+    if (arg === '--compare') {
+      comparePath = args[i + 1] ? args[i + 1] : null;
+      i += 1;
+      continue;
+    }
+    if (arg === '--assert-match') {
+      assertMatch = true;
+    }
+  }
+  return { outPath, comparePath, assertMatch };
+}
+
+async function compareWithReport(currentReport, comparePath) {
+  const baselineText = await readFile(path.resolve(comparePath), 'utf8');
+  const baseline = JSON.parse(baselineText);
+
+  const baselineByFixture = new Map();
+  for (const report of baseline.fixtureReports ?? []) {
+    baselineByFixture.set(`${report.suite}:${report.fixtureName}`, report);
+  }
+
+  const differences = [];
+  for (const current of currentReport.fixtureReports) {
+    const key = `${current.suite}:${current.fixtureName}`;
+    const previous = baselineByFixture.get(key);
+    if (!previous) {
+      differences.push({
+        suite: current.suite,
+        fixtureName: current.fixtureName,
+        reason: 'missing in comparison report',
+      });
+      continue;
+    }
+
+    const currentSnapshot = stableFixtureSnapshot(current);
+    const previousSnapshot = stableFixtureSnapshot(previous);
+    if (currentSnapshot !== previousSnapshot) {
+      differences.push({
+        suite: current.suite,
+        fixtureName: current.fixtureName,
+        reason: 'snapshot differs',
+      });
+    }
+  }
+
+  return {
+    differenceCount: differences.length,
+    differences,
+  };
+}
+
+function stableFixtureSnapshot(report) {
+  return JSON.stringify({
+    match: report.match,
+    node: report.node,
+    native: report.native,
+  });
+}
+
+await main();

@@ -2404,6 +2404,79 @@ DV1 behavior in place.
 
 ---
 
+## Phase P20 — Source maps, diagnostics, and CLI
+
+### T-210: Add source-map remapping + operator CLI
+
+**Phase:** P20 – Tooling and diagnostics  
+**Status:** DONE  
+**Depends on:** T-200
+
+**Goal:**  
+Make runtime diagnostics and artifact operations practical for teams by adding
+source-map-aware VM remapping and a first-class CLI workflow.
+
+**Detailed tasks:**
+
+- [x] Add CLI package with command surface:
+      `build`, `run`, `compat`, `inspect`, `explain-error`.
+- [x] Add source-map-aware runtime VM payload remapping for module-pack errors.
+- [x] Add CLI inspection/diagnostic reporting for profile/artifact/module metadata.
+- [x] Add unit coverage for CLI arg parsing and diagnostic location extraction.
+
+**Current state (P20 T-210):**
+
+- Added `tools/blue-quickjs-cli` package with Nx build/lint/test wiring and
+  executable entrypoint.
+- CLI commands now support:
+  - deterministic module-pack builds + compatibility reports,
+  - artifact inspection/summary for v1/v2 artifacts,
+  - evaluation and structured VM error output,
+  - payload error explanation helpers.
+- Runtime now remaps module-pack generated stack locations using source maps
+  before deterministic error classification:
+  - `libs/quickjs-runtime/src/lib/source-map-remap.ts`
+  - integrated in `evaluate(...)` error pipeline.
+- CLI now surfaces extracted mapped locations in `run` and `explain-error`
+  outputs and richer module/provenance/source-map fields in `inspect`.
+
+---
+
+## Phase P21 — Validation and release gate
+
+### T-220: Reproducibility report scaffolding
+
+**Phase:** P21 – Validation and release gate  
+**Status:** IN PROGRESS  
+**Depends on:** T-210
+
+**Goal:**  
+Provide a repeatable parity-report workflow that emits signed deterministic
+snapshots and can be compared across environments.
+
+**Detailed tasks:**
+
+- [x] Add reproducibility runner script that executes determinism/module-pack/
+      binary fixture suites through wasm-node + native harness.
+- [x] Emit structured report with:
+      result hash, error code/tag, gas used/remaining, tape hash/length, and
+      environment metadata.
+- [x] Add report signature digest and cross-run comparison support.
+- [ ] Wire strict parity mismatch assertions into final release gating once
+      fixture parity deltas are fully reconciled.
+
+**Current state (P21 T-220):**
+
+- Added `tools/quickjs-native-harness/scripts/parity-report.mjs`.
+- Script supports:
+  - `--out <path>` report emission,
+  - `--assert-match` hard parity enforcement mode,
+  - `--compare <report.json>` cross-run diff mode.
+- Reports include fixture-level node/native snapshots and a SHA-256 signature,
+  allowing deterministic diffing between environments (local/CI/cloud).
+
+---
+
 ## Appendix A — Minimal required ABI surface (v1)
 
 The initial manifest should define at least:
