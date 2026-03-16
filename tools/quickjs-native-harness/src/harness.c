@@ -996,7 +996,9 @@ static void print_trace_suffix(const HarnessOptions *options, const HarnessSnaps
           "},\"jsonStringify\":{\"count\":%" PRIu64 ",\"gas\":%" PRIu64
           ",\"outputBytes\":%" PRIu64 ",\"values\":%" PRIu64
           ",\"objectEntries\":%" PRIu64 ",\"arrayElements\":%" PRIu64
-          ",\"sortComparisons\":%" PRIu64 "}",
+          ",\"sortComparisons\":%" PRIu64
+          "},\"hostCallPre\":{\"count\":%" PRIu64 ",\"gas\":%" PRIu64
+          "},\"hostCallPost\":{\"count\":%" PRIu64 ",\"gas\":%" PRIu64 "}",
           snapshot->trace.opcode_count, snapshot->trace.opcode_gas,
           snapshot->trace.builtin_array_cb_base_count, snapshot->trace.builtin_array_cb_base_gas,
           snapshot->trace.builtin_array_cb_per_element_count,
@@ -1011,7 +1013,11 @@ static void print_trace_suffix(const HarnessOptions *options, const HarnessSnaps
           snapshot->trace.json_stringify_value_count,
           snapshot->trace.json_stringify_object_entry_count,
           snapshot->trace.json_stringify_array_element_count,
-          snapshot->trace.json_stringify_sort_comparison_count);
+          snapshot->trace.json_stringify_sort_comparison_count,
+          snapshot->trace.host_call_pre_count,
+          snapshot->trace.host_call_pre_gas,
+          snapshot->trace.host_call_post_count,
+          snapshot->trace.host_call_post_gas);
 
   fputc('}', stdout);
 }
@@ -2161,17 +2167,19 @@ int main(int argc, char **argv) {
 
   JS_SetGasLimit(runtime.ctx, options.gas_limit);
 
-  if (options.report_trace) {
-    if (JS_EnableGasTrace(runtime.ctx, 1) != 0) {
-      fprintf(stderr, "init: failed to enable gas trace\n");
+  if (options.report_tape) {
+    if (JS_EnableHostTape(runtime.ctx, 64) != 0 || JS_ResetHostTape(runtime.ctx) != 0) {
+      fprintf(stderr, "init: failed to enable host tape\n");
       free_runtime(&runtime);
       return 1;
     }
   }
 
-  if (options.report_tape) {
-    if (JS_EnableHostTape(runtime.ctx, 64) != 0 || JS_ResetHostTape(runtime.ctx) != 0) {
-      fprintf(stderr, "init: failed to enable host tape\n");
+  /* Keep trace counters aligned with wasm-node evaluate(): tape setup first,
+     then gas-trace enable/reset so setup charges are excluded from trace data. */
+  if (options.report_trace) {
+    if (JS_EnableGasTrace(runtime.ctx, 1) != 0) {
+      fprintf(stderr, "init: failed to enable gas trace\n");
       free_runtime(&runtime);
       return 1;
     }

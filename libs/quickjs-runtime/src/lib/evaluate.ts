@@ -150,10 +150,10 @@ export async function evaluate(
             program.entryExport,
           );
     const parsed = parseEvalOutput(raw);
-    const tape = options.tape ? parseTape(vm.readTape()) : undefined;
     const trace = options.gasTrace
       ? parseGasTrace(vm.readGasTrace())
       : undefined;
+    const tape = options.tape ? parseTape(vm.readTape()) : undefined;
 
     if (parsed.kind === 'error') {
       const payload =
@@ -356,6 +356,10 @@ export interface GasTrace {
   jsonStringifyObjectEntries: bigint;
   jsonStringifyArrayElements: bigint;
   jsonStringifySortComparisons: bigint;
+  hostCallPreCount: bigint;
+  hostCallPreGas: bigint;
+  hostCallPostCount: bigint;
+  hostCallPostGas: bigint;
 }
 
 function parseGasTrace(raw: string): GasTrace {
@@ -440,6 +444,22 @@ function parseGasTrace(raw: string): GasTrace {
     jsonStringifySortComparisons: expectBigIntString(
       obj.jsonStringifySortComparisons,
       'gasTrace.jsonStringifySortComparisons',
+    ),
+    hostCallPreCount: expectBigIntString(
+      obj.hostCallPreCount,
+      'gasTrace.hostCallPreCount',
+    ),
+    hostCallPreGas: expectBigIntString(
+      obj.hostCallPreGas,
+      'gasTrace.hostCallPreGas',
+    ),
+    hostCallPostCount: expectBigIntString(
+      obj.hostCallPostCount,
+      'gasTrace.hostCallPostCount',
+    ),
+    hostCallPostGas: expectBigIntString(
+      obj.hostCallPostGas,
+      'gasTrace.hostCallPostGas',
     ),
   };
 }

@@ -2501,6 +2501,11 @@ snapshots and can be compared across environments.
   - `gasTraceSummary.residualSignatures` and
     `gasTraceSummary.residualProfiles` to identify repeated residual patterns
     and profile-level drift concentration.
+- Gas-trace capture alignment and host-call charge tracing improvements landed:
+  - native harness now enables tape before gas trace reset to align with
+    wasm-node trace-window semantics,
+  - QuickJS gas trace now includes `hostCallPre*` and `hostCallPost*` counters
+    so host-call charging deltas are attributed directly in trace reports.
 - Added native harness parity-eval mode for report runs:
   - `--parity-eval` routes eval-mode execution through DV encode/decode before
     output formatting so script-path parity checks better mirror wasm eval flow.

@@ -969,7 +969,11 @@ char *qjs_det_read_trace(void)
       "\",\"jsonStringifyValues\":\"%" PRIu64
       "\",\"jsonStringifyObjectEntries\":\"%" PRIu64
       "\",\"jsonStringifyArrayElements\":\"%" PRIu64
-      "\",\"jsonStringifySortComparisons\":\"%" PRIu64 "\"}",
+      "\",\"jsonStringifySortComparisons\":\"%" PRIu64
+      "\",\"hostCallPreCount\":\"%" PRIu64
+      "\",\"hostCallPreGas\":\"%" PRIu64
+      "\",\"hostCallPostCount\":\"%" PRIu64
+      "\",\"hostCallPostGas\":\"%" PRIu64 "\"}",
       trace.opcode_count, trace.opcode_gas, trace.builtin_array_cb_base_count,
       trace.builtin_array_cb_base_gas, trace.builtin_array_cb_per_element_count,
       trace.builtin_array_cb_per_element_gas, trace.allocation_count,
@@ -981,5 +985,7 @@ char *qjs_det_read_trace(void)
       trace.json_stringify_value_count,
       trace.json_stringify_object_entry_count,
       trace.json_stringify_array_element_count,
-      trace.json_stringify_sort_comparison_count);
+      trace.json_stringify_sort_comparison_count,
+      trace.host_call_pre_count, trace.host_call_pre_gas,
+      trace.host_call_post_count, trace.host_call_post_gas);
 }

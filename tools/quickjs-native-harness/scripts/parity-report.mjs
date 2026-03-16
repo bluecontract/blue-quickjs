@@ -774,6 +774,10 @@ function normalizeNodeGasTrace(trace) {
     jsonStringifySortComparisons: normalizeBigIntString(
       trace.jsonStringifySortComparisons,
     ),
+    hostCallPreCount: normalizeBigIntString(trace.hostCallPreCount),
+    hostCallPreGas: normalizeBigIntString(trace.hostCallPreGas),
+    hostCallPostCount: normalizeBigIntString(trace.hostCallPostCount),
+    hostCallPostGas: normalizeBigIntString(trace.hostCallPostGas),
   };
 }
 
@@ -802,6 +806,10 @@ function normalizeNativeGasTrace(trace) {
     jsonStringifyObjectEntries: from(trace.jsonStringify?.objectEntries),
     jsonStringifyArrayElements: from(trace.jsonStringify?.arrayElements),
     jsonStringifySortComparisons: from(trace.jsonStringify?.sortComparisons),
+    hostCallPreCount: from(trace.hostCallPre?.count),
+    hostCallPreGas: from(trace.hostCallPre?.gas),
+    hostCallPostCount: from(trace.hostCallPost?.count),
+    hostCallPostGas: from(trace.hostCallPost?.gas),
   };
 }
 
@@ -824,6 +832,8 @@ function sumTracedGasDelta(gasTraceDelta) {
     'allocationGas',
     'jsonParseGas',
     'jsonStringifyGas',
+    'hostCallPreGas',
+    'hostCallPostGas',
   ];
   let sum = 0n;
   for (const key of gasKeys) {
