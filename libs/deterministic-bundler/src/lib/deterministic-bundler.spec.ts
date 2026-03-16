@@ -216,7 +216,7 @@ describe('buildDeterministicModulePack', () => {
       absWorkingDir: fixtureDir,
       entryPath: 'entry.ts',
       profile: 'compat-regexp-v1',
-      dependencyIntegrity: 'test-integrity',
+      dependencyIntegrity: SAMPLE_HASH,
     });
 
     expect(built.compatibility.ok).toBe(true);
@@ -262,7 +262,7 @@ describe('buildDeterministicModulePack', () => {
       absWorkingDir: fixtureDir,
       entryPath: 'entry.ts',
       profile: 'compat-regexp-v1',
-      dependencyIntegrity: 'test-integrity',
+      dependencyIntegrity: SAMPLE_HASH,
     });
 
     expect(built.compatibility.ok).toBe(true);
@@ -324,6 +324,21 @@ describe('buildDeterministicModulePack', () => {
 
     expect(built.modulePack.graphHash).toBe(
       '191c77a4a6235a20f460887a4bdad13b09ab34bf0f841fcad68504e3e757b6b4',
+    );
+  });
+
+  it('rejects non-hex dependencyIntegrity overrides', async () => {
+    const fixtureDir = createFixtureDir();
+    writeFixture(fixtureDir, 'entry.ts', 'export default 1;');
+
+    await expect(
+      buildDeterministicModulePack({
+        absWorkingDir: fixtureDir,
+        entryPath: 'entry.ts',
+        dependencyIntegrity: 'test-integrity',
+      }),
+    ).rejects.toThrow(
+      'dependencyIntegrity must be a lowercase 64-char hex string',
     );
   });
 });

@@ -245,7 +245,9 @@ export async function buildDeterministicModulePack(
   const builderVersion = options.builderVersion ?? DEFAULT_BUILDER_VERSION;
   const outputDir = path.join(absWorkingDir, BUILDER_OUT_DIR);
   const dependencyIntegrity =
-    options.dependencyIntegrity ?? computeDependencyIntegrity(absWorkingDir);
+    options.dependencyIntegrity !== undefined
+      ? expectHexStringOption(options.dependencyIntegrity, 'dependencyIntegrity')
+      : computeDependencyIntegrity(absWorkingDir);
 
   const result = await build({
     absWorkingDir,

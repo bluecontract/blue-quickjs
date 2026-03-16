@@ -32,6 +32,7 @@ artifacts (`ModulePack.v1`, `ProgramArtifact.v2`), not just one script blob.
 - Entry source: JS / TS / MJS / CJS.
 - Installed dependencies + lockfile/integrity data.
 - Execution profile target.
+- Optional `dependencyIntegrity` override as lowercase SHA-256 hex (64 chars).
 
 ## Outputs
 
@@ -55,7 +56,7 @@ Optional:
 5. Dependency provenance is captured for diagnostics:
    - package name,
    - package version,
-   - integrity/lock fingerprint,
+   - integrity/lock fingerprint (`dependencyIntegrity`, lowercase SHA-256 hex),
    - origin path (diagnostics-only metadata).
 
 ## Build pipeline stages

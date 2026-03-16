@@ -18,7 +18,7 @@ type ModulePackV1 = {
   modules: ModuleRecord[];
   graphHash: string;    // lowercase sha256 hex, 64 chars
   builderVersion: string;
-  dependencyIntegrity: string;
+  dependencyIntegrity: string; // lowercase sha256 hex, 64 chars
   diagnosticsMeta?: Record<string, unknown>; // non-hashed metadata only
 };
 
@@ -29,7 +29,7 @@ type ModuleRecord = {
   originMeta?: {
     packageName?: string;
     packageVersion?: string;
-    integrity?: string;
+    integrity?: string; // optional lowercase sha256 hex, 64 chars
     originalPath?: string; // diagnostics only; never hashed
   };
 };
