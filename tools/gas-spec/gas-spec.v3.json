@@ -1,5 +1,5 @@
 {
-  "gasVersion": 5,
+  "gasVersion": 6,
   "allocation": {
     "base": 0,
     "perByteShift": 4,
@@ -26,7 +26,8 @@
       "varRefPointerBytes": 8,
       "varRefRecordBytes": 32,
       "genericArrayUnitBytes": 16,
-      "unknownSmallFloorBytes": 64
+      "unknownSmallFloorBytes": 64,
+      "unknownSmallFloorMaxBytes": 256
     }
   },
   "opcode": {
