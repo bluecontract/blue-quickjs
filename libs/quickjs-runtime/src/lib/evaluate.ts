@@ -120,6 +120,11 @@ export async function evaluate(
   const input = validateInputEnvelope(options.input, options.inputValidation);
   if (options.releaseMode) {
     assertReleaseArtifactPins(program.legacyArtifact);
+    if (!options.expectedExecutionProfile) {
+      throw new Error(
+        'release-mode requires expectedExecutionProfile to be provided',
+      );
+    }
   }
   if (options.expectedExecutionProfile) {
     assertExecutionProfile(

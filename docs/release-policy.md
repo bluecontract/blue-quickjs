@@ -50,7 +50,7 @@ A deterministic program artifact `P` should pin:
 - `engineBuildHash` (required for builder-produced release artifacts)
 
 `@blue-quickjs/quickjs-runtime` validates these fields and rejects mismatches when provided.
-Embedders can additionally pass an expected execution profile pin
+In `releaseMode`, embedders must pass an expected execution profile pin
 (`expectedExecutionProfile`) so runtime execution fails on profile mismatches.
 
 For release-mode execution, `engineBuildHash`, `gasVersion`, and

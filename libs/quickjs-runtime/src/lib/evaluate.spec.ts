@@ -793,6 +793,26 @@ describe('evaluate', () => {
     ).rejects.toThrow(/release-mode requires/i);
   });
 
+  it('requires expectedExecutionProfile in release mode', async () => {
+    const program: ProgramArtifact = {
+      ...BASE_PROGRAM,
+      engineBuildHash: '0'.repeat(64),
+      gasVersion: 0,
+      executionProfile: 'baseline-v1',
+    };
+
+    await expect(
+      evaluate({
+        program,
+        input: BASE_INPUT,
+        gasLimit: TEST_GAS_LIMIT,
+        manifest: HOST_V1_MANIFEST,
+        handlers: createHandlers(),
+        releaseMode: true,
+      }),
+    ).rejects.toThrow(/expectedexecutionprofile/i);
+  });
+
   it('rejects executionProfile pin mismatches when expected profile is provided', async () => {
     const program: ProgramArtifact = {
       ...BASE_PROGRAM,

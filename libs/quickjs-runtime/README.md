@@ -47,7 +47,8 @@ const result = await evaluate({
   tape: { capacity: 32 },
   gasTrace: true,
 
-  // Optional release pin validation:
+  // Release-mode pin validation:
+  releaseMode: true,
   expectedExecutionProfile: 'baseline-v1',
 });
 
