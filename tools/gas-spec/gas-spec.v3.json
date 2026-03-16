@@ -1,14 +1,26 @@
 {
-  "gasVersion": 3,
+  "gasVersion": 4,
   "allocation": {
     "base": 0,
     "perByteShift": 4,
     "normalization": {
-      "mode": "legacy-64bit-26-31",
-      "numerator": 26,
-      "denominator": 31,
-      "offset": 30,
-      "notes": "Transitional reconciliation model; slated for removal once canonical allocation classes land."
+      "mode": "none",
+      "notes": "Canonical allocation charging no longer uses pointer-width normalization heuristics."
+    },
+    "canonicalClasses": {
+      "objectHeaderBytes": 64,
+      "propertySlotBytes": 16,
+      "shapeHeaderBytes": 48,
+      "shapePropertyBytes": 12,
+      "stringHeaderBytes": 24,
+      "arraySlotBytes": 8,
+      "moduleRecordBytes": 128,
+      "moduleEntryBytes": 24,
+      "promiseJobBaseBytes": 48,
+      "promiseJobArgBytes": 8,
+      "arrayBufferHeaderBytes": 48,
+      "typedArrayBackingUnitBytes": 1,
+      "typedArrayRecordBytes": 40
     }
   },
   "opcode": {

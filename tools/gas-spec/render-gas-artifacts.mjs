@@ -64,8 +64,28 @@ Formula:
 Current deterministic normalization model:
 
 - Mode: \`${spec.allocation.normalization.mode}\`
-- 64-bit path: \`normalized_size = floor((size * ${spec.allocation.normalization.numerator} + ${spec.allocation.normalization.offset}) / ${spec.allocation.normalization.denominator})\`
 - Note: ${spec.allocation.normalization.notes}
+${
+    spec.allocation.normalization.mode === 'legacy-64bit-26-31'
+      ? `- 64-bit path: \`normalized_size = floor((size * ${spec.allocation.normalization.numerator} + ${spec.allocation.normalization.offset}) / ${spec.allocation.normalization.denominator})\``
+      : '- No pointer-width normalization is applied.'
+  }
+
+Canonical allocation classes (width-independent charged-byte formulas):
+
+- Object header: \`${spec.allocation.canonicalClasses.objectHeaderBytes}\`
+- Property slot: \`${spec.allocation.canonicalClasses.propertySlotBytes}\`
+- Shape header: \`${spec.allocation.canonicalClasses.shapeHeaderBytes}\`
+- Shape property entry: \`${spec.allocation.canonicalClasses.shapePropertyBytes}\`
+- String header: \`${spec.allocation.canonicalClasses.stringHeaderBytes}\`
+- Array slot: \`${spec.allocation.canonicalClasses.arraySlotBytes}\`
+- Module record: \`${spec.allocation.canonicalClasses.moduleRecordBytes}\`
+- Module entry: \`${spec.allocation.canonicalClasses.moduleEntryBytes}\`
+- Promise/job base: \`${spec.allocation.canonicalClasses.promiseJobBaseBytes}\`
+- Promise/job arg unit: \`${spec.allocation.canonicalClasses.promiseJobArgBytes}\`
+- ArrayBuffer header: \`${spec.allocation.canonicalClasses.arrayBufferHeaderBytes}\`
+- TypedArray backing unit: \`${spec.allocation.canonicalClasses.typedArrayBackingUnitBytes}\`
+- TypedArray record: \`${spec.allocation.canonicalClasses.typedArrayRecordBytes}\`
 
 ## Deterministic JSON builtin gas
 

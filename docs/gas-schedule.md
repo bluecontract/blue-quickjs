@@ -9,7 +9,7 @@ Scope: define canonical gas units for QuickJS execution and host calls per Basel
 
 ## Gas version and limits
 
-- `JS_GAS_VERSION_LATEST = 3`
+- `JS_GAS_VERSION_LATEST = 4`
 - Gas amounts are uint64.
 - `JS_GAS_UNLIMITED` disables charging and reports gas used as 0.
 - `JS_UseGas` subtracts from `gas_remaining`; if `amount > gas_remaining`, it sets `gas_remaining = 0` and throws an uncatchable `OutOfGas: out of gas` error.
@@ -43,9 +43,25 @@ Formula:
 
 Current deterministic normalization model:
 
-- Mode: `legacy-64bit-26-31`
-- 64-bit path: `normalized_size = floor((size * 26 + 30) / 31)`
-- Note: Transitional reconciliation model; slated for removal once canonical allocation classes land.
+- Mode: `none`
+- Note: Canonical allocation charging no longer uses pointer-width normalization heuristics.
+- No pointer-width normalization is applied.
+
+Canonical allocation classes (width-independent charged-byte formulas):
+
+- Object header: `64`
+- Property slot: `16`
+- Shape header: `48`
+- Shape property entry: `12`
+- String header: `24`
+- Array slot: `8`
+- Module record: `128`
+- Module entry: `24`
+- Promise/job base: `48`
+- Promise/job arg unit: `8`
+- ArrayBuffer header: `48`
+- TypedArray backing unit: `1`
+- TypedArray record: `40`
 
 ## Deterministic JSON builtin gas
 
