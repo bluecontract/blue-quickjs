@@ -1234,7 +1234,9 @@ function createModulePack(options: {
     entrySpecifier: base.entrySpecifier,
     entryExport: base.entryExport ?? 'default',
     modules: [...base.modules]
-      .sort((left, right) => left.specifier.localeCompare(right.specifier))
+      .sort((left, right) =>
+        compareUtf8ByteOrder(left.specifier, right.specifier),
+      )
       .map((module) => ({
         specifier: module.specifier,
         source: module.source,
@@ -1261,7 +1263,28 @@ function stableStringify(value: unknown): string {
   }
   const entries = Object.entries(value as Record<string, unknown>)
     .filter(([, item]) => item !== undefined)
-    .sort(([left], [right]) => left.localeCompare(right))
+    .sort(([left], [right]) => compareUtf8ByteOrder(left, right))
     .map(([key, item]) => `${JSON.stringify(key)}:${stableStringify(item)}`);
   return `{${entries.join(',')}}`;
+}
+
+const UTF8_ENCODER = new TextEncoder();
+
+function compareUtf8ByteOrder(left: string, right: string): number {
+  if (left === right) {
+    return 0;
+  }
+
+  const leftBytes = UTF8_ENCODER.encode(left);
+  const rightBytes = UTF8_ENCODER.encode(right);
+  const limit = Math.min(leftBytes.length, rightBytes.length);
+
+  for (let index = 0; index < limit; index += 1) {
+    const delta = leftBytes[index] - rightBytes[index];
+    if (delta !== 0) {
+      return delta;
+    }
+  }
+
+  return leftBytes.length - rightBytes.length;
 }

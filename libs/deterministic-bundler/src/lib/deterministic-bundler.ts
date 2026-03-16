@@ -737,7 +737,9 @@ function collectModulePackModules(
     return module;
   });
 
-  return modules.sort((a, b) => a.specifier.localeCompare(b.specifier));
+  return modules.sort((a, b) =>
+    compareUtf8ByteOrder(a.specifier, b.specifier),
+  );
 }
 
 function resolveEntrySpecifier(
@@ -1042,9 +1044,30 @@ function stableStringify(value: unknown): string {
 
   const entries = Object.entries(value as Record<string, unknown>)
     .filter(([, item]) => item !== undefined)
-    .sort(([left], [right]) => left.localeCompare(right))
+    .sort(([left], [right]) => compareUtf8ByteOrder(left, right))
     .map(([key, item]) => `${JSON.stringify(key)}:${stableStringify(item)}`);
   return `{${entries.join(',')}}`;
+}
+
+const UTF8_ENCODER = new TextEncoder();
+
+function compareUtf8ByteOrder(left: string, right: string): number {
+  if (left === right) {
+    return 0;
+  }
+
+  const leftBytes = UTF8_ENCODER.encode(left);
+  const rightBytes = UTF8_ENCODER.encode(right);
+  const limit = Math.min(leftBytes.length, rightBytes.length);
+
+  for (let index = 0; index < limit; index += 1) {
+    const delta = leftBytes[index] - rightBytes[index];
+    if (delta !== 0) {
+      return delta;
+    }
+  }
+
+  return leftBytes.length - rightBytes.length;
 }
 
 function loadSourceByPath(modulePaths: string[]): Record<string, string> {
