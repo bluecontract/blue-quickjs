@@ -13,6 +13,9 @@ Scope: steps to publish deterministic engine + ABI packages.
     `libs/test-harness/src/lib/gas-equivalence.spec.ts`).
   - `pnpm nx run smoke-web:e2e` (includes browser/node boundary parity in
     `apps/smoke-web/tests/gas-boundaries.spec.ts`).
+- Archive a signed reproducibility report for the release candidate:
+  - `node tools/quickjs-native-harness/scripts/archive-reproducibility-report.mjs`
+  - Preserve both the generated report JSON and matching `.sha256` sidecar.
 
 ## Wasm build + metadata
 

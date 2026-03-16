@@ -23,6 +23,9 @@ Consensus executor matrix:
 `--gas-delta-baseline` style reconciliation artifacts are diagnostic tools only
 and are never an acceptable release gate.
 
+Release candidates must archive signed strict-parity reproducibility reports
+(parity report JSON signature + file checksum) for auditability.
+
 ## Published packages
 
 - `@blue-quickjs/dv`: DV encode/decode + validation (pure TS).

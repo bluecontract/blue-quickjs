@@ -31,9 +31,15 @@ Minimal native harness for the QuickJS fork. Builds a standalone binary that eva
   - `--gas-charge-tape-capacity <u32>` control diagnostic charge-tape ring
     capacity (default `256`, max `8192`) when charge tape capture is enabled,
   - `--compare <report.json>` compare current run against a prior report.
-  The harness test script currently runs this report in `--assert-match` mode
-  with `--gas-delta-baseline` as a reconciliation workflow during parity
-  closure.
+  The harness test script runs this report in strict `--assert-match` mode
+  without a gas-delta baseline.
+
+- Reproducibility archive helper:
+  `tools/quickjs-native-harness/scripts/archive-reproducibility-report.mjs`
+  executes strict parity (`--assert-match`) + charge-tape capture and writes:
+  - a signed parity report JSON under `artifacts/reproducibility/`,
+  - a sidecar `<report>.sha256` checksum file.
+  This is intended for release-candidate reproducibility report archival.
 
   **Release policy note:** `--gas-delta-baseline` is diagnostic-only scaffolding.
   Release gates must use strict equality mode (no delta baseline normalization)

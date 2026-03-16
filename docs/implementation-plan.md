@@ -2532,6 +2532,9 @@ supported consensus executors.
   for the gas fixture corpus (`return-1`, `loop-1k`, `loop-10k`,
   `string-concat`, `object-alloc`, `array-ops`) via
   `apps/smoke-web/tests/gas-boundaries.spec.ts`.
+- Release-candidate reproducibility archival helper added:
+  `tools/quickjs-native-harness/scripts/archive-reproducibility-report.mjs`
+  emits signed strict-parity reports plus `.sha256` checksums.
 
 ---
 
