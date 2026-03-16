@@ -460,5 +460,7 @@ echo "Running binary library parity suite"
 node "${SCRIPT_DIR}/binary-library-parity.mjs"
 echo "Running module-pack parity suite"
 node "${SCRIPT_DIR}/module-pack-parity.mjs"
+echo "Running cross-runtime parity report suite (ignore gas deltas)"
+node "${SCRIPT_DIR}/parity-report.mjs" --assert-match --ignore-gas
 
 echo "quickjs-native-harness test passed"

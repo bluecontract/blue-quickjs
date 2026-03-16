@@ -2477,6 +2477,9 @@ snapshots and can be compared across environments.
 - Reports include fixture-level node/native snapshots and a SHA-256 signature,
   allowing deterministic diffing between environments (local/CI/cloud), plus
   suite-level max absolute gas-delta summaries for reconciliation tracking.
+- Native harness test workflow now executes the parity report in
+  `--assert-match --ignore-gas` mode to enforce cross-runtime result/error/tape
+  parity continuously while gas reconciliation remains open.
 
 ---
 
