@@ -11,3 +11,9 @@ Deterministic command-line interface for build/run/inspect workflows.
   provenance/package hints, and source-map presence.
 - `explain-error` — map VM payloads to structured runtime error shapes and
   extract source locations (`path:line:column`) from mapped diagnostics.
+- `consensus-report` — run wasm-node vs wasm-browser consensus reproducibility
+  report generation (`tools/consensus-parity/...`).
+- `native-report` — run native reproducibility archive generation (diagnostic by
+  default; add `--strict` to assert zero mismatches).
+- `native-parity` — run native parity report helper with strict/trace/baseline
+  switches.

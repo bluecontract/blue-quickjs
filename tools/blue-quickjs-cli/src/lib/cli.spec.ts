@@ -1,4 +1,10 @@
-import { extractStackLocations, parseArgMap } from './cli.js';
+import {
+  buildConsensusReportArgs,
+  buildNativeArchiveArgs,
+  buildNativeParityArgs,
+  extractStackLocations,
+  parseArgMap,
+} from './cli.js';
 
 describe('blue-quickjs-cli argument parsing', () => {
   it('parses command and key/value options', () => {
@@ -31,6 +37,71 @@ describe('blue-quickjs-cli argument parsing', () => {
     expect(locations).toEqual([
       { source: 'src/app.ts', line: 12, column: 4 },
       { source: './entry.js', line: 3, column: 1 },
+    ]);
+  });
+
+  it('builds consensus-report forwarded arguments', () => {
+    const { options } = parseArgMap([
+      'consensus-report',
+      '--out-dir',
+      'artifacts/custom',
+      '--base-url',
+      'http://127.0.0.1:4300',
+      '--reuse-server',
+    ]);
+
+    expect(buildConsensusReportArgs(options)).toEqual([
+      '--out-dir',
+      'artifacts/custom',
+      '--base-url',
+      'http://127.0.0.1:4300',
+      '--reuse-server',
+    ]);
+  });
+
+  it('builds native-report forwarded arguments', () => {
+    const { options } = parseArgMap([
+      'native-report',
+      '--strict',
+      '--out-dir',
+      'artifacts/native',
+      '--gas-charge-tape-capacity',
+      '512',
+    ]);
+
+    expect(buildNativeArchiveArgs(options)).toEqual([
+      '--strict',
+      '--out-dir',
+      'artifacts/native',
+      '--gas-charge-tape-capacity',
+      '512',
+    ]);
+  });
+
+  it('builds native-parity forwarded arguments', () => {
+    const { options } = parseArgMap([
+      'native-parity',
+      '--out',
+      'parity.json',
+      '--compare',
+      'baseline.json',
+      '--gas-charge-tape-capacity',
+      '128',
+      '--assert-match',
+      '--include-gas-trace',
+      '--include-gas-charge-tape',
+    ]);
+
+    expect(buildNativeParityArgs(options)).toEqual([
+      '--out',
+      'parity.json',
+      '--compare',
+      'baseline.json',
+      '--gas-charge-tape-capacity',
+      '128',
+      '--assert-match',
+      '--include-gas-trace',
+      '--include-gas-charge-tape',
     ]);
   });
 });

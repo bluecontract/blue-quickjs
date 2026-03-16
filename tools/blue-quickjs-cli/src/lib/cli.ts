@@ -1,3 +1,5 @@
+import { spawnSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
@@ -74,6 +76,12 @@ export async function runCli(args: string[]): Promise<number> {
         return await runBuild(options);
       case 'run':
         return await runEvaluate(options);
+      case 'consensus-report':
+        return await runConsensusReport(options);
+      case 'native-report':
+        return await runNativeArchiveReport(options);
+      case 'native-parity':
+        return await runNativeParityReport(options);
       case 'compat':
         return await runCompat(options);
       case 'inspect':
@@ -282,6 +290,36 @@ async function runExplainError(options: ArgMap): Promise<number> {
   return 0;
 }
 
+async function runConsensusReport(options: ArgMap): Promise<number> {
+  const cwd = resolveCliRepoRoot(getOptionalString(options, 'cwd'));
+  const scriptPath = path.join(
+    cwd,
+    'tools/consensus-parity/scripts/archive-consensus-reproducibility-report.mjs',
+  );
+  const args = buildConsensusReportArgs(options);
+  return runNodeScript(scriptPath, args, cwd);
+}
+
+async function runNativeArchiveReport(options: ArgMap): Promise<number> {
+  const cwd = resolveCliRepoRoot(getOptionalString(options, 'cwd'));
+  const scriptPath = path.join(
+    cwd,
+    'tools/quickjs-native-harness/scripts/archive-reproducibility-report.mjs',
+  );
+  const args = buildNativeArchiveArgs(options);
+  return runNodeScript(scriptPath, args, cwd);
+}
+
+async function runNativeParityReport(options: ArgMap): Promise<number> {
+  const cwd = resolveCliRepoRoot(getOptionalString(options, 'cwd'));
+  const scriptPath = path.join(
+    cwd,
+    'tools/quickjs-native-harness/scripts/parity-report.mjs',
+  );
+  const args = buildNativeParityArgs(options);
+  return runNodeScript(scriptPath, args, cwd);
+}
+
 function createCliHostHandlers(): HostDispatcherHandlers {
   return {
     document: {
@@ -447,6 +485,99 @@ function getOptionalString(options: ArgMap, key: string): string | undefined {
   return typeof value === 'string' ? value : undefined;
 }
 
+function resolveCliRepoRoot(cwdOverride?: string): string {
+  const start = path.resolve(cwdOverride ?? process.cwd());
+  const root = findWorkspaceRoot(start);
+  if (!root) {
+    throw new Error(
+      'unable to resolve workspace root (expected pnpm-workspace.yaml in parent directories)',
+    );
+  }
+  return root;
+}
+
+function findWorkspaceRoot(start: string): string | null {
+  let cursor = start;
+  while (true) {
+    if (existsSync(path.join(cursor, 'pnpm-workspace.yaml'))) {
+      return cursor;
+    }
+    const parent = path.dirname(cursor);
+    if (parent === cursor) {
+      return null;
+    }
+    cursor = parent;
+  }
+}
+
+function runNodeScript(
+  scriptPath: string,
+  args: string[],
+  cwd: string,
+): number {
+  if (!existsSync(scriptPath)) {
+    throw new Error(`script not found: ${scriptPath}`);
+  }
+  const result = spawnSync(process.execPath, [scriptPath, ...args], {
+    cwd,
+    stdio: 'inherit',
+  });
+  if (result.error) {
+    throw result.error;
+  }
+  if (result.status === null) {
+    throw new Error(`script exited without status: ${scriptPath}`);
+  }
+  return result.status;
+}
+
+export function buildConsensusReportArgs(options: ArgMap): string[] {
+  const args: string[] = [];
+  appendStringOption(args, options, 'out-dir');
+  appendStringOption(args, options, 'base-url');
+  appendBooleanFlag(args, options, 'reuse-server');
+  return args;
+}
+
+export function buildNativeArchiveArgs(options: ArgMap): string[] {
+  const args: string[] = [];
+  appendBooleanFlag(args, options, 'strict');
+  appendStringOption(args, options, 'out-dir');
+  appendStringOption(args, options, 'gas-charge-tape-capacity');
+  return args;
+}
+
+export function buildNativeParityArgs(options: ArgMap): string[] {
+  const args: string[] = [];
+  appendStringOption(args, options, 'out');
+  appendStringOption(args, options, 'compare');
+  appendStringOption(args, options, 'gas-charge-tape-capacity');
+  appendStringOption(args, options, 'gas-delta-baseline');
+  appendStringOption(args, options, 'write-gas-delta-baseline');
+  appendBooleanFlag(args, options, 'assert-match');
+  appendBooleanFlag(args, options, 'ignore-gas');
+  appendBooleanFlag(args, options, 'include-gas-trace');
+  appendBooleanFlag(args, options, 'include-gas-charge-tape');
+  return args;
+}
+
+function appendStringOption(
+  args: string[],
+  options: ArgMap,
+  key: string,
+): void {
+  const value = getOptionalString(options, key);
+  if (value !== undefined) {
+    args.push(`--${key}`, value);
+  }
+}
+
+function appendBooleanFlag(args: string[], options: ArgMap, key: string): void {
+  if (options.has(key)) {
+    args.push(`--${key}`);
+  }
+}
+
 async function readJsonFile(filePath: string): Promise<unknown> {
   const text = await readFile(path.resolve(filePath), 'utf8');
   return JSON.parse(text);
@@ -552,6 +683,9 @@ function printHelp(): void {
       '  run --artifact <path> [--manifest <path>] [--input <path>] [--gas-limit <u64>]',
       '  inspect --artifact <path>',
       '  explain-error --payload <vm-payload> | --raw "ERROR ..."',
+      '  consensus-report [--out-dir artifacts/reproducibility-consensus] [--base-url http://127.0.0.1:4300] [--reuse-server]',
+      '  native-report [--strict] [--out-dir artifacts/reproducibility] [--gas-charge-tape-capacity <u32>]',
+      '  native-parity [--assert-match] [--out parity.json] [--compare previous.json] [--ignore-gas] [--include-gas-trace] [--include-gas-charge-tape]',
     ].join('\n'),
   );
 }
