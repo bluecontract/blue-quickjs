@@ -29,7 +29,7 @@ Minimal native harness for the QuickJS fork. Builds a standalone binary that eva
     hashes, and report the first divergent charge index/site for mismatching
     fixtures,
   - `--gas-charge-tape-capacity <u32>` control diagnostic charge-tape ring
-    capacity (default `2048`, max `8192`) when charge tape capture is enabled,
+    capacity (default `256`, max `8192`) when charge tape capture is enabled,
   - `--compare <report.json>` compare current run against a prior report.
   The harness test script currently runs this report in `--assert-match` mode
   with `--gas-delta-baseline` as a reconciliation workflow during parity

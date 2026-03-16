@@ -55,7 +55,7 @@ export interface EvaluateOptions
    */
   gasTrace?: boolean;
   /**
-   * Enable gas charge event tape recording (capacity defaults to 2048; max 8192).
+   * Enable gas charge event tape recording (capacity defaults to 256; max 8192).
    */
   gasChargeTape?: { capacity?: number };
   /**
@@ -152,7 +152,7 @@ export async function evaluate(
   }
 
   if (options.gasChargeTape) {
-    const capacity = options.gasChargeTape.capacity ?? 2048;
+    const capacity = options.gasChargeTape.capacity ?? 256;
     if (!Number.isInteger(capacity) || capacity < 0) {
       throw new Error(
         'gas charge tape capacity must be a non-negative integer',

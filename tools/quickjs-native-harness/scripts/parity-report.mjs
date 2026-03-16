@@ -342,7 +342,7 @@ async function runNodeEvaluation(options) {
     ...(options.includeGasChargeTape
       ? {
           gasChargeTape: {
-            capacity: options.gasChargeTapeCapacity ?? 2048,
+            capacity: options.gasChargeTapeCapacity ?? 256,
           },
         }
       : {}),
@@ -417,7 +417,7 @@ function runNativeEvaluation(options) {
       ? [
           '--gas-charge-tape',
           '--gas-charge-tape-capacity',
-          String(options.gasChargeTapeCapacity ?? 2048),
+          String(options.gasChargeTapeCapacity ?? 256),
         ]
       : []),
     ...(options.includeGasTrace ? ['--gas-trace'] : []),

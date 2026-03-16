@@ -1915,7 +1915,7 @@ static int parse_args(int argc, char **argv, HarnessOptions *opts) {
   opts->report_trace = 0;
   opts->report_tape = 0;
   opts->report_charge_tape = 0;
-  opts->charge_tape_capacity = 2048;
+  opts->charge_tape_capacity = 256;
   opts->dump_global = NULL;
   opts->dv_encode = 0;
   opts->parity_eval = 0;

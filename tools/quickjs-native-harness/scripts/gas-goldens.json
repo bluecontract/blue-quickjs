@@ -31,7 +31,7 @@
       "98",
       "--report-gas"
     ],
-    "expected": "RESULT 1 GAS remaining=35 used=63"
+    "expected": "RESULT 1 GAS remaining=21 used=77"
   },
   {
     "name": "addition-gas",
@@ -41,7 +41,7 @@
       "105",
       "--report-gas"
     ],
-    "expected": "RESULT 3 GAS remaining=38 used=67"
+    "expected": "RESULT 3 GAS remaining=22 used=83"
   },
   {
     "name": "addition-oog",
@@ -51,7 +51,7 @@
       "104",
       "--report-gas"
     ],
-    "expected": "RESULT 3 GAS remaining=37 used=67"
+    "expected": "RESULT 3 GAS remaining=21 used=83"
   },
   {
     "name": "addition-trace",
@@ -62,7 +62,7 @@
       "--report-gas",
       "--gas-trace"
     ],
-    "expected": "RESULT 3 GAS remaining=38 used=67 TRACE {\"opcodeCount\":5,\"opcodeGas\":5,\"arrayCbBase\":{\"count\":0,\"gas\":0},\"arrayCbPerEl\":{\"count\":0,\"gas\":0},\"alloc\":{\"count\":11,\"bytes\":915,\"gas\":62},\"jsonParse\":{\"count\":0,\"gas\":0,\"inputBytes\":0,\"values\":0,\"objectEntries\":0,\"arrayElements\":0},\"jsonStringify\":{\"count\":0,\"gas\":0,\"outputBytes\":0,\"values\":0,\"objectEntries\":0,\"arrayElements\":0,\"sortComparisons\":0},\"hostCallPre\":{\"count\":0,\"gas\":0},\"hostCallPost\":{\"count\":0,\"gas\":0}}"
+    "expected": "RESULT 3 GAS remaining=22 used=83 TRACE {\"opcodeCount\":5,\"opcodeGas\":5,\"arrayCbBase\":{\"count\":0,\"gas\":0},\"arrayCbPerEl\":{\"count\":0,\"gas\":0},\"alloc\":{\"count\":11,\"bytes\":1233,\"gas\":78},\"jsonParse\":{\"count\":0,\"gas\":0,\"inputBytes\":0,\"values\":0,\"objectEntries\":0,\"arrayElements\":0},\"jsonStringify\":{\"count\":0,\"gas\":0,\"outputBytes\":0,\"values\":0,\"objectEntries\":0,\"arrayElements\":0,\"sortComparisons\":0},\"hostCallPre\":{\"count\":0,\"gas\":0},\"hostCallPost\":{\"count\":0,\"gas\":0}}"
   },
   {
     "name": "json-parse-small",
@@ -73,7 +73,7 @@
       "--report-gas",
       "--gas-trace"
     ],
-    "expected": "RESULT {\"aa\":1,\"b\":2} GAS remaining=63 used=135 TRACE {\"opcodeCount\":6,\"opcodeGas\":6,\"arrayCbBase\":{\"count\":0,\"gas\":0},\"arrayCbPerEl\":{\"count\":0,\"gas\":0},\"alloc\":{\"count\":19,\"bytes\":1392,\"gas\":94},\"jsonParse\":{\"count\":1,\"gas\":35,\"inputBytes\":14,\"values\":3,\"objectEntries\":2,\"arrayElements\":0},\"jsonStringify\":{\"count\":0,\"gas\":0,\"outputBytes\":0,\"values\":0,\"objectEntries\":0,\"arrayElements\":0,\"sortComparisons\":0},\"hostCallPre\":{\"count\":0,\"gas\":0},\"hostCallPost\":{\"count\":0,\"gas\":0}}"
+    "expected": "RESULT {\"aa\":1,\"b\":2} GAS remaining=48 used=150 TRACE {\"opcodeCount\":6,\"opcodeGas\":6,\"arrayCbBase\":{\"count\":0,\"gas\":0},\"arrayCbPerEl\":{\"count\":0,\"gas\":0},\"alloc\":{\"count\":19,\"bytes\":1686,\"gas\":109},\"jsonParse\":{\"count\":1,\"gas\":35,\"inputBytes\":14,\"values\":3,\"objectEntries\":2,\"arrayElements\":0},\"jsonStringify\":{\"count\":0,\"gas\":0,\"outputBytes\":0,\"values\":0,\"objectEntries\":0,\"arrayElements\":0,\"sortComparisons\":0},\"hostCallPre\":{\"count\":0,\"gas\":0},\"hostCallPost\":{\"count\":0,\"gas\":0}}"
   },
   {
     "name": "json-parse-oog",
@@ -84,7 +84,7 @@
       "--report-gas",
       "--gas-trace"
     ],
-    "expected": "RESULT {\"aa\":1,\"b\":2} GAS remaining=62 used=135 TRACE {\"opcodeCount\":6,\"opcodeGas\":6,\"arrayCbBase\":{\"count\":0,\"gas\":0},\"arrayCbPerEl\":{\"count\":0,\"gas\":0},\"alloc\":{\"count\":19,\"bytes\":1392,\"gas\":94},\"jsonParse\":{\"count\":1,\"gas\":35,\"inputBytes\":14,\"values\":3,\"objectEntries\":2,\"arrayElements\":0},\"jsonStringify\":{\"count\":0,\"gas\":0,\"outputBytes\":0,\"values\":0,\"objectEntries\":0,\"arrayElements\":0,\"sortComparisons\":0},\"hostCallPre\":{\"count\":0,\"gas\":0},\"hostCallPost\":{\"count\":0,\"gas\":0}}"
+    "expected": "RESULT {\"aa\":1,\"b\":2} GAS remaining=47 used=150 TRACE {\"opcodeCount\":6,\"opcodeGas\":6,\"arrayCbBase\":{\"count\":0,\"gas\":0},\"arrayCbPerEl\":{\"count\":0,\"gas\":0},\"alloc\":{\"count\":19,\"bytes\":1686,\"gas\":109},\"jsonParse\":{\"count\":1,\"gas\":35,\"inputBytes\":14,\"values\":3,\"objectEntries\":2,\"arrayElements\":0},\"jsonStringify\":{\"count\":0,\"gas\":0,\"outputBytes\":0,\"values\":0,\"objectEntries\":0,\"arrayElements\":0,\"sortComparisons\":0},\"hostCallPre\":{\"count\":0,\"gas\":0},\"hostCallPost\":{\"count\":0,\"gas\":0}}"
   },
   {
     "name": "json-stringify-small",
@@ -95,7 +95,7 @@
       "--report-gas",
       "--gas-trace"
     ],
-    "expected": "RESULT \"{\\\"b\\\":2,\\\"aa\\\":1}\" GAS remaining=93 used=161 TRACE {\"opcodeCount\":10,\"opcodeGas\":10,\"arrayCbBase\":{\"count\":0,\"gas\":0},\"arrayCbPerEl\":{\"count\":0,\"gas\":0},\"alloc\":{\"count\":29,\"bytes\":1669,\"gas\":115},\"jsonParse\":{\"count\":0,\"gas\":0,\"inputBytes\":0,\"values\":0,\"objectEntries\":0,\"arrayElements\":0},\"jsonStringify\":{\"count\":1,\"gas\":36,\"outputBytes\":14,\"values\":3,\"objectEntries\":2,\"arrayElements\":0,\"sortComparisons\":1},\"hostCallPre\":{\"count\":0,\"gas\":0},\"hostCallPost\":{\"count\":0,\"gas\":0}}"
+    "expected": "RESULT \"{\\\"b\\\":2,\\\"aa\\\":1}\" GAS remaining=68 used=186 TRACE {\"opcodeCount\":10,\"opcodeGas\":10,\"arrayCbBase\":{\"count\":0,\"gas\":0},\"arrayCbPerEl\":{\"count\":0,\"gas\":0},\"alloc\":{\"count\":29,\"bytes\":2150,\"gas\":140},\"jsonParse\":{\"count\":0,\"gas\":0,\"inputBytes\":0,\"values\":0,\"objectEntries\":0,\"arrayElements\":0},\"jsonStringify\":{\"count\":1,\"gas\":36,\"outputBytes\":14,\"values\":3,\"objectEntries\":2,\"arrayElements\":0,\"sortComparisons\":1},\"hostCallPre\":{\"count\":0,\"gas\":0},\"hostCallPost\":{\"count\":0,\"gas\":0}}"
   },
   {
     "name": "json-stringify-oog",
@@ -106,7 +106,7 @@
       "--report-gas",
       "--gas-trace"
     ],
-    "expected": "RESULT \"{\\\"b\\\":2,\\\"aa\\\":1}\" GAS remaining=92 used=161 TRACE {\"opcodeCount\":10,\"opcodeGas\":10,\"arrayCbBase\":{\"count\":0,\"gas\":0},\"arrayCbPerEl\":{\"count\":0,\"gas\":0},\"alloc\":{\"count\":29,\"bytes\":1669,\"gas\":115},\"jsonParse\":{\"count\":0,\"gas\":0,\"inputBytes\":0,\"values\":0,\"objectEntries\":0,\"arrayElements\":0},\"jsonStringify\":{\"count\":1,\"gas\":36,\"outputBytes\":14,\"values\":3,\"objectEntries\":2,\"arrayElements\":0,\"sortComparisons\":1},\"hostCallPre\":{\"count\":0,\"gas\":0},\"hostCallPost\":{\"count\":0,\"gas\":0}}"
+    "expected": "RESULT \"{\\\"b\\\":2,\\\"aa\\\":1}\" GAS remaining=67 used=186 TRACE {\"opcodeCount\":10,\"opcodeGas\":10,\"arrayCbBase\":{\"count\":0,\"gas\":0},\"arrayCbPerEl\":{\"count\":0,\"gas\":0},\"alloc\":{\"count\":29,\"bytes\":2150,\"gas\":140},\"jsonParse\":{\"count\":0,\"gas\":0,\"inputBytes\":0,\"values\":0,\"objectEntries\":0,\"arrayElements\":0},\"jsonStringify\":{\"count\":1,\"gas\":36,\"outputBytes\":14,\"values\":3,\"objectEntries\":2,\"arrayElements\":0,\"sortComparisons\":1},\"hostCallPre\":{\"count\":0,\"gas\":0},\"hostCallPost\":{\"count\":0,\"gas\":0}}"
   },
   {
     "name": "loop-oog",
@@ -118,7 +118,7 @@
       "--dump-global",
       "__counter"
     ],
-    "expected": "RESULT 3 GAS remaining=150 used=448 STATE 3"
+    "expected": "RESULT 3 GAS remaining=102 used=496 STATE 3"
   },
   {
     "name": "array-map-single",
@@ -130,7 +130,7 @@
       "--dump-global",
       "__calls"
     ],
-    "expected": "RESULT 1 GAS remaining=415 used=485 STATE 1"
+    "expected": "RESULT 1 GAS remaining=356 used=544 STATE 1"
   },
   {
     "name": "array-map-single-trace",
@@ -143,7 +143,7 @@
       "--dump-global",
       "__calls"
     ],
-    "expected": "RESULT 1 GAS remaining=415 used=485 STATE 1 TRACE {\"opcodeCount\":21,\"opcodeGas\":21,\"arrayCbBase\":{\"count\":1,\"gas\":5},\"arrayCbPerEl\":{\"count\":1,\"gas\":2},\"alloc\":{\"count\":67,\"bytes\":6994,\"gas\":457},\"jsonParse\":{\"count\":0,\"gas\":0,\"inputBytes\":0,\"values\":0,\"objectEntries\":0,\"arrayElements\":0},\"jsonStringify\":{\"count\":0,\"gas\":0,\"outputBytes\":0,\"values\":0,\"objectEntries\":0,\"arrayElements\":0,\"sortComparisons\":0},\"hostCallPre\":{\"count\":0,\"gas\":0},\"hostCallPost\":{\"count\":0,\"gas\":0}}"
+    "expected": "RESULT 1 GAS remaining=356 used=544 STATE 1 TRACE {\"opcodeCount\":21,\"opcodeGas\":21,\"arrayCbBase\":{\"count\":1,\"gas\":5},\"arrayCbPerEl\":{\"count\":1,\"gas\":2},\"alloc\":{\"count\":67,\"bytes\":8120,\"gas\":516},\"jsonParse\":{\"count\":0,\"gas\":0,\"inputBytes\":0,\"values\":0,\"objectEntries\":0,\"arrayElements\":0},\"jsonStringify\":{\"count\":0,\"gas\":0,\"outputBytes\":0,\"values\":0,\"objectEntries\":0,\"arrayElements\":0,\"sortComparisons\":0},\"hostCallPre\":{\"count\":0,\"gas\":0},\"hostCallPost\":{\"count\":0,\"gas\":0}}"
   },
   {
     "name": "array-map-multi",
@@ -155,7 +155,7 @@
       "--dump-global",
       "__calls"
     ],
-    "expected": "RESULT 5 GAS remaining=467 used=533 STATE 5"
+    "expected": "RESULT 5 GAS remaining=408 used=592 STATE 5"
   },
   {
     "name": "array-map-oog",
@@ -167,7 +167,7 @@
       "--dump-global",
       "__calls"
     ],
-    "expected": "RESULT 5 GAS remaining=212 used=533 STATE 5"
+    "expected": "RESULT 5 GAS remaining=153 used=592 STATE 5"
   },
   {
     "name": "array-filter-oog",
@@ -179,7 +179,7 @@
       "--dump-global",
       "__filterCount"
     ],
-    "expected": "RESULT 5 GAS remaining=194 used=546 STATE 5"
+    "expected": "RESULT 5 GAS remaining=137 used=603 STATE 5"
   },
   {
     "name": "array-reduce-oog",
@@ -191,7 +191,7 @@
       "--dump-global",
       "__reduceCount"
     ],
-    "expected": "RESULT 15 GAS remaining=196 used=534 STATE 5"
+    "expected": "RESULT 15 GAS remaining=139 used=591 STATE 5"
   },
   {
     "name": "gc-pending-trace",
@@ -202,7 +202,7 @@
       "--report-gas",
       "--gas-trace"
     ],
-    "expected": "RESULT 1200000 GAS remaining=2288 used=37712 TRACE {\"opcodeCount\":18,\"opcodeGas\":18,\"arrayCbBase\":{\"count\":0,\"gas\":0},\"arrayCbPerEl\":{\"count\":0,\"gas\":0},\"alloc\":{\"count\":39,\"bytes\":602896,\"gas\":37694},\"jsonParse\":{\"count\":0,\"gas\":0,\"inputBytes\":0,\"values\":0,\"objectEntries\":0,\"arrayElements\":0},\"jsonStringify\":{\"count\":0,\"gas\":0,\"outputBytes\":0,\"values\":0,\"objectEntries\":0,\"arrayElements\":0,\"sortComparisons\":0},\"hostCallPre\":{\"count\":0,\"gas\":0},\"hostCallPost\":{\"count\":0,\"gas\":0}}"
+    "expected": "RESULT 1200000 GAS remaining=2260 used=37740 TRACE {\"opcodeCount\":18,\"opcodeGas\":18,\"arrayCbBase\":{\"count\":0,\"gas\":0},\"arrayCbPerEl\":{\"count\":0,\"gas\":0},\"alloc\":{\"count\":39,\"bytes\":603450,\"gas\":37722},\"jsonParse\":{\"count\":0,\"gas\":0,\"inputBytes\":0,\"values\":0,\"objectEntries\":0,\"arrayElements\":0},\"jsonStringify\":{\"count\":0,\"gas\":0,\"outputBytes\":0,\"values\":0,\"objectEntries\":0,\"arrayElements\":0,\"sortComparisons\":0},\"hostCallPre\":{\"count\":0,\"gas\":0},\"hostCallPost\":{\"count\":0,\"gas\":0}}"
   },
   {
     "name": "string-repeat",
@@ -212,7 +212,7 @@
       "5000",
       "--report-gas"
     ],
-    "expected": "RESULT 32768 GAS remaining=2768 used=2232"
+    "expected": "RESULT 32768 GAS remaining=2740 used=2260"
   },
   {
     "name": "string-repeat-oog",
