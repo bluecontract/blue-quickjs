@@ -151,6 +151,50 @@ const cases = [
   },
 ];
 
+interface BoundaryFixtureCase {
+  name: string;
+  fixture: string;
+  expectedFirstSuccessGas: bigint;
+}
+
+const boundaryCases: BoundaryFixtureCase[] = [
+  {
+    name: 'opcode-constant',
+    fixture: 'constant.js',
+    expectedFirstSuccessGas: 37n,
+  },
+  {
+    name: 'json-parse-small',
+    fixture: 'json-parse-small.js',
+    expectedFirstSuccessGas: 77n,
+  },
+  {
+    name: 'json-stringify-small',
+    fixture: 'json-stringify-small.js',
+    expectedFirstSuccessGas: 82n,
+  },
+  {
+    name: 'array-map-multi',
+    fixture: 'array-map-multi.js',
+    expectedFirstSuccessGas: 179n,
+  },
+  {
+    name: 'array-filter-multi',
+    fixture: 'array-filter-multi.js',
+    expectedFirstSuccessGas: 189n,
+  },
+  {
+    name: 'array-reduce-multi',
+    fixture: 'array-reduce-multi.js',
+    expectedFirstSuccessGas: 189n,
+  },
+  {
+    name: 'gc-pending',
+    fixture: 'gc-pending.js',
+    expectedFirstSuccessGas: 89n,
+  },
+];
+
 const wasmVariantEnv = process.env.QJS_WASM_VARIANT?.toLowerCase();
 const wasmVariant: QuickjsWasmVariant =
   wasmVariantEnv === 'wasm64' ? 'wasm64' : 'wasm32';
@@ -443,6 +487,39 @@ describe('wasm gas outputs', () => {
   });
 });
 
+describe('exact OOG boundaries', () => {
+  test.each(boundaryCases)(
+    '$name has identical first-success and last-failure boundaries',
+    ({ fixture, expectedFirstSuccessGas }) => {
+      const code = readFileSync(path.join(fixturesRoot, fixture), 'utf8');
+
+      const wasmBoundary = findOutOfGasBoundary(
+        (gasLimit) => runWasm(code, gasLimit),
+        expectedFirstSuccessGas + 64n,
+      );
+      expect(wasmBoundary.firstSuccessGas).toBe(expectedFirstSuccessGas);
+      expect(wasmBoundary.lastFailureGas).toBe(expectedFirstSuccessGas - 1n);
+      expect(wasmBoundary.firstSuccess.gasUsed).toBe(
+        wasmBoundary.firstSuccessGas,
+      );
+      expect(wasmBoundary.firstSuccess.gasRemaining).toBe(0n);
+      expect(isOutOfGasError(wasmBoundary.lastFailure)).toBe(true);
+
+      const nativeBoundary = findOutOfGasBoundary(
+        (gasLimit) => runNative(code, gasLimit),
+        expectedFirstSuccessGas + 64n,
+      );
+      expect(nativeBoundary.firstSuccessGas).toBe(wasmBoundary.firstSuccessGas);
+      expect(nativeBoundary.lastFailureGas).toBe(wasmBoundary.lastFailureGas);
+      expect(nativeBoundary.firstSuccess.gasUsed).toBe(
+        nativeBoundary.firstSuccessGas,
+      );
+      expect(nativeBoundary.firstSuccess.gasRemaining).toBe(0n);
+      expect(isOutOfGasError(nativeBoundary.lastFailure)).toBe(true);
+    },
+  );
+});
+
 function expectHarnessResult(
   actual: DeterministicOutput,
   expected: ExpectedResult,
@@ -461,6 +538,51 @@ function expectHarnessResult(
   } else {
     expect(actual.payload).toEqual(expected.payload);
   }
+}
+
+function isOutOfGasError(output: DeterministicOutput): boolean {
+  return output.kind === 'ERROR' && output.payload.includes('OutOfGas');
+}
+
+function findOutOfGasBoundary(
+  run: (gasLimit: bigint) => DeterministicOutput,
+  initialUpperBound: bigint,
+): {
+  firstSuccessGas: bigint;
+  lastFailureGas: bigint;
+  firstSuccess: DeterministicOutput;
+  lastFailure: DeterministicOutput;
+} {
+  let upperGas = initialUpperBound;
+  let upperOutput = run(upperGas);
+  while (upperOutput.kind !== 'RESULT') {
+    upperGas *= 2n;
+    if (upperGas > 100_000_000n) {
+      throw new Error(`failed to find successful gas bound (last=${upperGas})`);
+    }
+    upperOutput = run(upperGas);
+  }
+
+  let lowerGas = 0n;
+  let lowerOutput = run(lowerGas);
+  while (lowerGas + 1n < upperGas) {
+    const mid = (lowerGas + upperGas) >> 1n;
+    const midOutput = run(mid);
+    if (midOutput.kind === 'RESULT') {
+      upperGas = mid;
+      upperOutput = midOutput;
+    } else {
+      lowerGas = mid;
+      lowerOutput = midOutput;
+    }
+  }
+
+  return {
+    firstSuccessGas: upperGas,
+    lastFailureGas: lowerGas,
+    firstSuccess: upperOutput,
+    lastFailure: lowerOutput,
+  };
 }
 
 function bytesToHex(bytes: Uint8Array): string {
