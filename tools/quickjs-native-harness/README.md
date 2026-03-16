@@ -21,7 +21,8 @@ Minimal native harness for the QuickJS fork. Builds a standalone binary that eva
   - `--include-gas-trace` attach node/native gas-trace counters and
     per-counter deltas to each fixture in the report output (this mode disables
     gas-delta baseline enforcement because gas tracing perturbs counters), plus
-    an aggregated `gasTraceSummary` section ranking hottest counter deltas,
+    an aggregated `gasTraceSummary` section ranking hottest counter deltas and
+    top fixtures by residual untraced gas delta,
   - `--compare <report.json>` compare current run against a prior report.
   The harness test script runs this report in `--assert-match` mode with
   `--gas-delta-baseline` as part of

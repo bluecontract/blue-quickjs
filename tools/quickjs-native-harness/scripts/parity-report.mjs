@@ -537,6 +537,11 @@ function compareSnapshots(
     snapshots.native.gasTrace
       ? computeGasTraceDelta(snapshots.node.gasTrace, snapshots.native.gasTrace)
       : null;
+  const tracedGasDeltaUsed = gasTraceDelta
+    ? sumTracedGasDelta(gasTraceDelta)
+    : null;
+  const residualGasDeltaUsed =
+    tracedGasDeltaUsed !== null ? gasDeltaUsed - tracedGasDeltaUsed : null;
   return {
     suite,
     fixtureName,
@@ -552,6 +557,8 @@ function compareSnapshots(
     ...(gasTraceDelta
       ? {
           gasTraceDelta,
+          tracedGasDeltaUsed: tracedGasDeltaUsed.toString(),
+          residualGasDeltaUsed: residualGasDeltaUsed.toString(),
         }
       : {}),
     node: snapshots.node,
@@ -785,6 +792,22 @@ function computeGasTraceDelta(nodeTrace, nativeTrace) {
   return delta;
 }
 
+function sumTracedGasDelta(gasTraceDelta) {
+  const gasKeys = [
+    'opcodeGas',
+    'arrayCbBaseGas',
+    'arrayCbPerElGas',
+    'allocationGas',
+    'jsonParseGas',
+    'jsonStringifyGas',
+  ];
+  let sum = 0n;
+  for (const key of gasKeys) {
+    sum += BigInt(String(gasTraceDelta[key] ?? '0'));
+  }
+  return sum;
+}
+
 function readGitCommit() {
   const result = spawnSync('git', ['rev-parse', 'HEAD'], {
     cwd: repoRoot,
@@ -902,6 +925,7 @@ function bigIntAbs(value) {
 
 function summarizeGasTraceDeltas(fixtureReports) {
   const byCounter = new Map();
+  const residualByFixture = [];
   let fixturesWithTrace = 0;
 
   for (const report of fixtureReports) {
@@ -910,6 +934,12 @@ function summarizeGasTraceDeltas(fixtureReports) {
     }
     fixturesWithTrace += 1;
     const fixtureKey = `${report.suite}:${report.fixtureName}`;
+    if (report.residualGasDeltaUsed !== undefined) {
+      residualByFixture.push({
+        fixture: fixtureKey,
+        residualGasDeltaUsed: String(report.residualGasDeltaUsed),
+      });
+    }
     for (const [counter, rawDelta] of Object.entries(report.gasTraceDelta)) {
       const delta = BigInt(String(rawDelta));
       const current = byCounter.get(counter) ?? {
@@ -948,10 +978,29 @@ function summarizeGasTraceDeltas(fixtureReports) {
       maxAbsFixture: entry.maxAbsFixture,
     }));
 
+  const topResiduals = residualByFixture
+    .map((entry) => ({
+      fixture: entry.fixture,
+      residualGasDeltaUsed: entry.residualGasDeltaUsed,
+      absResidualGasDeltaUsed: bigIntAbs(
+        BigInt(entry.residualGasDeltaUsed),
+      ).toString(),
+    }))
+    .sort((left, right) => {
+      const leftAbs = BigInt(left.absResidualGasDeltaUsed);
+      const rightAbs = BigInt(right.absResidualGasDeltaUsed);
+      if (leftAbs === rightAbs) {
+        return left.fixture.localeCompare(right.fixture);
+      }
+      return leftAbs > rightAbs ? -1 : 1;
+    })
+    .slice(0, 10);
+
   return {
     fixturesWithTrace,
     counterCount: counters.length,
     counters,
+    topResiduals,
   };
 }
 
