@@ -25,6 +25,9 @@ Minimal native harness for the QuickJS fork. Builds a standalone binary that eva
     top fixtures by allocation-gas drift and residual untraced gas delta
     (including host-call pre/post gas counters, residual signature histograms,
     and profile rollups),
+  - `--include-gas-charge-tape` attach per-charge event sequences and sequence
+    hashes, and report the first divergent charge index/site for mismatching
+    fixtures,
   - `--compare <report.json>` compare current run against a prior report.
   The harness test script currently runs this report in `--assert-match` mode
   with `--gas-delta-baseline` as a reconciliation workflow during parity

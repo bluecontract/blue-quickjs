@@ -136,6 +136,19 @@ The trace includes dedicated host-call counters:
 So host-call charging can be attributed directly without deriving a residual from
 total gas usage.
 
+### Charge-event tape (debug mode)
+
+For first-divergence debugging, deterministic runtimes can enable a fixed-size
+gas charge-event tape:
+
+- preallocated ring buffer (`JS_EnableGasChargeTape(ctx, capacity)`),
+- no dynamic allocation while appending events,
+- event fields include `siteId`, `kind`, `flags`, `amount`, optional
+  `logicalUnits`, and `gasBefore` / `gasAfter`.
+
+This tape is diagnostic-only and should not be treated as a release API
+stability guarantee.
+
 ### Interpreting trace output
 
 Typical interpretations:

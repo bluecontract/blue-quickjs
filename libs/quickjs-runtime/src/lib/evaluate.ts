@@ -55,6 +55,10 @@ export interface EvaluateOptions
    */
   gasTrace?: boolean;
   /**
+   * Enable gas charge event tape recording (capacity defaults to 256; max 8192).
+   */
+  gasChargeTape?: { capacity?: number };
+  /**
    * Enforce release-mode artifact pin requirements.
    */
   releaseMode?: boolean;
@@ -67,6 +71,7 @@ export type EvaluateSuccess = {
   gasRemaining: bigint;
   raw: string;
   tape?: HostTapeRecord[];
+  gasChargeTape?: GasChargeRecord[];
   gasTrace?: GasTrace;
 };
 
@@ -78,6 +83,7 @@ type EvaluateFailureBase = {
   gasRemaining: bigint;
   raw: string;
   tape?: HostTapeRecord[];
+  gasChargeTape?: GasChargeRecord[];
   gasTrace?: GasTrace;
 };
 
@@ -96,6 +102,7 @@ export type EvaluateError = EvaluateVmError | EvaluateInvalidOutputError;
 export type EvaluateResult = EvaluateSuccess | EvaluateError;
 
 const HOST_TAPE_MAX_CAPACITY = 1024;
+const GAS_CHARGE_TAPE_MAX_CAPACITY = 8192;
 
 export async function evaluate(
   options: EvaluateOptions,
@@ -144,6 +151,21 @@ export async function evaluate(
     vm.enableTape(capacity);
   }
 
+  if (options.gasChargeTape) {
+    const capacity = options.gasChargeTape.capacity ?? 256;
+    if (!Number.isInteger(capacity) || capacity < 0) {
+      throw new Error(
+        'gas charge tape capacity must be a non-negative integer',
+      );
+    }
+    if (capacity > GAS_CHARGE_TAPE_MAX_CAPACITY) {
+      throw new Error(
+        `gas charge tape capacity exceeds max (${GAS_CHARGE_TAPE_MAX_CAPACITY}); received ${capacity}`,
+      );
+    }
+    vm.enableGasChargeTape(capacity);
+  }
+
   if (options.gasTrace) {
     vm.enableGasTrace(true);
   }
@@ -162,6 +184,9 @@ export async function evaluate(
       ? parseGasTrace(vm.readGasTrace())
       : undefined;
     const tape = options.tape ? parseTape(vm.readTape()) : undefined;
+    const gasChargeTape = options.gasChargeTape
+      ? parseGasChargeTape(vm.readGasChargeTape())
+      : undefined;
 
     if (parsed.kind === 'error') {
       const payload =
@@ -179,6 +204,7 @@ export async function evaluate(
         gasRemaining: parsed.gasRemaining,
         raw,
         tape,
+        gasChargeTape,
         gasTrace: trace,
       };
     }
@@ -195,6 +221,7 @@ export async function evaluate(
         gasRemaining: parsed.gasRemaining,
         raw,
         tape,
+        gasChargeTape,
         gasTrace: trace,
       };
     }
@@ -206,6 +233,7 @@ export async function evaluate(
       gasRemaining: parsed.gasRemaining,
       raw,
       tape,
+      gasChargeTape,
       gasTrace: trace,
     };
   } finally {
@@ -304,6 +332,16 @@ export interface HostTapeRecord {
   respHash: string;
 }
 
+export interface GasChargeRecord {
+  siteId: number;
+  kind: number;
+  flags: number;
+  amount: bigint;
+  logicalUnits: bigint;
+  gasBefore: bigint;
+  gasAfter: bigint;
+}
+
 function parseTape(raw: string): HostTapeRecord[] {
   const parsed = parseJson(raw, 'tape');
   if (!Array.isArray(parsed)) {
@@ -337,6 +375,49 @@ function parseTape(raw: string): HostTapeRecord[] {
       chargeFailed,
       reqHash,
       respHash,
+    };
+  });
+}
+
+function parseGasChargeTape(raw: string): GasChargeRecord[] {
+  const parsed = parseJson(raw, 'gasChargeTape');
+  if (!Array.isArray(parsed)) {
+    throw new Error('gasChargeTape payload is not an array');
+  }
+
+  return parsed.map((record, idx) => {
+    if (record === null || typeof record !== 'object') {
+      throw new Error(`gasChargeTape record ${idx} is not an object`);
+    }
+
+    const siteId = expectUint32(record.siteId, `gasChargeTape[${idx}].siteId`);
+    const kind = expectUint32(record.kind, `gasChargeTape[${idx}].kind`);
+    const flags = expectUint32(record.flags, `gasChargeTape[${idx}].flags`);
+    const amount = expectBigIntString(
+      record.amount,
+      `gasChargeTape[${idx}].amount`,
+    );
+    const logicalUnits = expectBigIntString(
+      record.logicalUnits,
+      `gasChargeTape[${idx}].logicalUnits`,
+    );
+    const gasBefore = expectBigIntString(
+      record.gasBefore,
+      `gasChargeTape[${idx}].gasBefore`,
+    );
+    const gasAfter = expectBigIntString(
+      record.gasAfter,
+      `gasChargeTape[${idx}].gasAfter`,
+    );
+
+    return {
+      siteId,
+      kind,
+      flags,
+      amount,
+      logicalUnits,
+      gasBefore,
+      gasAfter,
     };
   });
 }

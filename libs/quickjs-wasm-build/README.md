@@ -14,7 +14,7 @@ The ESM loader exports a `QuickJSGasWasm` factory; the harness exports determini
 
 - `qjs_det_init(manifest_ptr, manifest_len, manifest_hash_hex_ptr, context_ptr, context_len, gas_limit, feature_flags)` installs the ABI manifest/hash and optional DV-encoded context blob while wiring the imported `host_call`. `feature_flags=0` keeps baseline behavior.
 - `qjs_det_eval(code)` evaluates source with the installed manifest/context and returns a `char*` string of the form `RESULT <dv-hex> GAS remaining=<n> used=<n>` (or `ERROR …` on failure).
-- `qjs_det_set_gas_limit(gas_limit)`, `qjs_det_free()`, `qjs_det_enable_tape(capacity)` / `qjs_det_read_tape()`, and `qjs_det_enable_trace(enabled)` / `qjs_det_read_trace()` mirror the native harness controls.
+- `qjs_det_set_gas_limit(gas_limit)`, `qjs_det_free()`, `qjs_det_enable_tape(capacity)` / `qjs_det_read_tape()`, `qjs_det_enable_charge_tape(capacity)` / `qjs_det_read_charge_tape()`, and `qjs_det_enable_trace(enabled)` / `qjs_det_read_trace()` mirror the native harness controls.
 
 Strings returned from the harness are allocated with `malloc`; free them with the exported `_free` helper. The wasm module expects a `host.host_call` import. When you don't have a dispatcher wired yet, pass a stub that returns the transport sentinel:
 

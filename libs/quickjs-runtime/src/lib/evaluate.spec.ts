@@ -818,6 +818,29 @@ describe('evaluate', () => {
     expect(record.respHash).toHaveLength(64);
   });
 
+  it('returns gas charge tape when requested', async () => {
+    const result = await evaluate({
+      program: { ...BASE_PROGRAM, code: '1 + 2' },
+      input: BASE_INPUT,
+      gasLimit: TEST_GAS_LIMIT,
+      manifest: HOST_V1_MANIFEST,
+      handlers: createHandlers(),
+      gasChargeTape: { capacity: 128 },
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error(result.message);
+    }
+
+    expect(result.gasChargeTape).toBeDefined();
+    expect((result.gasChargeTape ?? []).length).toBeGreaterThan(0);
+    const [record] = result.gasChargeTape ?? [];
+    expect(typeof record.amount).toBe('bigint');
+    expect(typeof record.gasBefore).toBe('bigint');
+    expect(typeof record.gasAfter).toBe('bigint');
+  });
+
   it('returns gas trace when requested', async () => {
     const result = await evaluate({
       program: { ...BASE_PROGRAM, code: '1 + 2' },

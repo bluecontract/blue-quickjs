@@ -74,6 +74,7 @@ async function main() {
     ignoreGas: argv.ignoreGas || argv.includeGasTrace,
     gasDeltaBaselineMap,
     includeGasTrace: argv.includeGasTrace,
+    includeGasChargeTape: argv.includeGasChargeTape,
   };
   const suites = [];
   const fixtureReports = [];
@@ -121,6 +122,7 @@ async function main() {
       gasLimit: BINARY_LIBRARY_GAS_LIMIT,
       handlers: host.handlers,
       includeGasTrace: comparison.includeGasTrace,
+      includeGasChargeTape: comparison.includeGasChargeTape,
     });
     assert.deepStrictEqual(
       normalizeJsonValue(nodeSnapshot.okValue),
@@ -133,6 +135,7 @@ async function main() {
       input: BINARY_LIBRARY_INPUT,
       gasLimit: BINARY_LIBRARY_GAS_LIMIT,
       includeGasTrace: comparison.includeGasTrace,
+      includeGasChargeTape: comparison.includeGasChargeTape,
     });
     const report = compareSnapshots(
       'binary-library',
@@ -240,6 +243,7 @@ async function runFixtureSuite(
       gasLimit,
       handlers: host.handlers,
       includeGasTrace: comparison.includeGasTrace,
+      includeGasChargeTape: comparison.includeGasChargeTape,
     });
     const native = runNativeEvaluation({
       program,
@@ -247,6 +251,7 @@ async function runFixtureSuite(
       input,
       gasLimit,
       includeGasTrace: comparison.includeGasTrace,
+      includeGasChargeTape: comparison.includeGasChargeTape,
     });
     reports.push(
       compareSnapshots(
@@ -315,7 +320,7 @@ function createNativeCompatibleHost() {
 }
 
 /**
- * @param {{program: any, input: any, manifest: any, gasLimit: bigint, handlers: any, includeGasTrace?: boolean}} options
+ * @param {{program: any, input: any, manifest: any, gasLimit: bigint, handlers: any, includeGasTrace?: boolean, includeGasChargeTape?: boolean}} options
  */
 async function runNodeEvaluation(options) {
   const manifest = validateAbiManifest(options.manifest);
@@ -329,6 +334,9 @@ async function runNodeEvaluation(options) {
     handlers: options.handlers,
     tape: { capacity: TAPE_CAPACITY },
     gasTrace: options.includeGasTrace ?? false,
+    ...(options.includeGasChargeTape
+      ? { gasChargeTape: { capacity: 256 } }
+      : {}),
   });
 
   if (result.ok) {
@@ -344,6 +352,11 @@ async function runNodeEvaluation(options) {
         tapeLength: (result.tape ?? []).length,
         ...(options.includeGasTrace && result.gasTrace
           ? { gasTrace: normalizeNodeGasTrace(result.gasTrace) }
+          : {}),
+        ...(options.includeGasChargeTape && result.gasChargeTape
+          ? {
+              gasChargeTape: normalizeNodeGasChargeTape(result.gasChargeTape),
+            }
           : {}),
       },
     };
@@ -362,12 +375,15 @@ async function runNodeEvaluation(options) {
       ...(options.includeGasTrace && result.gasTrace
         ? { gasTrace: normalizeNodeGasTrace(result.gasTrace) }
         : {}),
+      ...(options.includeGasChargeTape && result.gasChargeTape
+        ? { gasChargeTape: normalizeNodeGasChargeTape(result.gasChargeTape) }
+        : {}),
     },
   };
 }
 
 /**
- * @param {{program: any, manifest: any, input: any, gasLimit: bigint, includeGasTrace?: boolean}} options
+ * @param {{program: any, manifest: any, input: any, gasLimit: bigint, includeGasTrace?: boolean, includeGasChargeTape?: boolean}} options
  * @returns {Snapshot}
  */
 function runNativeEvaluation(options) {
@@ -388,6 +404,7 @@ function runNativeEvaluation(options) {
     options.gasLimit.toString(),
     '--report-gas',
     '--report-tape',
+    ...(options.includeGasChargeTape ? ['--gas-charge-tape'] : []),
     ...(options.includeGasTrace ? ['--gas-trace'] : []),
     ...buildProgramArgs(options.program),
   ];
@@ -403,6 +420,7 @@ function runNativeEvaluation(options) {
   }
   return parseNativeSnapshot(stdout, manifest, {
     includeGasTrace: options.includeGasTrace ?? false,
+    includeGasChargeTape: options.includeGasChargeTape ?? false,
   });
 }
 
@@ -440,13 +458,25 @@ function parseNativeSnapshot(stdout, manifest, options) {
   if (tapeIndex < 0) {
     throw new Error(`missing tape trailer in native output: ${stdout}`);
   }
+  const chargeTapeMarker = ' CHARGE_TAPE ';
+  const chargeTapeIndex = stdout.lastIndexOf(chargeTapeMarker);
 
   const gasStart = gasMatch.index;
   const gasRemaining = gasMatch[1];
   const gasUsed = gasMatch[2] ?? '0';
   const trace = parseNativeTrace(stdout, tapeIndex, options);
-  const tapeJson = stdout.slice(tapeIndex + tapeMarker.length).trim();
+  const tapeEnd =
+    chargeTapeIndex > tapeIndex ? chargeTapeIndex : stdout.length;
+  const tapeJson = stdout
+    .slice(tapeIndex + tapeMarker.length, tapeEnd)
+    .trim();
   const tape = parseNativeTape(tapeJson);
+  const gasChargeTape =
+    options.includeGasChargeTape && chargeTapeIndex > tapeIndex
+      ? parseNativeGasChargeTape(
+          stdout.slice(chargeTapeIndex + chargeTapeMarker.length).trim(),
+        )
+      : null;
 
   if (stdout.startsWith('RESULT ')) {
     const valueJson = stdout.slice('RESULT '.length, gasStart);
@@ -460,6 +490,7 @@ function parseNativeSnapshot(stdout, manifest, options) {
       tapeHash: hashTape(tape),
       tapeLength: tape.length,
       ...(trace ? { gasTrace: trace } : {}),
+      ...(gasChargeTape ? { gasChargeTape } : {}),
     };
   }
 
@@ -475,6 +506,7 @@ function parseNativeSnapshot(stdout, manifest, options) {
       tapeHash: hashTape(tape),
       tapeLength: tape.length,
       ...(trace ? { gasTrace: trace } : {}),
+      ...(gasChargeTape ? { gasChargeTape } : {}),
     };
   }
 
@@ -514,6 +546,22 @@ function parseNativeTape(tapeJson) {
     chargeFailed: Boolean(record.chargeFailed),
     reqHash: String(record.reqHash),
     respHash: String(record.respHash),
+  }));
+}
+
+function parseNativeGasChargeTape(chargeTapeJson) {
+  const parsed = JSON.parse(chargeTapeJson);
+  if (!Array.isArray(parsed)) {
+    throw new Error(`native charge tape must be array JSON: ${chargeTapeJson}`);
+  }
+  return parsed.map((record) => ({
+    siteId: Number(record.siteId),
+    kind: Number(record.kind),
+    flags: Number(record.flags),
+    amount: String(record.amount),
+    logicalUnits: String(record.logicalUnits),
+    gasBefore: String(record.gasBefore),
+    gasAfter: String(record.gasAfter),
   }));
 }
 
@@ -559,6 +607,15 @@ function compareSnapshots(
     tracedGasDeltaUsed !== null && allocationGasDeltaUsed !== null
       ? tracedGasDeltaUsed - allocationGasDeltaUsed
       : null;
+  const chargeTapeComparison =
+    comparison.includeGasChargeTape &&
+    snapshots.node.gasChargeTape &&
+    snapshots.native.gasChargeTape
+      ? compareGasChargeTape(
+          snapshots.node.gasChargeTape,
+          snapshots.native.gasChargeTape,
+        )
+      : null;
   return {
     suite,
     fixtureName,
@@ -580,6 +637,30 @@ function compareSnapshots(
           allocationGasDeltaUsed: allocationGasDeltaUsed.toString(),
           nonAllocationTracedGasDeltaUsed:
             nonAllocationTracedGasDeltaUsed.toString(),
+        }
+      : {}),
+    ...(chargeTapeComparison
+      ? {
+          nodeChargeTapeHash: chargeTapeComparison.nodeHash,
+          nativeChargeTapeHash: chargeTapeComparison.nativeHash,
+          nodeChargeTapeLength: chargeTapeComparison.nodeLength,
+          nativeChargeTapeLength: chargeTapeComparison.nativeLength,
+          ...(chargeTapeComparison.firstDivergence
+            ? {
+                firstDivergentChargeIndex:
+                  chargeTapeComparison.firstDivergence.index,
+                firstDivergentChargeSiteId:
+                  chargeTapeComparison.firstDivergence.siteId,
+                firstDivergentChargeNodeGasBefore:
+                  chargeTapeComparison.firstDivergence.nodeGasBefore,
+                firstDivergentChargeNativeGasBefore:
+                  chargeTapeComparison.firstDivergence.nativeGasBefore,
+                firstDivergentChargeNodeGasAfter:
+                  chargeTapeComparison.firstDivergence.nodeGasAfter,
+                firstDivergentChargeNativeGasAfter:
+                  chargeTapeComparison.firstDivergence.nativeGasAfter,
+              }
+            : {}),
         }
       : {}),
     node: snapshots.node,
@@ -605,6 +686,12 @@ function isSnapshotEqual(left, right, comparison, baselineEntry) {
   if (!baseMatch) {
     return false;
   }
+  if (
+    comparison?.includeGasChargeTape &&
+    !areGasChargeTapesEqual(left.gasChargeTape, right.gasChargeTape)
+  ) {
+    return false;
+  }
   if (comparison?.ignoreGas) {
     return true;
   }
@@ -621,6 +708,51 @@ function isSnapshotEqual(left, right, comparison, baselineEntry) {
   return (
     left.gasUsed === right.gasUsed && left.gasRemaining === right.gasRemaining
   );
+}
+
+function areGasChargeTapesEqual(left, right) {
+  if (!left && !right) {
+    return true;
+  }
+  if (!left || !right) {
+    return false;
+  }
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function compareGasChargeTape(nodeRecords, nativeRecords) {
+  const nodeHash = hashGasChargeTape(nodeRecords);
+  const nativeHash = hashGasChargeTape(nativeRecords);
+  const maxLength = Math.max(nodeRecords.length, nativeRecords.length);
+  let firstDivergence = null;
+  for (let index = 0; index < maxLength; index += 1) {
+    const left = nodeRecords[index];
+    const right = nativeRecords[index];
+    if (JSON.stringify(left) !== JSON.stringify(right)) {
+      firstDivergence = {
+        index,
+        siteId: Number(
+          (right && right.siteId) ?? (left && left.siteId) ?? -1,
+        ),
+        nodeGasBefore: left?.gasBefore ?? null,
+        nativeGasBefore: right?.gasBefore ?? null,
+        nodeGasAfter: left?.gasAfter ?? null,
+        nativeGasAfter: right?.gasAfter ?? null,
+      };
+      break;
+    }
+  }
+  return {
+    nodeHash,
+    nativeHash,
+    nodeLength: nodeRecords.length,
+    nativeLength: nativeRecords.length,
+    firstDivergence,
+  };
+}
+
+function hashGasChargeTape(records) {
+  return sha256Hex(JSON.stringify(records));
 }
 
 function listSnapshotDifferences(nodeSnapshot, nativeSnapshot) {
@@ -814,6 +946,18 @@ function normalizeNodeGasTrace(trace) {
   };
 }
 
+function normalizeNodeGasChargeTape(records) {
+  return records.map((record) => ({
+    siteId: Number(record.siteId),
+    kind: Number(record.kind),
+    flags: Number(record.flags),
+    amount: record.amount.toString(),
+    logicalUnits: record.logicalUnits.toString(),
+    gasBefore: record.gasBefore.toString(),
+    gasAfter: record.gasAfter.toString(),
+  }));
+}
+
 function normalizeNativeGasTrace(trace) {
   const from = (value) => String(value ?? '0');
   return {
@@ -892,6 +1036,7 @@ function parseArgs(args) {
   let assertMatch = false;
   let ignoreGas = false;
   let includeGasTrace = false;
+  let includeGasChargeTape = false;
   let gasDeltaBaselinePath = null;
   let writeGasDeltaBaselinePath = null;
   for (let i = 0; i < args.length; i += 1) {
@@ -918,6 +1063,10 @@ function parseArgs(args) {
       includeGasTrace = true;
       continue;
     }
+    if (arg === '--include-gas-charge-tape') {
+      includeGasChargeTape = true;
+      continue;
+    }
     if (arg === '--gas-delta-baseline') {
       gasDeltaBaselinePath = args[i + 1] ? args[i + 1] : null;
       i += 1;
@@ -934,6 +1083,7 @@ function parseArgs(args) {
     assertMatch,
     ignoreGas,
     includeGasTrace,
+    includeGasChargeTape,
     gasDeltaBaselinePath,
     writeGasDeltaBaselinePath,
   };

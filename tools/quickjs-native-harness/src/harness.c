@@ -37,6 +37,7 @@ typedef struct {
   int report_gas;
   int report_trace;
   int report_tape;
+  int report_charge_tape;
   const char *dump_global;
   int dv_encode;
   int parity_eval;
@@ -1139,6 +1140,107 @@ done:
   }
 }
 
+static void print_charge_tape_suffix(JSContext *ctx, const HarnessOptions *options) {
+  if (!options->report_charge_tape) {
+    return;
+  }
+
+  JSGasChargeRecord *records = NULL;
+  size_t count = JS_GetGasChargeTapeLength(ctx);
+  size_t to_read = 0;
+  JSValue arr = JS_UNDEFINED;
+  JSValue json = JS_UNDEFINED;
+  const char *json_str = NULL;
+  int wrote = 0;
+
+  if (count == 0) {
+    fprintf(stdout, " CHARGE_TAPE []");
+    return;
+  }
+
+  to_read =
+      count > JS_GAS_CHARGE_TAPE_MAX_CAPACITY ? JS_GAS_CHARGE_TAPE_MAX_CAPACITY : count;
+  records = js_mallocz(ctx, sizeof(JSGasChargeRecord) * to_read);
+  if (!records) {
+    goto done;
+  }
+
+  if (JS_ReadGasChargeTape(ctx, records, to_read, &count) != 0) {
+    goto done;
+  }
+
+  arr = JS_NewArray(ctx);
+  if (JS_IsException(arr)) {
+    goto done;
+  }
+
+  for (size_t i = 0; i < count; i++) {
+    JSValue obj = JS_NewObjectProto(ctx, JS_NULL);
+    char amount_buf[32];
+    char logical_units_buf[32];
+    char gas_before_buf[32];
+    char gas_after_buf[32];
+
+    if (JS_IsException(obj)) {
+      JS_FreeValue(ctx, obj);
+      goto done;
+    }
+
+    if (js_set_prop(ctx, obj, "siteId", JS_NewUint32(ctx, records[i].site_id)) < 0 ||
+        js_set_prop(ctx, obj, "kind", JS_NewUint32(ctx, records[i].kind)) < 0 ||
+        js_set_prop(ctx, obj, "flags", JS_NewUint32(ctx, records[i].flags)) < 0) {
+      JS_FreeValue(ctx, obj);
+      goto done;
+    }
+
+    snprintf(amount_buf, sizeof(amount_buf), "%" PRIu64, records[i].amount);
+    snprintf(logical_units_buf, sizeof(logical_units_buf), "%" PRIu64,
+             records[i].logical_units);
+    snprintf(gas_before_buf, sizeof(gas_before_buf), "%" PRIu64, records[i].gas_before);
+    snprintf(gas_after_buf, sizeof(gas_after_buf), "%" PRIu64, records[i].gas_after);
+    if (js_set_prop(ctx, obj, "amount", JS_NewString(ctx, amount_buf)) < 0 ||
+        js_set_prop(ctx, obj, "logicalUnits", JS_NewString(ctx, logical_units_buf)) < 0 ||
+        js_set_prop(ctx, obj, "gasBefore", JS_NewString(ctx, gas_before_buf)) < 0 ||
+        js_set_prop(ctx, obj, "gasAfter", JS_NewString(ctx, gas_after_buf)) < 0) {
+      JS_FreeValue(ctx, obj);
+      goto done;
+    }
+
+    if (JS_SetPropertyUint32(ctx, arr, (uint32_t)i, obj) < 0) {
+      JS_FreeValue(ctx, obj);
+      goto done;
+    }
+  }
+
+  json = JS_JSONStringify(ctx, arr, JS_UNDEFINED, JS_UNDEFINED);
+  if (JS_IsException(json)) {
+    goto done;
+  }
+
+  json_str = JS_ToCString(ctx, json);
+  if (!json_str) {
+    goto done;
+  }
+
+  fprintf(stdout, " CHARGE_TAPE %s", json_str);
+  wrote = 1;
+  JS_FreeCString(ctx, json_str);
+
+done:
+  if (records) {
+    js_free(ctx, records);
+  }
+  if (!JS_IsUndefined(arr)) {
+    JS_FreeValue(ctx, arr);
+  }
+  if (!JS_IsUndefined(json)) {
+    JS_FreeValue(ctx, json);
+  }
+  if (!wrote) {
+    fprintf(stdout, " CHARGE_TAPE []");
+  }
+}
+
 static int print_exception(JSContext *ctx, const HarnessOptions *options) {
   HarnessSnapshot snapshot = {0};
   JSValue exception = JS_GetException(ctx);
@@ -1151,6 +1253,7 @@ static int print_exception(JSContext *ctx, const HarnessOptions *options) {
     print_state_suffix(ctx, options);
     print_trace_suffix(options, &snapshot);
     print_tape_suffix(ctx, options);
+    print_charge_tape_suffix(ctx, options);
     fprintf(stdout, "\n");
     JS_FreeCString(ctx, msg);
   } else {
@@ -1159,6 +1262,7 @@ static int print_exception(JSContext *ctx, const HarnessOptions *options) {
     print_state_suffix(ctx, options);
     print_trace_suffix(options, &snapshot);
     print_tape_suffix(ctx, options);
+    print_charge_tape_suffix(ctx, options);
     fprintf(stdout, "\n");
   }
   JS_FreeValue(ctx, exception);
@@ -1420,6 +1524,7 @@ static int run_host_call(HarnessRuntime *runtime, const HarnessOptions *options)
       print_state_suffix(runtime->ctx, options);
       print_trace_suffix(options, &snapshot);
       print_tape_suffix(runtime->ctx, options);
+      print_charge_tape_suffix(runtime->ctx, options);
       fprintf(stdout, "\n");
       return 1;
     }
@@ -1433,6 +1538,7 @@ static int run_host_call(HarnessRuntime *runtime, const HarnessOptions *options)
     print_state_suffix(runtime->ctx, options);
     print_trace_suffix(options, &snapshot);
     print_tape_suffix(runtime->ctx, options);
+    print_charge_tape_suffix(runtime->ctx, options);
     fprintf(stdout, "\n");
     free(req_bytes);
     return 0;
@@ -1448,6 +1554,7 @@ static int run_host_call(HarnessRuntime *runtime, const HarnessOptions *options)
   print_state_suffix(runtime->ctx, options);
   print_trace_suffix(options, &snapshot);
   print_tape_suffix(runtime->ctx, options);
+  print_charge_tape_suffix(runtime->ctx, options);
   fprintf(stdout, "\n");
 
   free(req_bytes);
@@ -1544,6 +1651,7 @@ static int eval_source(JSContext *ctx, const char *code, const HarnessOptions *o
   print_state_suffix(ctx, options);
   print_trace_suffix(options, &snapshot);
   print_tape_suffix(ctx, options);
+  print_charge_tape_suffix(ctx, options);
   fprintf(stdout, "\n");
 
   JS_FreeCString(ctx, json_str);
@@ -1708,6 +1816,7 @@ static int eval_module_pack(HarnessRuntime *runtime, const HarnessOptions *optio
     print_state_suffix(ctx, options);
     print_trace_suffix(options, &snapshot);
     print_tape_suffix(ctx, options);
+    print_charge_tape_suffix(ctx, options);
     fprintf(stdout, "\n");
     rc = 1;
     goto cleanup;
@@ -1718,6 +1827,7 @@ static int eval_module_pack(HarnessRuntime *runtime, const HarnessOptions *optio
   print_state_suffix(ctx, options);
   print_trace_suffix(options, &snapshot);
   print_tape_suffix(ctx, options);
+  print_charge_tape_suffix(ctx, options);
   fprintf(stdout, "\n");
   rc = 0;
 
@@ -1779,11 +1889,11 @@ cleanup:
 static void print_usage(const char *prog) {
   fprintf(stderr,
           "Usage:\n"
-          "  %s [--gas-limit <u64>] [--report-gas] [--report-tape] [--gas-trace] [--dump-global <name>] [--execution-profile <baseline-v1|compat-regexp-v1|compat-general-v1|compat-binary-v1>] [--abi-manifest-hex <hex> | --abi-manifest-hex-file <path>] [--abi-manifest-hash <hex>] [--context-blob-hex <hex>] [--parity-eval] --eval \"<js-source>\"\n"
-          "  %s [--gas-limit <u64>] [--report-gas] [--report-tape] [--gas-trace] [--execution-profile <baseline-v1|compat-regexp-v1|compat-general-v1|compat-binary-v1>] [--abi-manifest-hex <hex> | --abi-manifest-hex-file <path>] [--abi-manifest-hash <hex>] --module-entry-specifier <specifier> [--module-entry-export <name>] (--module-pack-json \"<json>\" | --module-pack-file <path>)\n"
+          "  %s [--gas-limit <u64>] [--report-gas] [--report-tape] [--gas-charge-tape] [--gas-trace] [--dump-global <name>] [--execution-profile <baseline-v1|compat-regexp-v1|compat-general-v1|compat-binary-v1>] [--abi-manifest-hex <hex> | --abi-manifest-hex-file <path>] [--abi-manifest-hash <hex>] [--context-blob-hex <hex>] [--parity-eval] --eval \"<js-source>\"\n"
+          "  %s [--gas-limit <u64>] [--report-gas] [--report-tape] [--gas-charge-tape] [--gas-trace] [--execution-profile <baseline-v1|compat-regexp-v1|compat-general-v1|compat-binary-v1>] [--abi-manifest-hex <hex> | --abi-manifest-hex-file <path>] [--abi-manifest-hash <hex>] --module-entry-specifier <specifier> [--module-entry-export <name>] (--module-pack-json \"<json>\" | --module-pack-file <path>)\n"
           "  %s --dv-encode --eval \"<js-source>\"\n"
           "  %s --dv-decode <hex-string>\n"
-          "  %s --host-call <hex-string> [--host-fn-id <u32>] [--host-max-request <u32>] [--host-max-response <u32>] [--host-max-units <u32>] [--host-parse-envelope] [--host-reentrant] [--host-exception] [--gas-limit <u64>] [--report-gas] [--report-tape] [--gas-trace] [--execution-profile <baseline-v1|compat-regexp-v1|compat-general-v1|compat-binary-v1>] [--abi-manifest-hex <hex> | --abi-manifest-hex-file <path>] [--abi-manifest-hash <hex>] [--context-blob-hex <hex>]\n"
+          "  %s --host-call <hex-string> [--host-fn-id <u32>] [--host-max-request <u32>] [--host-max-response <u32>] [--host-max-units <u32>] [--host-parse-envelope] [--host-reentrant] [--host-exception] [--gas-limit <u64>] [--report-gas] [--report-tape] [--gas-charge-tape] [--gas-trace] [--execution-profile <baseline-v1|compat-regexp-v1|compat-general-v1|compat-binary-v1>] [--abi-manifest-hex <hex> | --abi-manifest-hex-file <path>] [--abi-manifest-hash <hex>] [--context-blob-hex <hex>]\n"
           "  %s --sha256-hex <hex-string>\n",
           prog,
           prog,
@@ -1803,6 +1913,7 @@ static int parse_args(int argc, char **argv, HarnessOptions *opts) {
   opts->report_gas = 0;
   opts->report_trace = 0;
   opts->report_tape = 0;
+  opts->report_charge_tape = 0;
   opts->dump_global = NULL;
   opts->dv_encode = 0;
   opts->parity_eval = 0;
@@ -1857,6 +1968,11 @@ static int parse_args(int argc, char **argv, HarnessOptions *opts) {
 
     if (strcmp(argv[i], "--report-tape") == 0) {
       opts->report_tape = 1;
+      continue;
+    }
+
+    if (strcmp(argv[i], "--gas-charge-tape") == 0) {
+      opts->report_charge_tape = 1;
       continue;
     }
 
@@ -2170,6 +2286,15 @@ int main(int argc, char **argv) {
   if (options.report_tape) {
     if (JS_EnableHostTape(runtime.ctx, 64) != 0 || JS_ResetHostTape(runtime.ctx) != 0) {
       fprintf(stderr, "init: failed to enable host tape\n");
+      free_runtime(&runtime);
+      return 1;
+    }
+  }
+
+  if (options.report_charge_tape) {
+    if (JS_EnableGasChargeTape(runtime.ctx, 256) != 0 ||
+        JS_ResetGasChargeTape(runtime.ctx) != 0) {
+      fprintf(stderr, "init: failed to enable gas charge tape\n");
       free_runtime(&runtime);
       return 1;
     }

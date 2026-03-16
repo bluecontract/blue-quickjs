@@ -33,6 +33,8 @@ type DetEvalModulePackFn = (
 type DetSetGasLimitFn = (gasLimit: bigint) => number;
 type EnableTapeFn = (capacity: number) => number;
 type ReadTapeFn = () => number;
+type EnableChargeTapeFn = (capacity: number) => number;
+type ReadChargeTapeFn = () => number;
 type EnableTraceFn = (enabled: number) => number;
 type ReadTraceFn = () => number;
 
@@ -44,6 +46,8 @@ interface DeterministicExports {
   freeRuntime: () => void;
   enableTape: EnableTapeFn;
   readTape: ReadTapeFn;
+  enableChargeTape: EnableChargeTapeFn;
+  readChargeTape: ReadChargeTapeFn;
   enableTrace: EnableTraceFn;
   readTrace: ReadTraceFn;
 }
@@ -58,6 +62,8 @@ export interface DeterministicVm {
   setGasLimit(limit: bigint | number): void;
   enableTape(capacity: number): void;
   readTape(): string;
+  enableGasChargeTape(capacity: number): void;
+  readGasChargeTape(): string;
   enableGasTrace(enabled: boolean): void;
   readGasTrace(): string;
   dispose(): void;
@@ -168,6 +174,24 @@ export function initializeDeterministicVm(
       }
       return readAndFreeCString(runtime.module, ptr);
     },
+    enableGasChargeTape(capacity: number): void {
+      if (!Number.isInteger(capacity) || capacity < 0) {
+        throw new Error(
+          `charge tape capacity must be a non-negative integer (received ${capacity})`,
+        );
+      }
+      const rc = ffi.enableChargeTape(capacity >>> 0);
+      if (rc !== 0) {
+        throw new Error('failed to enable gas charge tape');
+      }
+    },
+    readGasChargeTape(): string {
+      const ptr = ffi.readChargeTape();
+      if (ptr === 0) {
+        throw new Error('qjs_det_read_charge_tape returned a null pointer');
+      }
+      return readAndFreeCString(runtime.module, ptr);
+    },
     enableGasTrace(enabled: boolean): void {
       const rc = ffi.enableTrace(enabled ? 1 : 0);
       if (rc !== 0) {
@@ -225,6 +249,16 @@ function createDeterministicExports(
     'number',
     [],
   ) as unknown as ReadTapeFn;
+  const enableChargeTape = module.cwrap(
+    'qjs_det_enable_charge_tape',
+    'number',
+    ['number'],
+  ) as unknown as EnableChargeTapeFn;
+  const readChargeTape = module.cwrap(
+    'qjs_det_read_charge_tape',
+    'number',
+    [],
+  ) as unknown as ReadChargeTapeFn;
   const enableTrace = module.cwrap('qjs_det_enable_trace', 'number', [
     'number',
   ]) as unknown as EnableTraceFn;
@@ -242,6 +276,8 @@ function createDeterministicExports(
     freeRuntime,
     enableTape,
     readTape,
+    enableChargeTape,
+    readChargeTape,
     enableTrace,
     readTrace,
   };

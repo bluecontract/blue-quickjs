@@ -925,6 +925,114 @@ done:
 }
 
 EMSCRIPTEN_KEEPALIVE
+int qjs_det_enable_charge_tape(uint32_t capacity)
+{
+  if (!det_ctx || !det_rt)
+    return -1;
+
+  return JS_EnableGasChargeTape(det_ctx, capacity);
+}
+
+EMSCRIPTEN_KEEPALIVE
+char *qjs_det_read_charge_tape(void)
+{
+  JSGasChargeRecord *records = NULL;
+  size_t count = 0;
+  size_t to_read = 0;
+  JSValue arr = JS_UNDEFINED;
+  JSValue json = JS_UNDEFINED;
+  const char *json_str = NULL;
+  char *out = NULL;
+
+  if (!det_ctx || !det_rt)
+    return dup_printf("[]");
+
+  count = JS_GetGasChargeTapeLength(det_ctx);
+  if (count == 0)
+    return dup_printf("[]");
+
+  to_read = count > JS_GAS_CHARGE_TAPE_MAX_CAPACITY ? JS_GAS_CHARGE_TAPE_MAX_CAPACITY : count;
+  records = js_mallocz(det_ctx, sizeof(JSGasChargeRecord) * to_read);
+  if (!records)
+    return dup_printf("[]");
+
+  if (JS_ReadGasChargeTape(det_ctx, records, to_read, &count) != 0) {
+    js_free(det_ctx, records);
+    return dup_printf("[]");
+  }
+
+  arr = JS_NewArray(det_ctx);
+  if (JS_IsException(arr))
+    goto done;
+
+  for (size_t i = 0; i < count; i++) {
+    JSValue obj = JS_NewObjectProto(det_ctx, JS_NULL);
+    char amount_buf[32];
+    char logical_units_buf[32];
+    char gas_before_buf[32];
+    char gas_after_buf[32];
+
+    if (JS_IsException(obj))
+      goto loop_error;
+
+    if (js_set_prop(det_ctx, obj, "siteId", JS_NewUint32(det_ctx, records[i].site_id)) < 0)
+      goto loop_error;
+    if (js_set_prop(det_ctx, obj, "kind", JS_NewUint32(det_ctx, records[i].kind)) < 0)
+      goto loop_error;
+    if (js_set_prop(det_ctx, obj, "flags", JS_NewUint32(det_ctx, records[i].flags)) < 0)
+      goto loop_error;
+
+    snprintf(amount_buf, sizeof(amount_buf), "%" PRIu64, records[i].amount);
+    snprintf(logical_units_buf, sizeof(logical_units_buf), "%" PRIu64, records[i].logical_units);
+    snprintf(gas_before_buf, sizeof(gas_before_buf), "%" PRIu64, records[i].gas_before);
+    snprintf(gas_after_buf, sizeof(gas_after_buf), "%" PRIu64, records[i].gas_after);
+
+    if (js_set_prop(det_ctx, obj, "amount", JS_NewString(det_ctx, amount_buf)) < 0)
+      goto loop_error;
+    if (js_set_prop(det_ctx, obj, "logicalUnits", JS_NewString(det_ctx, logical_units_buf)) < 0)
+      goto loop_error;
+    if (js_set_prop(det_ctx, obj, "gasBefore", JS_NewString(det_ctx, gas_before_buf)) < 0)
+      goto loop_error;
+    if (js_set_prop(det_ctx, obj, "gasAfter", JS_NewString(det_ctx, gas_after_buf)) < 0)
+      goto loop_error;
+
+    if (JS_SetPropertyUint32(det_ctx, arr, (uint32_t)i, obj) < 0) {
+      JS_FreeValue(det_ctx, obj);
+      goto done;
+    }
+
+    continue;
+
+  loop_error:
+    JS_FreeValue(det_ctx, obj);
+    goto done;
+  }
+
+  json = JS_JSONStringify(det_ctx, arr, JS_UNDEFINED, JS_UNDEFINED);
+  if (JS_IsException(json))
+    goto done;
+
+  json_str = JS_ToCString(det_ctx, json);
+  if (!json_str)
+    goto done;
+
+  out = dup_printf("%s", json_str);
+  JS_FreeCString(det_ctx, json_str);
+
+done:
+  if (records)
+    js_free(det_ctx, records);
+  if (!JS_IsUndefined(arr))
+    JS_FreeValue(det_ctx, arr);
+  if (!JS_IsUndefined(json))
+    JS_FreeValue(det_ctx, json);
+
+  if (!out)
+    return dup_printf("[]");
+  return out;
+}
+
+EMSCRIPTEN_KEEPALIVE
 int qjs_det_enable_trace(int enabled)
 {
   if (!det_ctx || !det_rt)
