@@ -213,13 +213,13 @@ if [[ ${#BUILT_VARIANTS[@]} -eq 0 ]]; then
   exit 1
 fi
 
-node - "${OUT_DIR}" "${QJS_DIR}" "${REPO_ROOT}/tools/scripts/emsdk-version.txt" "${METADATA_BASENAME}" "${BUILT_VARIANTS[@]}" <<'NODE'
+node - "${OUT_DIR}" "${QJS_DIR}" "${REPO_ROOT}/tools/scripts/emsdk-version.txt" "${REPO_ROOT}/tools/gas-spec/gas-spec.v3.json" "${METADATA_BASENAME}" "${BUILT_VARIANTS[@]}" <<'NODE'
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
 
-const [outDir, qjsDir, emsdkVersionFile, metadataBasename, ...variantArgs] = process.argv.slice(2);
+const [outDir, qjsDir, emsdkVersionFile, gasSpecPath, metadataBasename, ...variantArgs] = process.argv.slice(2);
 if (variantArgs.length === 0) {
   throw new Error('No variant arguments passed to metadata writer.');
 }
@@ -243,6 +243,11 @@ const sha256File = (filePath) =>
 
 const statSize = (filePath) => fs.statSync(filePath).size;
 const quickjsVersion = readTrim(path.join(qjsDir, 'VERSION'));
+const gasSpec = JSON.parse(fs.readFileSync(gasSpecPath, 'utf8'));
+const gasVersion =
+  Number.isInteger(gasSpec?.gasVersion) && gasSpec.gasVersion >= 0
+    ? gasSpec.gasVersion
+    : null;
 let quickjsCommit = null;
 try {
   quickjsCommit = execFileSync('git', ['-C', qjsDir, 'rev-parse', 'HEAD'], {
@@ -337,6 +342,7 @@ const metadata = {
   quickjsCommit,
   emscriptenVersion: readTrim(emsdkVersionFile),
   engineBuildHash,
+  gasVersion,
   build: {
     memory: buildMemory,
     determinism,

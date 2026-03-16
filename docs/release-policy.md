@@ -78,6 +78,7 @@ Definition:
 Exposure:
 
 - `quickjs-wasm-build.metadata.json` includes:
+  - top-level `gasVersion` for runtime/artifact gas pin validation.
   - `variants.<variant>.<buildType>.engineBuildHash` for every emitted artifact.
   - Top-level `engineBuildHash`, set to the canonical engine hash (`wasm32` + `release`) when present.
 - `@blue-quickjs/quickjs-wasm` exposes these values via `loadQuickjsWasmMetadata()` and

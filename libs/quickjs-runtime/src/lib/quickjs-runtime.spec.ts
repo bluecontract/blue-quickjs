@@ -100,6 +100,31 @@ describe('validateProgramArtifact', () => {
       }),
     ).toThrow(RuntimeValidationError);
   });
+
+  it('accepts uint32 gasVersion values', () => {
+    expect(
+      validateProgramArtifact({
+        ...baseProgram,
+        gasVersion: 3,
+      }),
+    ).toMatchObject({ gasVersion: 3 });
+  });
+
+  it('rejects invalid gasVersion values', () => {
+    expect(() =>
+      validateProgramArtifact({
+        ...baseProgram,
+        gasVersion: -1,
+      }),
+    ).toThrow(RuntimeValidationError);
+
+    expect(() =>
+      validateProgramArtifact({
+        ...baseProgram,
+        gasVersion: 1.5,
+      }),
+    ).toThrow(RuntimeValidationError);
+  });
 });
 
 describe('validateProgramArtifactV2', () => {
@@ -151,6 +176,24 @@ describe('validateProgramArtifactV2', () => {
         source: {
           modulePack: {},
         },
+      }),
+    ).toThrow(RuntimeValidationError);
+  });
+
+  it('accepts uint32 gasVersion values', () => {
+    expect(
+      validateProgramArtifactV2({
+        ...baseProgramV2,
+        gasVersion: 3,
+      }),
+    ).toMatchObject({ gasVersion: 3 });
+  });
+
+  it('rejects invalid gasVersion values', () => {
+    expect(() =>
+      validateProgramArtifactV2({
+        ...baseProgramV2,
+        gasVersion: -1,
       }),
     ).toThrow(RuntimeValidationError);
   });

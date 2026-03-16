@@ -77,7 +77,7 @@ Optional:
 ## Release artifact rule
 
 Builder-produced release artifacts MUST include `engineBuildHash` and explicit
-`executionProfile`.
+`executionProfile`, and `gasVersion`.
 
 ## See also
 

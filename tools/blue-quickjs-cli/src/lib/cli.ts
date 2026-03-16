@@ -109,6 +109,14 @@ async function runBuild(options: ArgMap): Promise<number> {
   const abiManifestHash =
     getOptionalString(options, 'abi-manifest-hash') ??
     (abiId === 'Host.v2' ? HOST_V2_HASH : HOST_V1_HASH);
+  const gasVersionRaw = getOptionalString(options, 'gas-version');
+  const gasVersion =
+    gasVersionRaw !== undefined
+      ? Number.parseInt(gasVersionRaw, 10)
+      : undefined;
+  if (gasVersion !== undefined && !Number.isInteger(gasVersion)) {
+    throw new Error('--gas-version must be an integer');
+  }
   const outPath =
     getOptionalString(options, 'out') ??
     path.resolve(cwd, `${path.basename(entryPath)}.program.json`);
@@ -122,6 +130,7 @@ async function runBuild(options: ArgMap): Promise<number> {
     abiId,
     abiVersion,
     abiManifestHash,
+    ...(gasVersion !== undefined ? { gasVersion } : {}),
   });
 
   if (!result.programArtifact) {
@@ -342,6 +351,7 @@ function summarizeProgramArtifact(
       abiVersion: program.abiVersion,
       abiManifestHash: program.abiManifestHash,
       engineBuildHash: program.engineBuildHash ?? null,
+      gasVersion: program.gasVersion ?? null,
       entrySpecifier: modulePack?.entrySpecifier ?? null,
       entryExport: modulePack?.entryExport ?? 'default',
       moduleCount: modulePack ? modulePack.modules.length : null,
@@ -363,6 +373,7 @@ function summarizeProgramArtifact(
     abiId: legacy.abiId,
     abiVersion: legacy.abiVersion,
     abiManifestHash: legacy.abiManifestHash,
+    gasVersion: legacy.gasVersion ?? null,
     codeUnits: legacy.code.length,
   };
 }
@@ -536,7 +547,7 @@ function printHelp(): void {
       'blue-quickjs CLI',
       '',
       'Commands:',
-      '  build --entry <path> [--profile compat-binary-v1] [--out artifact.json] [--abi-id Host.v2] [--abi-version 2] [--abi-manifest-hash <hex>] [--allow-incompatible]',
+      '  build --entry <path> [--profile compat-binary-v1] [--out artifact.json] [--abi-id Host.v2] [--abi-version 2] [--abi-manifest-hash <hex>] [--gas-version <u32>] [--allow-incompatible]',
       '  compat --entry <path> [--profile baseline-v1] [--out report.json]',
       '  run --artifact <path> [--manifest <path>] [--input <path>] [--gas-limit <u64>]',
       '  inspect --artifact <path>',

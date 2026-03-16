@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -27,6 +27,9 @@ if (!existsSync(harnessPath)) {
     `Native harness not found at ${harnessPath}. Build quickjs-native-harness first.`,
   );
 }
+
+const GAS_SPEC_PATH = path.join(repoRoot, 'tools', 'gas-spec', 'gas-spec.v3.json');
+const GAS_VERSION = readGasVersion();
 
 const { encodeDv, encodeDv2 } = require('../../../libs/dv/src/index.ts');
 const {
@@ -519,7 +522,11 @@ function compareSnapshots(
   fixtureName,
   snapshots,
   comparison = { ignoreGas: false },
-  metadata = { executionProfile: 'unknown', sourceKind: 'script' },
+  metadata = {
+    executionProfile: 'unknown',
+    sourceKind: 'script',
+    gasVersion: null,
+  },
 ) {
   const baselineEntry = comparison.gasDeltaBaselineMap?.get(
     `${suite}:${fixtureName}`,
@@ -666,6 +673,13 @@ function createSuiteSummary(suite, reports) {
 
 function buildReport({ fixtureReports, suites, mismatchCount }) {
   const gasTraceSummary = summarizeGasTraceDeltas(fixtureReports);
+  const gasVersions = [
+    ...new Set(
+      fixtureReports
+        .map((report) => report.metadata?.gasVersion)
+        .filter((value) => value !== null && value !== undefined),
+    ),
+  ].sort((left, right) => Number(left) - Number(right));
   const payload = {
     generatedAt: new Date().toISOString(),
     gitCommit: readGitCommit(),
@@ -676,9 +690,11 @@ function buildReport({ fixtureReports, suites, mismatchCount }) {
       hostname: os.hostname(),
       nodeVersion: process.version,
     },
+    ...(GAS_VERSION !== null ? { gasVersion: GAS_VERSION } : {}),
     suites,
     fixtureReports,
     mismatchCount,
+    ...(gasVersions.length > 0 ? { gasVersions } : {}),
     ...(gasTraceSummary ? { gasTraceSummary } : {}),
   };
   const digest = sha256Hex(JSON.stringify(payload));
@@ -689,6 +705,21 @@ function buildReport({ fixtureReports, suites, mismatchCount }) {
       digest,
     },
   };
+}
+
+function readGasVersion() {
+  if (!existsSync(GAS_SPEC_PATH)) {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(readFileSync(GAS_SPEC_PATH, 'utf8'));
+    if (Number.isInteger(parsed?.gasVersion) && parsed.gasVersion >= 0) {
+      return parsed.gasVersion;
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 function hashDv(value) {
@@ -721,9 +752,11 @@ function extractProgramMetadata(program) {
   const executionProfile = program.executionProfile ?? 'baseline-v1';
   const sourceKind =
     program.version === 2 ? String(program.sourceKind) : 'script';
+  const gasVersion = program.gasVersion ?? null;
   return {
     executionProfile,
     sourceKind,
+    gasVersion,
   };
 }
 

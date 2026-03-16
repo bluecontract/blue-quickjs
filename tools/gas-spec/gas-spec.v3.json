@@ -1,0 +1,58 @@
+{
+  "gasVersion": 3,
+  "allocation": {
+    "base": 0,
+    "perByteShift": 4,
+    "normalization": {
+      "mode": "legacy-64bit-26-31",
+      "numerator": 26,
+      "denominator": 31,
+      "offset": 30,
+      "notes": "Transitional reconciliation model; slated for removal once canonical allocation classes land."
+    }
+  },
+  "opcode": {
+    "defaultDispatchCost": 1
+  },
+  "arrayCallback": {
+    "base": 5,
+    "perElement": 2,
+    "methods": [
+      "every",
+      "some",
+      "forEach",
+      "map",
+      "filter",
+      "reduce",
+      "reduceRight"
+    ],
+    "includesTypedArrays": true
+  },
+  "jsonParse": {
+    "base": 8,
+    "inputByte": 1,
+    "value": 3,
+    "objectEntry": 2,
+    "arrayElement": 2
+  },
+  "jsonStringify": {
+    "base": 8,
+    "value": 3,
+    "objectEntry": 2,
+    "arrayElement": 2,
+    "outputByte": 1,
+    "sortComparison": 1
+  },
+  "gc": {
+    "deterministicThresholdBytes": 524288,
+    "chargeModel": "allocation-amortized",
+    "notes": "Automatic heuristics disabled in deterministic mode; checkpoints run at deterministic boundaries."
+  },
+  "hostCall": {
+    "formula": {
+      "pre": "base + (k_arg_bytes * request_bytes)",
+      "post": "(k_ret_bytes * response_bytes) + (k_units * units)"
+    },
+    "overflowError": "TypeError: host_call gas overflow"
+  }
+}

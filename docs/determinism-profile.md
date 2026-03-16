@@ -20,26 +20,33 @@ Scope: capture the deterministic VM configuration required by Baseline #1 for bo
 `program.executionProfile` controls deterministic feature flags:
 
 - `baseline-v1` (default): canonical baseline restrictions.
-- `compat-regexp-v1`: baseline + deterministic RegExp compatibility.
+- `compat-regexp-v1`: transitional alias for baseline + deterministic RegExp
+  compatibility.
+- `compat-general-v1`: `baseline-v1` + RegExp + Promise jobs +
+  `queueMicrotask` + deterministic console shim + deterministic stable sort.
+- `compat-binary-v1`: `compat-general-v1` + typed arrays / ArrayBuffer /
+  DataView plus DV2 byte-string boundary support.
 
-`compat-regexp-v1` only re-enables RegExp support. All other disabled surfaces
-remain disabled unless explicitly documented otherwise.
-
-The next public composite profile set is specified in
-`docs/execution-profiles.md` (`baseline-v1`, `compat-general-v1`,
-`compat-binary-v1`). Until those runtime paths land, this document remains the
-normative source for currently implemented profile behavior.
+Profile behavior is implemented via `JS_NewDeterministicRuntimeWithFeatures`
+feature flags and must stay aligned with `docs/execution-profiles.md`.
 
 ## Enabled intrinsics
 
-The deterministic init only loads these intrinsic sets:
+Deterministic init always loads:
 
 - `JS_AddIntrinsicBaseObjects`
 - `JS_AddIntrinsicEval`
 - `JS_AddIntrinsicJSON`
 - `JS_AddIntrinsicMapSet`
 
-`Date`, `RegExp`, `Proxy`, TypedArrays, Promise, and WeakRef intrinsics are not loaded in deterministic mode.
+Profile-gated additions:
+
+- `JS_AddIntrinsicRegExp` when `regexp` is enabled.
+- `JS_AddIntrinsicPromise` when Promise jobs are enabled.
+- `JS_AddIntrinsicTypedArrays` when typed-array support is enabled.
+
+`Date`, `Proxy`, and `WeakRef` intrinsics remain unavailable in all current
+profiles.
 
 ## Disabled or stubbed APIs (deterministic TypeError)
 
@@ -50,17 +57,17 @@ The following globals or methods exist but throw the exact TypeError shown:
 - Function constructor paths (`Function.prototype.constructor`, arrow/generator constructors) -> `TypeError: Function constructor is disabled in deterministic mode`
 - `RegExp` and regex literals -> `TypeError: RegExp is disabled in deterministic mode` (**baseline-v1 only**)
 - `Proxy` -> `TypeError: Proxy is disabled in deterministic mode`
-- `Promise` and statics (`resolve`, `reject`, `all`, `race`, `any`, `allSettled`) -> `TypeError: Promise is disabled in deterministic mode`
+- `Promise` and statics (`resolve`, `reject`, `all`, `race`, `any`, `allSettled`) -> `TypeError: Promise is disabled in deterministic mode` (**baseline-v1 only**)
 - `Math.random()` -> `TypeError: Math.random is disabled in deterministic mode`
-- `ArrayBuffer` -> `TypeError: ArrayBuffer is disabled in deterministic mode`
+- `ArrayBuffer` -> `TypeError: ArrayBuffer is disabled in deterministic mode` (**baseline-v1 / compat-regexp-v1**)
 - `SharedArrayBuffer` -> `TypeError: SharedArrayBuffer is disabled in deterministic mode`
-- `DataView` -> `TypeError: DataView is disabled in deterministic mode`
-- Typed arrays: `Uint8Array`, `Uint8ClampedArray`, `Int8Array`, `Uint16Array`, `Int16Array`, `Uint32Array`, `Int32Array`, `BigInt64Array`, `BigUint64Array`, `Float16Array`, `Float32Array`, `Float64Array` -> `TypeError: Typed arrays are disabled in deterministic mode`
+- `DataView` -> `TypeError: DataView is disabled in deterministic mode` (**baseline-v1 / compat-regexp-v1**)
+- Typed arrays: `Uint8Array`, `Uint8ClampedArray`, `Int8Array`, `Uint16Array`, `Int16Array`, `Uint32Array`, `Int32Array`, `BigInt64Array`, `BigUint64Array`, `Float16Array`, `Float32Array`, `Float64Array` -> `TypeError: Typed arrays are disabled in deterministic mode` (**baseline-v1 / compat-regexp-v1**)
 - `Atomics` -> `TypeError: Atomics is disabled in deterministic mode`
 - `WebAssembly` -> `TypeError: WebAssembly is disabled in deterministic mode`
-- `console.log/info/warn/error/debug` -> `TypeError: console is disabled in deterministic mode`
+- `console.log/info/warn/error/debug` -> `TypeError: console is disabled in deterministic mode` (**baseline-v1 / compat-regexp-v1**)
 - `print` -> `TypeError: print is disabled in deterministic mode`
-- `Array.prototype.sort` -> `TypeError: Array.prototype.sort is disabled in deterministic mode`
+- `Array.prototype.sort` -> `TypeError: Array.prototype.sort is disabled in deterministic mode` (**baseline-v1 / compat-regexp-v1**)
 
 Notes:
 
@@ -105,12 +112,16 @@ Why:
 
 ### Time, scheduling, and asynchrony
 
-Absent/disabled:
+Absent/disabled by profile:
 
 - `Date`
 - `setTimeout` / `setInterval`
-- `queueMicrotask`
-- `Promise`
+- `queueMicrotask` (`baseline-v1`, `compat-regexp-v1`)
+- `Promise` (`baseline-v1`, `compat-regexp-v1`)
+
+Enabled in compatibility profiles:
+
+- `Promise` jobs + `queueMicrotask` (`compat-general-v1`, `compat-binary-v1`)
 
 Why:
 
@@ -133,11 +144,16 @@ Why:
 
 ### Binary buffers, shared memory, and low-level representation
 
-Disabled:
+Disabled by profile:
 
 - `ArrayBuffer`, `DataView`, typed arrays (`Uint8Array`, `Float64Array`, …)
+  (`baseline-v1`, `compat-regexp-v1`)
 - `SharedArrayBuffer`
 - `Atomics`
+
+Enabled in compatibility profiles:
+
+- `ArrayBuffer`, `DataView`, typed arrays (`compat-binary-v1`)
 
 Why:
 
@@ -258,7 +274,7 @@ The deterministic init does not install these globals; `typeof` returns `"undefi
 
 - `Date`
 - `setTimeout` / `setInterval`
-- `queueMicrotask`
+- `queueMicrotask` (**baseline-v1 / compat-regexp-v1**)
 
 ## Host namespace and ergonomic globals
 

@@ -54,6 +54,10 @@ export interface EvaluateOptions
    * Enable gas trace recording for the evaluation.
    */
   gasTrace?: boolean;
+  /**
+   * Enforce release-mode artifact pin requirements.
+   */
+  releaseMode?: boolean;
 }
 
 export type EvaluateSuccess = {
@@ -101,6 +105,9 @@ export async function evaluate(
     await assertModulePackHash(program.modulePack);
   }
   const input = validateInputEnvelope(options.input, options.inputValidation);
+  if (options.releaseMode) {
+    assertReleaseArtifactPins(program.legacyArtifact);
+  }
 
   const runtime = await createRuntime({
     manifest: options.manifest,
@@ -115,6 +122,7 @@ export async function evaluate(
   });
 
   assertEngineBuildHash(program.legacyArtifact, runtime);
+  assertGasVersion(program.legacyArtifact, runtime);
 
   const vm = initializeDeterministicVm(
     runtime,
@@ -582,6 +590,48 @@ function assertEngineBuildHash(
   }
 }
 
+function assertGasVersion(
+  program: { gasVersion?: number },
+  runtime: RuntimeInstance,
+): void {
+  if (program.gasVersion === undefined) {
+    return;
+  }
+
+  const runtimeGasVersion = runtime.metadata.gasVersion;
+  if (runtimeGasVersion === null || runtimeGasVersion === undefined) {
+    throw new Error(
+      'Runtime gasVersion is unavailable; cannot verify program.gasVersion',
+    );
+  }
+
+  if (runtimeGasVersion !== program.gasVersion) {
+    throw new Error(
+      `gasVersion mismatch: program=${program.gasVersion} runtime=${runtimeGasVersion}`,
+    );
+  }
+}
+
+function assertReleaseArtifactPins(program: {
+  engineBuildHash?: string;
+  gasVersion?: number;
+  executionProfile?: string;
+}): void {
+  if (!program.engineBuildHash) {
+    throw new Error(
+      'release-mode requires program.engineBuildHash to be provided',
+    );
+  }
+  if (program.gasVersion === undefined) {
+    throw new Error('release-mode requires program.gasVersion to be provided');
+  }
+  if (!program.executionProfile) {
+    throw new Error(
+      'release-mode requires program.executionProfile to be provided',
+    );
+  }
+}
+
 type NormalizedProgramForExecution =
   | {
       mode: 'script';
@@ -616,6 +666,9 @@ function normalizeProgramForExecution(
           ...(validated.engineBuildHash
             ? { engineBuildHash: validated.engineBuildHash }
             : {}),
+          ...(validated.gasVersion !== undefined
+            ? { gasVersion: validated.gasVersion }
+            : {}),
           executionProfile: validated.executionProfile,
         },
       };
@@ -636,6 +689,9 @@ function normalizeProgramForExecution(
         abiManifestHash: validated.abiManifestHash,
         ...(validated.engineBuildHash
           ? { engineBuildHash: validated.engineBuildHash }
+          : {}),
+        ...(validated.gasVersion !== undefined
+          ? { gasVersion: validated.gasVersion }
           : {}),
         executionProfile: validated.executionProfile,
       },

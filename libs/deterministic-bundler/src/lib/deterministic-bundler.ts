@@ -83,6 +83,7 @@ export interface BuildDeterministicModulePackOptions {
   abiVersion?: number;
   abiManifestHash?: string;
   engineBuildHash?: string;
+  gasVersion?: number;
 }
 
 export interface ProgramArtifactV2 {
@@ -91,6 +92,7 @@ export interface ProgramArtifactV2 {
   abiVersion: number;
   abiManifestHash: string;
   engineBuildHash?: string;
+  gasVersion?: number;
   executionProfile: DeterministicExecutionProfile;
   sourceKind: 'module-pack';
   source: {
@@ -341,6 +343,10 @@ export async function buildDeterministicModulePack(
         engineBuildHash: options.engineBuildHash
           ? expectHexStringOption(options.engineBuildHash, 'engineBuildHash')
           : undefined,
+        gasVersion:
+          options.gasVersion !== undefined
+            ? expectUint32Option(options.gasVersion, 'gasVersion')
+            : undefined,
       })
     : undefined;
 
@@ -981,6 +987,7 @@ function buildProgramArtifactV2(options: {
   abiVersion: number;
   abiManifestHash: string;
   engineBuildHash?: string;
+  gasVersion?: number;
 }): ProgramArtifactV2 {
   return {
     version: 2,
@@ -990,6 +997,11 @@ function buildProgramArtifactV2(options: {
     ...(options.engineBuildHash
       ? {
           engineBuildHash: options.engineBuildHash,
+        }
+      : {}),
+    ...(options.gasVersion !== undefined
+      ? {
+          gasVersion: options.gasVersion,
         }
       : {}),
     executionProfile: options.profile,
@@ -1009,6 +1021,13 @@ function expectHexStringOption(
   }
   if (!/^[0-9a-f]{64}$/.test(value)) {
     throw new Error(`${fieldName} must be a lowercase 64-char hex string`);
+  }
+  return value;
+}
+
+function expectUint32Option(value: number, fieldName: string): number {
+  if (!Number.isInteger(value) || value < 0 || value > 0xffffffff) {
+    throw new Error(`${fieldName} must be a uint32 integer`);
   }
   return value;
 }

@@ -105,6 +105,7 @@ describe('metadata helpers', () => {
       quickjsCommit: 'abc123',
       emscriptenVersion: '3.1.56',
       engineBuildHash: 'deadbeef',
+      gasVersion: 3,
       build: {
         memory: {
           initial: 33554432,

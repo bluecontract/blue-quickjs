@@ -417,7 +417,7 @@ Details: [ABI manifest](./abi-manifest.md), [Host call ABI](./host-call-abi.md),
 - Only **wasm32** is supported by the TypeScript runtime integration (pointer sizes are treated as 32-bit). See runtime notes in the implementation plan and SDK docs.
 - Wasm memory is configured for determinism (fixed sizing; no growth). See [Toolchain](./toolchain.md).
 - The determinism profile is intentionally restrictive; many JS APIs are not available. See [Determinism profile](./determinism-profile.md).
-- “Gas trace” attributes only VM-internal categories; host-call gas is billed but not counted inside trace totals. See [Gas schedule](./gas-schedule.md) and [Observability](./observability.md).
+- “Gas trace” includes VM-internal categories plus dedicated host-call pre/post counters. See [Gas schedule](./gas-schedule.md) and [Observability](./observability.md).
 - Runtime execution is still single-source script mode today; module-pack runtime
   mode is specified in [Program artifact v2](./program-artifact-v2.md) and
   [Module pack v1](./module-pack.md).

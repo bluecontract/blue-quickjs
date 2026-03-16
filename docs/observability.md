@@ -126,17 +126,15 @@ Or (lower-level):
 
 See: [SDK usage](./sdk.md).
 
-### What it does *not* include
+### Host-call trace coverage
 
-The trace does **not** include host-call gas. Host calls are billed against the VM gas counter, but they are accounted separately.
+The trace includes dedicated host-call counters:
 
-If you want to estimate host-call gas from an `EvaluateResult` that includes a trace:
+- `hostCallPreCount` / `hostCallPreGas`
+- `hostCallPostCount` / `hostCallPostGas`
 
-```
-hostCallGas ≈ gasUsed - (opcodeGas + arrayCbGas + allocationGas + jsonParseGas + jsonStringifyGas + gcCheckpointGas)
-```
-
-The exact accounting and the checkpoint behavior are described in [Gas schedule](./gas-schedule.md).
+So host-call charging can be attributed directly without deriving a residual from
+total gas usage.
 
 ### Interpreting trace output
 

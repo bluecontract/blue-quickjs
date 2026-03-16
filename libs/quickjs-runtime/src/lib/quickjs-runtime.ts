@@ -53,6 +53,7 @@ export interface ProgramArtifactV2 {
   abiVersion: number;
   abiManifestHash: string;
   engineBuildHash?: string;
+  gasVersion?: number;
   executionProfile: ExecutionProfile;
   sourceKind: 'script' | 'module-pack';
   source: ProgramArtifactV2ScriptSource | ProgramArtifactV2ModulePackSource;
@@ -64,6 +65,7 @@ export interface ProgramArtifact {
   abiVersion: number;
   abiManifestHash: string;
   engineBuildHash?: string;
+  gasVersion?: number;
   executionProfile?: ExecutionProfile;
 }
 
@@ -130,10 +132,11 @@ export function validateProgramArtifact(
       'abiVersion',
       'abiManifestHash',
       'engineBuildHash',
+      'gasVersion',
       'executionProfile',
     ],
     'program',
-    ['engineBuildHash', 'executionProfile'],
+    ['engineBuildHash', 'gasVersion', 'executionProfile'],
   );
 
   const code = expectString(program.code, 'program.code', {
@@ -160,6 +163,10 @@ export function validateProgramArtifact(
           exactLength: SHA256_HEX_LENGTH,
         })
       : undefined;
+  const gasVersion =
+    program.gasVersion !== undefined
+      ? expectUint(program.gasVersion, 0, UINT32_MAX, 'program.gasVersion')
+      : undefined;
   const executionProfile =
     program.executionProfile !== undefined
       ? expectExecutionProfile(
@@ -174,6 +181,7 @@ export function validateProgramArtifact(
     abiVersion,
     abiManifestHash,
     engineBuildHash,
+    gasVersion,
     executionProfile,
   };
 }
@@ -192,12 +200,13 @@ export function validateProgramArtifactV2(
       'abiVersion',
       'abiManifestHash',
       'engineBuildHash',
+      'gasVersion',
       'executionProfile',
       'sourceKind',
       'source',
     ],
     'program',
-    ['engineBuildHash'],
+    ['engineBuildHash', 'gasVersion'],
   );
 
   const version = expectUint(artifact.version, 2, 2, 'program.version') as 2;
@@ -221,6 +230,10 @@ export function validateProgramArtifactV2(
           exactLength: SHA256_HEX_LENGTH,
         })
       : undefined;
+  const gasVersion =
+    artifact.gasVersion !== undefined
+      ? expectUint(artifact.gasVersion, 0, UINT32_MAX, 'program.gasVersion')
+      : undefined;
   const executionProfile = expectExecutionProfile(
     artifact.executionProfile,
     'program.executionProfile',
@@ -242,6 +255,7 @@ export function validateProgramArtifactV2(
     abiVersion,
     abiManifestHash,
     ...(engineBuildHash ? { engineBuildHash } : {}),
+    ...(gasVersion !== undefined ? { gasVersion } : {}),
     executionProfile,
     sourceKind,
     source,

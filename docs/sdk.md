@@ -161,12 +161,14 @@ A program artifact is “code + ABI identity/pinning metadata”. The SDK valida
 - `abiVersion` (integer)
 - `abiManifestHash` (lowercase hex)
 - `code` (string)
+- optional `gasVersion` (uint32; required for release-mode artifact pinning)
 
 Some environments also provide `engineBuildHash` pinning; if present, the SDK checks that the wasm runtime build hash matches.
 
 Optional fields:
 
 - `engineBuildHash` (lowercase hex; sha256 of the wasm bytes)
+- `gasVersion` (uint32 gas schedule version)
 - `executionProfile` (`"baseline-v1"` default, or `"compat-general-v1"` for
   compatibility-mode execution; `"compat-regexp-v1"` remains as a legacy alias)
 

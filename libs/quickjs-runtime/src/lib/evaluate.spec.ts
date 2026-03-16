@@ -763,6 +763,36 @@ describe('evaluate', () => {
     ).rejects.toThrow(/enginebuildhash/i);
   });
 
+  it('rejects gasVersion mismatches', async () => {
+    const program: ProgramArtifact = {
+      ...BASE_PROGRAM,
+      gasVersion: 0,
+    };
+
+    await expect(
+      evaluate({
+        program,
+        input: BASE_INPUT,
+        gasLimit: TEST_GAS_LIMIT,
+        manifest: HOST_V1_MANIFEST,
+        handlers: createHandlers(),
+      }),
+    ).rejects.toThrow(/gasversion/i);
+  });
+
+  it('requires engine/gas/profile pins in release mode', async () => {
+    await expect(
+      evaluate({
+        program: BASE_PROGRAM,
+        input: BASE_INPUT,
+        gasLimit: TEST_GAS_LIMIT,
+        manifest: HOST_V1_MANIFEST,
+        handlers: createHandlers(),
+        releaseMode: true,
+      }),
+    ).rejects.toThrow(/release-mode requires/i);
+  });
+
   it('returns host-call tape when requested', async () => {
     const result = await evaluate({
       program: BASE_PROGRAM,

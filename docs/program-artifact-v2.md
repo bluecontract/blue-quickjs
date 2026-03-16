@@ -23,6 +23,7 @@ type ProgramArtifactV2 = {
   abiVersion: number;         // uint32
   abiManifestHash: string;    // lowercase sha256 hex, 64 chars
   engineBuildHash?: string;   // lowercase sha256 hex, 64 chars
+  gasVersion?: number;        // uint32, required for release-mode artifacts
   executionProfile: ExecutionProfileName;
   sourceKind: 'script' | 'module-pack';
   source: ScriptSource | ModulePackSource;
@@ -46,6 +47,10 @@ type ModulePackSource = {
   - REQUIRED for builder-produced release artifacts.
   - MAY be omitted only for local development/debug workflows that do not claim
     reproducible release semantics.
+- `gasVersion`:
+  - REQUIRED for builder-produced release artifacts.
+  - MUST match the runtime gas schedule version, otherwise execution must be
+    rejected in release mode.
 
 ## Execution semantics
 

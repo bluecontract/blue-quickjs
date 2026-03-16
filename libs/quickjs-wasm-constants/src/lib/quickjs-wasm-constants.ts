@@ -50,6 +50,7 @@ export interface QuickjsWasmBuildMetadata {
   quickjsCommit: string | null;
   emscriptenVersion: string;
   engineBuildHash: string | null;
+  gasVersion: number | null;
   build: QuickjsWasmBuildConfig;
   variants: Partial<
     Record<
