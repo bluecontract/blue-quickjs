@@ -63,6 +63,9 @@ const argv = parseArgs(process.argv.slice(2));
 /** @typedef {{resultHash: string | null, errorCode: string | null, errorTag: string | null, gasUsed: string, gasRemaining: string, tapeHash: string | null, tapeLength: number}} Snapshot */
 
 async function main() {
+  const comparison = {
+    ignoreGas: argv.ignoreGas,
+  };
   const suites = [];
   const fixtureReports = [];
 
@@ -73,6 +76,7 @@ async function main() {
     (fixture) => fixture.input,
     (fixture) => fixture.manifest,
     (fixture) => fixture.gasLimit,
+    comparison,
   );
   suites.push(determinism.summary);
   fixtureReports.push(...determinism.reports);
@@ -84,6 +88,7 @@ async function main() {
     (fixture) => fixture.input,
     (fixture) => fixture.manifest,
     (fixture) => fixture.gasLimit,
+    comparison,
   );
   suites.push(modulePack.summary);
   fixtureReports.push(...modulePack.reports);
@@ -118,10 +123,15 @@ async function main() {
       input: BINARY_LIBRARY_INPUT,
       gasLimit: BINARY_LIBRARY_GAS_LIMIT,
     });
-    const report = compareSnapshots('binary-library', fixture.name, {
-      node: nodeSnapshot.snapshot,
-      native: nativeSnapshot,
-    });
+    const report = compareSnapshots(
+      'binary-library',
+      fixture.name,
+      {
+        node: nodeSnapshot.snapshot,
+        native: nativeSnapshot,
+      },
+      comparison,
+    );
     binaryFixtureReports.push(report);
   }
 
@@ -174,6 +184,7 @@ async function runFixtureSuite(
   getInput,
   getManifest,
   getGasLimit,
+  comparison,
 ) {
   const reports = [];
   for (const fixture of fixtures) {
@@ -196,10 +207,15 @@ async function runFixtureSuite(
       gasLimit,
     });
     reports.push(
-      compareSnapshots(suiteName, fixture.name, {
-        node: node.snapshot,
-        native,
-      }),
+      compareSnapshots(
+        suiteName,
+        fixture.name,
+        {
+          node: node.snapshot,
+          native,
+        },
+        comparison,
+      ),
     );
   }
 
@@ -428,12 +444,23 @@ function parseNativeTape(tapeJson) {
   }));
 }
 
-function compareSnapshots(suite, fixtureName, snapshots) {
-  const match = isSnapshotEqual(snapshots.node, snapshots.native);
+function compareSnapshots(
+  suite,
+  fixtureName,
+  snapshots,
+  comparison = { ignoreGas: false },
+) {
+  const match = isSnapshotEqual(snapshots.node, snapshots.native, comparison);
+  const gasDeltaUsed =
+    BigInt(snapshots.native.gasUsed) - BigInt(snapshots.node.gasUsed);
+  const gasDeltaRemaining =
+    BigInt(snapshots.native.gasRemaining) - BigInt(snapshots.node.gasRemaining);
   return {
     suite,
     fixtureName,
     match,
+    gasDeltaUsed: gasDeltaUsed.toString(),
+    gasDeltaRemaining: gasDeltaRemaining.toString(),
     node: snapshots.node,
     native: snapshots.native,
     ...(match
@@ -447,15 +474,21 @@ function compareSnapshots(suite, fixtureName, snapshots) {
   };
 }
 
-function isSnapshotEqual(left, right) {
-  return (
+function isSnapshotEqual(left, right, comparison) {
+  const baseMatch =
     left.resultHash === right.resultHash &&
     left.errorCode === right.errorCode &&
     left.errorTag === right.errorTag &&
-    left.gasUsed === right.gasUsed &&
-    left.gasRemaining === right.gasRemaining &&
     left.tapeHash === right.tapeHash &&
-    left.tapeLength === right.tapeLength
+    left.tapeLength === right.tapeLength;
+  if (!baseMatch) {
+    return false;
+  }
+  if (comparison?.ignoreGas) {
+    return true;
+  }
+  return (
+    left.gasUsed === right.gasUsed && left.gasRemaining === right.gasRemaining
   );
 }
 
@@ -483,11 +516,27 @@ function listSnapshotDifferences(nodeSnapshot, nativeSnapshot) {
 
 function createSuiteSummary(suite, reports) {
   const mismatches = reports.filter((report) => !report.match).length;
+  const absGasUsed = reports.map((report) =>
+    bigIntAbs(BigInt(report.gasDeltaUsed)),
+  );
+  const absGasRemaining = reports.map((report) =>
+    bigIntAbs(BigInt(report.gasDeltaRemaining)),
+  );
+  const maxAbsGasUsed =
+    absGasUsed.length > 0
+      ? absGasUsed.reduce((max, value) => (value > max ? value : max), 0n)
+      : 0n;
+  const maxAbsGasRemaining =
+    absGasRemaining.length > 0
+      ? absGasRemaining.reduce((max, value) => (value > max ? value : max), 0n)
+      : 0n;
   return {
     suite,
     totalFixtures: reports.length,
     mismatches,
     matched: reports.length - mismatches,
+    maxAbsGasDeltaUsed: maxAbsGasUsed.toString(),
+    maxAbsGasDeltaRemaining: maxAbsGasRemaining.toString(),
   };
 }
 
@@ -571,6 +620,7 @@ function parseArgs(args) {
   let outPath = null;
   let comparePath = null;
   let assertMatch = false;
+  let ignoreGas = false;
   for (let i = 0; i < args.length; i += 1) {
     const arg = args[i];
     if (arg === '--out') {
@@ -585,9 +635,13 @@ function parseArgs(args) {
     }
     if (arg === '--assert-match') {
       assertMatch = true;
+      continue;
+    }
+    if (arg === '--ignore-gas') {
+      ignoreGas = true;
     }
   }
-  return { outPath, comparePath, assertMatch };
+  return { outPath, comparePath, assertMatch, ignoreGas };
 }
 
 async function compareWithReport(currentReport, comparePath) {
@@ -635,6 +689,10 @@ function stableFixtureSnapshot(report) {
     node: report.node,
     native: report.native,
   });
+}
+
+function bigIntAbs(value) {
+  return value < 0n ? -value : value;
 }
 
 await main();

@@ -2471,9 +2471,12 @@ snapshots and can be compared across environments.
 - Script supports:
   - `--out <path>` report emission,
   - `--assert-match` hard parity enforcement mode,
+  - `--ignore-gas` comparison mode focused on result/error/tape parity while
+    preserving gas-delta diagnostics,
   - `--compare <report.json>` cross-run diff mode.
 - Reports include fixture-level node/native snapshots and a SHA-256 signature,
-  allowing deterministic diffing between environments (local/CI/cloud).
+  allowing deterministic diffing between environments (local/CI/cloud), plus
+  suite-level max absolute gas-delta summaries for reconciliation tracking.
 
 ---
 
