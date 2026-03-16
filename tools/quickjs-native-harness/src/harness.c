@@ -39,6 +39,7 @@ typedef struct {
   int report_tape;
   const char *dump_global;
   int dv_encode;
+  int parity_eval;
   const char *dv_decode_hex;
   const char *abi_manifest_hex;
   const char *abi_manifest_file;
@@ -1450,6 +1451,8 @@ static int run_host_call(HarnessRuntime *runtime, const HarnessOptions *options)
 static int eval_source(JSContext *ctx, const char *code, const HarnessOptions *options) {
   JSRuntime *rt = JS_GetRuntime(ctx);
   JSContext *job_error_ctx = NULL;
+  JSDvBuffer parity_dv = {0};
+  JSValue parity_decoded = JS_UNDEFINED;
 
   if (run_gc_checkpoint(ctx, options) != 0) {
     return 1;
@@ -1458,7 +1461,7 @@ static int eval_source(JSContext *ctx, const char *code, const HarnessOptions *o
   JSValue result = JS_Eval(ctx, code, strlen(code), "<eval>", JS_EVAL_TYPE_GLOBAL);
   if (JS_IsException(result)) {
     JS_FreeValue(ctx, result);
-    if (run_gc_checkpoint(ctx, options) != 0) {
+    if (!options->parity_eval && run_gc_checkpoint(ctx, options) != 0) {
       return 1;
     }
     return print_exception(ctx, options);
@@ -1474,8 +1477,20 @@ static int eval_source(JSContext *ctx, const char *code, const HarnessOptions *o
     return print_exception(ctx, options);
   }
 
+  if (options->parity_eval) {
+    if (JS_EncodeDV(ctx, result, NULL, &parity_dv) != 0) {
+      JS_FreeValue(ctx, result);
+      return print_exception(ctx, options);
+    }
+    JS_FreeValue(ctx, result);
+    result = JS_UNDEFINED;
+  }
+
   if (run_gc_checkpoint(ctx, options) != 0) {
     JS_FreeValue(ctx, result);
+    if (parity_dv.data) {
+      JS_FreeDVBuffer(ctx, &parity_dv);
+    }
     return 1;
   }
 
@@ -1483,8 +1498,26 @@ static int eval_source(JSContext *ctx, const char *code, const HarnessOptions *o
   capture_snapshot(ctx, options, &snapshot);
   disable_gas_metering(ctx);
 
-  JSValue json = JS_JSONStringify(ctx, result, JS_UNDEFINED, JS_UNDEFINED);
-  JS_FreeValue(ctx, result);
+  if (options->parity_eval) {
+    parity_decoded = JS_DecodeDV(ctx, parity_dv.data, parity_dv.length, NULL);
+    JS_FreeDVBuffer(ctx, &parity_dv);
+    parity_dv.data = NULL;
+    if (JS_IsException(parity_decoded)) {
+      return print_exception(ctx, options);
+    }
+  }
+
+  JSValue json = JS_JSONStringify(
+      ctx,
+      options->parity_eval ? parity_decoded : result,
+      JS_UNDEFINED,
+      JS_UNDEFINED);
+  if (options->parity_eval) {
+    JS_FreeValue(ctx, parity_decoded);
+    parity_decoded = JS_UNDEFINED;
+  } else {
+    JS_FreeValue(ctx, result);
+  }
 
   if (JS_IsException(json)) {
     if (run_gc_checkpoint(ctx, options) != 0) {
@@ -1740,7 +1773,7 @@ cleanup:
 static void print_usage(const char *prog) {
   fprintf(stderr,
           "Usage:\n"
-          "  %s [--gas-limit <u64>] [--report-gas] [--report-tape] [--gas-trace] [--dump-global <name>] [--execution-profile <baseline-v1|compat-regexp-v1|compat-general-v1|compat-binary-v1>] [--abi-manifest-hex <hex> | --abi-manifest-hex-file <path>] [--abi-manifest-hash <hex>] [--context-blob-hex <hex>] --eval \"<js-source>\"\n"
+          "  %s [--gas-limit <u64>] [--report-gas] [--report-tape] [--gas-trace] [--dump-global <name>] [--execution-profile <baseline-v1|compat-regexp-v1|compat-general-v1|compat-binary-v1>] [--abi-manifest-hex <hex> | --abi-manifest-hex-file <path>] [--abi-manifest-hash <hex>] [--context-blob-hex <hex>] [--parity-eval] --eval \"<js-source>\"\n"
           "  %s [--gas-limit <u64>] [--report-gas] [--report-tape] [--gas-trace] [--execution-profile <baseline-v1|compat-regexp-v1|compat-general-v1|compat-binary-v1>] [--abi-manifest-hex <hex> | --abi-manifest-hex-file <path>] [--abi-manifest-hash <hex>] --module-entry-specifier <specifier> [--module-entry-export <name>] (--module-pack-json \"<json>\" | --module-pack-file <path>)\n"
           "  %s --dv-encode --eval \"<js-source>\"\n"
           "  %s --dv-decode <hex-string>\n"
@@ -1766,6 +1799,7 @@ static int parse_args(int argc, char **argv, HarnessOptions *opts) {
   opts->report_tape = 0;
   opts->dump_global = NULL;
   opts->dv_encode = 0;
+  opts->parity_eval = 0;
   opts->dv_decode_hex = NULL;
   opts->abi_manifest_hex = NULL;
   opts->abi_manifest_file = NULL;
@@ -1827,6 +1861,11 @@ static int parse_args(int argc, char **argv, HarnessOptions *opts) {
 
     if (strcmp(argv[i], "--dv-encode") == 0) {
       opts->dv_encode = 1;
+      continue;
+    }
+
+    if (strcmp(argv[i], "--parity-eval") == 0) {
+      opts->parity_eval = 1;
       continue;
     }
 
@@ -2044,7 +2083,7 @@ static int parse_args(int argc, char **argv, HarnessOptions *opts) {
                                opts->module_entry_export != NULL;
 
   if (opts->dv_decode_hex) {
-    if (opts->code != NULL || opts->dv_encode || host_call_mode || opts->sha256_hex ||
+    if (opts->code != NULL || opts->dv_encode || opts->parity_eval || host_call_mode || opts->sha256_hex ||
         module_pack_mode) {
       print_usage(argv[0]);
       return 2;
@@ -2053,7 +2092,7 @@ static int parse_args(int argc, char **argv, HarnessOptions *opts) {
   }
 
   if (opts->sha256_hex) {
-    if (opts->code != NULL || opts->dv_encode || opts->dv_decode_hex ||
+    if (opts->code != NULL || opts->dv_encode || opts->parity_eval || opts->dv_decode_hex ||
         host_call_mode || module_pack_mode) {
       print_usage(argv[0]);
       return 2;
@@ -2062,7 +2101,7 @@ static int parse_args(int argc, char **argv, HarnessOptions *opts) {
   }
 
   if (host_call_mode) {
-    if (opts->code != NULL || opts->dv_encode || module_pack_mode) {
+    if (opts->code != NULL || opts->dv_encode || opts->parity_eval || module_pack_mode) {
       print_usage(argv[0]);
       return 2;
     }
@@ -2074,7 +2113,7 @@ static int parse_args(int argc, char **argv, HarnessOptions *opts) {
   }
 
   if (module_pack_mode) {
-    if (opts->code != NULL || opts->dv_encode) {
+    if (opts->code != NULL || opts->dv_encode || opts->parity_eval) {
       print_usage(argv[0]);
       return 2;
     }
@@ -2090,6 +2129,11 @@ static int parse_args(int argc, char **argv, HarnessOptions *opts) {
   }
 
   if (opts->code == NULL) {
+    print_usage(argv[0]);
+    return 2;
+  }
+
+  if (opts->parity_eval && opts->dv_encode) {
     print_usage(argv[0]);
     return 2;
   }

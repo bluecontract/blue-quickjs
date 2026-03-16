@@ -35,6 +35,9 @@ Minimal native harness for the QuickJS fork. Builds a standalone binary that eva
   `--module-pack-json "<json-array>"` or `--module-pack-file <path>` executes
   deterministic static ESM module packs; `--module-entry-export <name>` selects
   the exported binding (defaults to `default`).
+- Parity eval mode: `--parity-eval` (eval-mode only) routes script evaluation
+  through a DV encode/decode path so parity tooling can mirror wasm runtime
+  evaluation semantics while keeping human-readable `RESULT <json>` output.
 - Tape reporting: `--report-tape` appends host tape JSON (`TAPE [...]`) to
   output lines for parity checks.
 - SHA helper: `--sha256-hex <hex>` prints the SHA-256 digest for the provided hex bytes (handy for

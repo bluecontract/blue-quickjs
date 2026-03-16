@@ -419,10 +419,10 @@ function buildProgramArgs(program) {
   }
 
   if (program.version === 2 && program.sourceKind === 'script') {
-    return ['--eval', program.source.code];
+    return ['--parity-eval', '--eval', program.source.code];
   }
 
-  return ['--eval', program.code];
+  return ['--parity-eval', '--eval', program.code];
 }
 
 function parseNativeSnapshot(stdout, manifest, options) {

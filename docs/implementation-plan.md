@@ -2492,6 +2492,9 @@ snapshots and can be compared across environments.
     trace instrumentation itself perturbs gas counters.
   - reports now include aggregated `gasTraceSummary` counter rankings to
     prioritize reconciliation hotspots.
+- Added native harness parity-eval mode for report runs:
+  - `--parity-eval` routes eval-mode execution through DV encode/decode before
+    output formatting so script-path parity checks better mirror wasm eval flow.
 
 ---
 
