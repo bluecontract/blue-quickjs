@@ -63,8 +63,12 @@ const argv = parseArgs(process.argv.slice(2));
 /** @typedef {{resultHash: string | null, errorCode: string | null, errorTag: string | null, gasUsed: string, gasRemaining: string, tapeHash: string | null, tapeLength: number}} Snapshot */
 
 async function main() {
+  const gasDeltaBaselineMap = argv.gasDeltaBaselinePath
+    ? await loadGasDeltaBaselineMap(argv.gasDeltaBaselinePath)
+    : new Map();
   const comparison = {
     ignoreGas: argv.ignoreGas,
+    gasDeltaBaselineMap,
   };
   const suites = [];
   const fixtureReports = [];
@@ -474,7 +478,15 @@ function compareSnapshots(
   snapshots,
   comparison = { ignoreGas: false },
 ) {
-  const match = isSnapshotEqual(snapshots.node, snapshots.native, comparison);
+  const baselineEntry = comparison.gasDeltaBaselineMap?.get(
+    `${suite}:${fixtureName}`,
+  );
+  const match = isSnapshotEqual(
+    snapshots.node,
+    snapshots.native,
+    comparison,
+    baselineEntry,
+  );
   const gasDeltaUsed =
     BigInt(snapshots.native.gasUsed) - BigInt(snapshots.node.gasUsed);
   const gasDeltaRemaining =
@@ -485,6 +497,12 @@ function compareSnapshots(
     match,
     gasDeltaUsed: gasDeltaUsed.toString(),
     gasDeltaRemaining: gasDeltaRemaining.toString(),
+    ...(baselineEntry
+      ? {
+          expectedGasDeltaUsed: baselineEntry.gasDeltaUsed,
+          expectedGasDeltaRemaining: baselineEntry.gasDeltaRemaining,
+        }
+      : {}),
     node: snapshots.node,
     native: snapshots.native,
     ...(match
@@ -498,7 +516,7 @@ function compareSnapshots(
   };
 }
 
-function isSnapshotEqual(left, right, comparison) {
+function isSnapshotEqual(left, right, comparison, baselineEntry) {
   const baseMatch =
     left.resultHash === right.resultHash &&
     left.errorCode === right.errorCode &&
@@ -510,6 +528,16 @@ function isSnapshotEqual(left, right, comparison) {
   }
   if (comparison?.ignoreGas) {
     return true;
+  }
+  if (baselineEntry) {
+    const normalizedNativeUsed =
+      BigInt(right.gasUsed) - BigInt(baselineEntry.gasDeltaUsed);
+    const normalizedNativeRemaining =
+      BigInt(right.gasRemaining) - BigInt(baselineEntry.gasDeltaRemaining);
+    return (
+      normalizedNativeUsed === BigInt(left.gasUsed) &&
+      normalizedNativeRemaining === BigInt(left.gasRemaining)
+    );
   }
   return (
     left.gasUsed === right.gasUsed && left.gasRemaining === right.gasRemaining
@@ -756,6 +784,22 @@ function buildGasDeltaBaseline(report) {
     version: 1,
     entries,
   };
+}
+
+async function loadGasDeltaBaselineMap(baselinePath) {
+  const baselineText = await readFile(path.resolve(baselinePath), 'utf8');
+  const baseline = JSON.parse(baselineText);
+  const baselineEntries = Array.isArray(baseline.entries)
+    ? baseline.entries
+    : [];
+  const lookup = new Map();
+  for (const entry of baselineEntries) {
+    lookup.set(`${entry.suite}:${entry.fixtureName}`, {
+      gasDeltaUsed: String(entry.gasDeltaUsed),
+      gasDeltaRemaining: String(entry.gasDeltaRemaining),
+    });
+  }
+  return lookup;
 }
 
 async function compareGasDeltaBaseline(currentReport, baselinePath) {

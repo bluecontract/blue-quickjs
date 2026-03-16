@@ -2478,8 +2478,8 @@ snapshots and can be compared across environments.
   allowing deterministic diffing between environments (local/CI/cloud), plus
   suite-level max absolute gas-delta summaries for reconciliation tracking.
 - Native harness test workflow now executes the parity report in
-  `--assert-match --ignore-gas` mode to enforce cross-runtime result/error/tape
-  parity continuously while gas reconciliation remains open.
+  `--assert-match --gas-delta-baseline ...` mode to enforce cross-runtime
+  result/error/tape parity together with locked per-fixture gas deltas.
 - Added gas-delta baseline enforcement hook:
   - `--gas-delta-baseline <path>` validates per-fixture gas deltas in CI/test
     workflows,
