@@ -75,6 +75,7 @@ async function main() {
     gasDeltaBaselineMap,
     includeGasTrace: argv.includeGasTrace,
     includeGasChargeTape: argv.includeGasChargeTape,
+    gasChargeTapeCapacity: argv.gasChargeTapeCapacity,
   };
   const suites = [];
   const fixtureReports = [];
@@ -123,6 +124,7 @@ async function main() {
       handlers: host.handlers,
       includeGasTrace: comparison.includeGasTrace,
       includeGasChargeTape: comparison.includeGasChargeTape,
+      gasChargeTapeCapacity: comparison.gasChargeTapeCapacity,
     });
     assert.deepStrictEqual(
       normalizeJsonValue(nodeSnapshot.okValue),
@@ -136,6 +138,7 @@ async function main() {
       gasLimit: BINARY_LIBRARY_GAS_LIMIT,
       includeGasTrace: comparison.includeGasTrace,
       includeGasChargeTape: comparison.includeGasChargeTape,
+      gasChargeTapeCapacity: comparison.gasChargeTapeCapacity,
     });
     const report = compareSnapshots(
       'binary-library',
@@ -244,6 +247,7 @@ async function runFixtureSuite(
       handlers: host.handlers,
       includeGasTrace: comparison.includeGasTrace,
       includeGasChargeTape: comparison.includeGasChargeTape,
+      gasChargeTapeCapacity: comparison.gasChargeTapeCapacity,
     });
     const native = runNativeEvaluation({
       program,
@@ -252,6 +256,7 @@ async function runFixtureSuite(
       gasLimit,
       includeGasTrace: comparison.includeGasTrace,
       includeGasChargeTape: comparison.includeGasChargeTape,
+      gasChargeTapeCapacity: comparison.gasChargeTapeCapacity,
     });
     reports.push(
       compareSnapshots(
@@ -320,7 +325,7 @@ function createNativeCompatibleHost() {
 }
 
 /**
- * @param {{program: any, input: any, manifest: any, gasLimit: bigint, handlers: any, includeGasTrace?: boolean, includeGasChargeTape?: boolean}} options
+ * @param {{program: any, input: any, manifest: any, gasLimit: bigint, handlers: any, includeGasTrace?: boolean, includeGasChargeTape?: boolean, gasChargeTapeCapacity?: number}} options
  */
 async function runNodeEvaluation(options) {
   const manifest = validateAbiManifest(options.manifest);
@@ -335,7 +340,11 @@ async function runNodeEvaluation(options) {
     tape: { capacity: TAPE_CAPACITY },
     gasTrace: options.includeGasTrace ?? false,
     ...(options.includeGasChargeTape
-      ? { gasChargeTape: { capacity: 256 } }
+      ? {
+          gasChargeTape: {
+            capacity: options.gasChargeTapeCapacity ?? 2048,
+          },
+        }
       : {}),
   });
 
@@ -383,7 +392,7 @@ async function runNodeEvaluation(options) {
 }
 
 /**
- * @param {{program: any, manifest: any, input: any, gasLimit: bigint, includeGasTrace?: boolean, includeGasChargeTape?: boolean}} options
+ * @param {{program: any, manifest: any, input: any, gasLimit: bigint, includeGasTrace?: boolean, includeGasChargeTape?: boolean, gasChargeTapeCapacity?: number}} options
  * @returns {Snapshot}
  */
 function runNativeEvaluation(options) {
@@ -404,7 +413,13 @@ function runNativeEvaluation(options) {
     options.gasLimit.toString(),
     '--report-gas',
     '--report-tape',
-    ...(options.includeGasChargeTape ? ['--gas-charge-tape'] : []),
+    ...(options.includeGasChargeTape
+      ? [
+          '--gas-charge-tape',
+          '--gas-charge-tape-capacity',
+          String(options.gasChargeTapeCapacity ?? 2048),
+        ]
+      : []),
     ...(options.includeGasTrace ? ['--gas-trace'] : []),
     ...buildProgramArgs(options.program),
   ];
@@ -1043,6 +1058,7 @@ function parseArgs(args) {
   let ignoreGas = false;
   let includeGasTrace = false;
   let includeGasChargeTape = false;
+  let gasChargeTapeCapacity = null;
   let gasDeltaBaselinePath = null;
   let writeGasDeltaBaselinePath = null;
   for (let i = 0; i < args.length; i += 1) {
@@ -1073,6 +1089,15 @@ function parseArgs(args) {
       includeGasChargeTape = true;
       continue;
     }
+    if (arg === '--gas-charge-tape-capacity') {
+      const value = args[i + 1] ? Number.parseInt(args[i + 1], 10) : NaN;
+      if (!Number.isInteger(value) || value < 0) {
+        throw new Error('--gas-charge-tape-capacity must be a non-negative integer');
+      }
+      gasChargeTapeCapacity = value;
+      i += 1;
+      continue;
+    }
     if (arg === '--gas-delta-baseline') {
       gasDeltaBaselinePath = args[i + 1] ? args[i + 1] : null;
       i += 1;
@@ -1090,6 +1115,7 @@ function parseArgs(args) {
     ignoreGas,
     includeGasTrace,
     includeGasChargeTape,
+    gasChargeTapeCapacity,
     gasDeltaBaselinePath,
     writeGasDeltaBaselinePath,
   };

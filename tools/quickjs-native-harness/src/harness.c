@@ -38,6 +38,7 @@ typedef struct {
   int report_trace;
   int report_tape;
   int report_charge_tape;
+  uint32_t charge_tape_capacity;
   const char *dump_global;
   int dv_encode;
   int parity_eval;
@@ -1889,11 +1890,11 @@ cleanup:
 static void print_usage(const char *prog) {
   fprintf(stderr,
           "Usage:\n"
-          "  %s [--gas-limit <u64>] [--report-gas] [--report-tape] [--gas-charge-tape] [--gas-trace] [--dump-global <name>] [--execution-profile <baseline-v1|compat-regexp-v1|compat-general-v1|compat-binary-v1>] [--abi-manifest-hex <hex> | --abi-manifest-hex-file <path>] [--abi-manifest-hash <hex>] [--context-blob-hex <hex>] [--parity-eval] --eval \"<js-source>\"\n"
-          "  %s [--gas-limit <u64>] [--report-gas] [--report-tape] [--gas-charge-tape] [--gas-trace] [--execution-profile <baseline-v1|compat-regexp-v1|compat-general-v1|compat-binary-v1>] [--abi-manifest-hex <hex> | --abi-manifest-hex-file <path>] [--abi-manifest-hash <hex>] --module-entry-specifier <specifier> [--module-entry-export <name>] (--module-pack-json \"<json>\" | --module-pack-file <path>)\n"
+          "  %s [--gas-limit <u64>] [--report-gas] [--report-tape] [--gas-charge-tape] [--gas-charge-tape-capacity <u32>] [--gas-trace] [--dump-global <name>] [--execution-profile <baseline-v1|compat-regexp-v1|compat-general-v1|compat-binary-v1>] [--abi-manifest-hex <hex> | --abi-manifest-hex-file <path>] [--abi-manifest-hash <hex>] [--context-blob-hex <hex>] [--parity-eval] --eval \"<js-source>\"\n"
+          "  %s [--gas-limit <u64>] [--report-gas] [--report-tape] [--gas-charge-tape] [--gas-charge-tape-capacity <u32>] [--gas-trace] [--execution-profile <baseline-v1|compat-regexp-v1|compat-general-v1|compat-binary-v1>] [--abi-manifest-hex <hex> | --abi-manifest-hex-file <path>] [--abi-manifest-hash <hex>] --module-entry-specifier <specifier> [--module-entry-export <name>] (--module-pack-json \"<json>\" | --module-pack-file <path>)\n"
           "  %s --dv-encode --eval \"<js-source>\"\n"
           "  %s --dv-decode <hex-string>\n"
-          "  %s --host-call <hex-string> [--host-fn-id <u32>] [--host-max-request <u32>] [--host-max-response <u32>] [--host-max-units <u32>] [--host-parse-envelope] [--host-reentrant] [--host-exception] [--gas-limit <u64>] [--report-gas] [--report-tape] [--gas-charge-tape] [--gas-trace] [--execution-profile <baseline-v1|compat-regexp-v1|compat-general-v1|compat-binary-v1>] [--abi-manifest-hex <hex> | --abi-manifest-hex-file <path>] [--abi-manifest-hash <hex>] [--context-blob-hex <hex>]\n"
+          "  %s --host-call <hex-string> [--host-fn-id <u32>] [--host-max-request <u32>] [--host-max-response <u32>] [--host-max-units <u32>] [--host-parse-envelope] [--host-reentrant] [--host-exception] [--gas-limit <u64>] [--report-gas] [--report-tape] [--gas-charge-tape] [--gas-charge-tape-capacity <u32>] [--gas-trace] [--execution-profile <baseline-v1|compat-regexp-v1|compat-general-v1|compat-binary-v1>] [--abi-manifest-hex <hex> | --abi-manifest-hex-file <path>] [--abi-manifest-hash <hex>] [--context-blob-hex <hex>]\n"
           "  %s --sha256-hex <hex-string>\n",
           prog,
           prog,
@@ -1914,6 +1915,7 @@ static int parse_args(int argc, char **argv, HarnessOptions *opts) {
   opts->report_trace = 0;
   opts->report_tape = 0;
   opts->report_charge_tape = 0;
+  opts->charge_tape_capacity = 2048;
   opts->dump_global = NULL;
   opts->dv_encode = 0;
   opts->parity_eval = 0;
@@ -1973,6 +1975,23 @@ static int parse_args(int argc, char **argv, HarnessOptions *opts) {
 
     if (strcmp(argv[i], "--gas-charge-tape") == 0) {
       opts->report_charge_tape = 1;
+      continue;
+    }
+
+    if (strcmp(argv[i], "--gas-charge-tape-capacity") == 0) {
+      if (i + 1 >= argc) {
+        print_usage(argv[0]);
+        return 2;
+      }
+      const char *value = argv[++i];
+      char *endptr = NULL;
+      errno = 0;
+      unsigned long parsed = strtoul(value, &endptr, 10);
+      if (errno != 0 || endptr == value || *endptr != '\0' || parsed > UINT32_MAX) {
+        fprintf(stderr, "Invalid --gas-charge-tape-capacity: %s\n", value);
+        return 2;
+      }
+      opts->charge_tape_capacity = (uint32_t)parsed;
       continue;
     }
 
@@ -2292,7 +2311,7 @@ int main(int argc, char **argv) {
   }
 
   if (options.report_charge_tape) {
-    if (JS_EnableGasChargeTape(runtime.ctx, 256) != 0 ||
+    if (JS_EnableGasChargeTape(runtime.ctx, options.charge_tape_capacity) != 0 ||
         JS_ResetGasChargeTape(runtime.ctx) != 0) {
       fprintf(stderr, "init: failed to enable gas charge tape\n");
       free_runtime(&runtime);
