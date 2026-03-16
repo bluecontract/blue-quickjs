@@ -52,8 +52,8 @@ export const GAS_SAMPLE_FIXTURES: GasFixture[] = [
     expected: {
       resultHash:
         '4bf5122f344554c53bde2ebb8cd2b7e3d1600ad631c385a5d7cce23c7785459a',
-      gasUsed: 160n,
-      gasRemaining: 999840n,
+      gasUsed: 148n,
+      gasRemaining: 999852n,
     },
   },
   {
@@ -77,8 +77,8 @@ export const GAS_SAMPLE_FIXTURES: GasFixture[] = [
     expected: {
       resultHash:
         '5092d78885546599f50436ac88fee579843061290508ac2ef0efa541297e405b',
-      gasUsed: 17259n,
-      gasRemaining: 982741n,
+      gasUsed: 17233n,
+      gasRemaining: 982767n,
     },
   },
   {
@@ -102,12 +102,12 @@ export const GAS_SAMPLE_FIXTURES: GasFixture[] = [
     expected: {
       resultHash:
         'a3fa3495623f19996818ce7b196fc524e687ef2cc4910a6ff628a76460c4e557',
-      gasUsed: 170259n,
-      gasRemaining: 829741n,
+      gasUsed: 170233n,
+      gasRemaining: 829767n,
     },
     repeatSameContext: {
       count: 5,
-      expectedGasUsed: 170259n,
+      expectedGasUsed: 170233n,
     },
   },
   {
@@ -131,8 +131,8 @@ export const GAS_SAMPLE_FIXTURES: GasFixture[] = [
     expected: {
       resultHash:
         '5e8f74961ede79063fa728a34d36f7baf4a563b225df62e4eb9349b94d612a3f',
-      gasUsed: 47944n,
-      gasRemaining: 952056n,
+      gasUsed: 47918n,
+      gasRemaining: 952082n,
     },
   },
   {
@@ -156,8 +156,8 @@ export const GAS_SAMPLE_FIXTURES: GasFixture[] = [
     expected: {
       resultHash:
         '5e8f74961ede79063fa728a34d36f7baf4a563b225df62e4eb9349b94d612a3f',
-      gasUsed: 43929n,
-      gasRemaining: 956071n,
+      gasUsed: 43903n,
+      gasRemaining: 956097n,
     },
   },
   {
@@ -185,8 +185,8 @@ export const GAS_SAMPLE_FIXTURES: GasFixture[] = [
     expected: {
       resultHash:
         'cbbec14103147af122feaff2419ad885d372d04bfd9d0af1714dd20dff24b6e3',
-      gasUsed: 40006n,
-      gasRemaining: 959994n,
+      gasUsed: 39967n,
+      gasRemaining: 960033n,
     },
   },
 ];

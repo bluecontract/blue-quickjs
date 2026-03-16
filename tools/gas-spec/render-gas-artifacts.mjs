@@ -86,6 +86,12 @@ Canonical allocation classes (width-independent charged-byte formulas):
 - ArrayBuffer header: \`${spec.allocation.canonicalClasses.arrayBufferHeaderBytes}\`
 - TypedArray backing unit: \`${spec.allocation.canonicalClasses.typedArrayBackingUnitBytes}\`
 - TypedArray record: \`${spec.allocation.canonicalClasses.typedArrayRecordBytes}\`
+- Compiler function-def record: \`${spec.allocation.canonicalClasses.compilerFunctionDefBytes}\`
+- Closure-var entry: \`${spec.allocation.canonicalClasses.closureVarEntryBytes}\`
+- Var-ref pointer entry: \`${spec.allocation.canonicalClasses.varRefPointerBytes}\`
+- Var-ref record: \`${spec.allocation.canonicalClasses.varRefRecordBytes}\`
+- Generic dynamic-array unit: \`${spec.allocation.canonicalClasses.genericArrayUnitBytes}\`
+- Unknown-class small-allocation floor: \`${spec.allocation.canonicalClasses.unknownSmallFloorBytes}\`
 
 ## Deterministic JSON builtin gas
 

@@ -4,14 +4,14 @@
     {
       "suite": "binary-library",
       "fixtureName": "base64-js-roundtrip",
-      "gasDeltaUsed": "274",
-      "gasDeltaRemaining": "-274"
+      "gasDeltaUsed": "231",
+      "gasDeltaRemaining": "-231"
     },
     {
       "suite": "binary-library",
       "fixtureName": "noble-sha256-hex",
-      "gasDeltaUsed": "430",
-      "gasDeltaRemaining": "-430"
+      "gasDeltaUsed": "235",
+      "gasDeltaRemaining": "-235"
     },
     {
       "suite": "determinism",
@@ -40,8 +40,8 @@
     {
       "suite": "determinism",
       "fixtureName": "compat-binary-host-v2-bytes-roundtrip",
-      "gasDeltaUsed": "211",
-      "gasDeltaRemaining": "-211"
+      "gasDeltaUsed": "208",
+      "gasDeltaRemaining": "-208"
     },
     {
       "suite": "determinism",

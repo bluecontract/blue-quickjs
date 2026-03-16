@@ -1,5 +1,5 @@
 {
-  "gasVersion": 4,
+  "gasVersion": 5,
   "allocation": {
     "base": 0,
     "perByteShift": 4,
@@ -20,7 +20,13 @@
       "promiseJobArgBytes": 8,
       "arrayBufferHeaderBytes": 48,
       "typedArrayBackingUnitBytes": 1,
-      "typedArrayRecordBytes": 40
+      "typedArrayRecordBytes": 40,
+      "compilerFunctionDefBytes": 512,
+      "closureVarEntryBytes": 16,
+      "varRefPointerBytes": 8,
+      "varRefRecordBytes": 32,
+      "genericArrayUnitBytes": 16,
+      "unknownSmallFloorBytes": 64
     }
   },
   "opcode": {
