@@ -1,5 +1,5 @@
 {
-  "gasVersion": 7,
+  "gasVersion": 8,
   "allocation": {
     "base": 0,
     "perByteShift": 4,
@@ -28,7 +28,13 @@
       "genericArrayUnitBytes": 16,
       "unknownSmallFloorBytes": 64,
       "unknownSmallFloorMaxBytes": 4096,
-      "unknownClassCharged": false
+      "unknownClassCharged": false,
+      "objectHeaderCharged": false,
+      "propertySlotCharged": false,
+      "shapeCharged": false,
+      "arrayBufferHeaderCharged": false,
+      "typedArrayBackingCharged": false,
+      "typedArrayRecordCharged": false
     }
   },
   "opcode": {

@@ -94,6 +94,12 @@ Canonical allocation classes (width-independent charged-byte formulas):
 - Unknown-class small-allocation floor: \`${spec.allocation.canonicalClasses.unknownSmallFloorBytes}\`
 - Unknown-class small-allocation max size: \`${spec.allocation.canonicalClasses.unknownSmallFloorMaxBytes}\`
 - Unknown-class charges enabled: \`${spec.allocation.canonicalClasses.unknownClassCharged}\`
+- Object-header charges enabled: \`${spec.allocation.canonicalClasses.objectHeaderCharged}\`
+- Property-slot charges enabled: \`${spec.allocation.canonicalClasses.propertySlotCharged}\`
+- Shape charges enabled: \`${spec.allocation.canonicalClasses.shapeCharged}\`
+- ArrayBuffer-header charges enabled: \`${spec.allocation.canonicalClasses.arrayBufferHeaderCharged}\`
+- TypedArray-backing charges enabled: \`${spec.allocation.canonicalClasses.typedArrayBackingCharged}\`
+- TypedArray-record charges enabled: \`${spec.allocation.canonicalClasses.typedArrayRecordCharged}\`
 
 ## Deterministic JSON builtin gas
 
