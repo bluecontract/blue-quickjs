@@ -2495,6 +2495,11 @@ snapshots and can be compared across environments.
 - Added native harness parity-eval mode for report runs:
   - `--parity-eval` routes eval-mode execution through DV encode/decode before
     output formatting so script-path parity checks better mirror wasm eval flow.
+- Deterministic runtime allocator normalization landed in QuickJS fork:
+  - deterministic runtime now forces `js_malloc_usable_size` to the
+    platform-neutral fallback path,
+  - native gas baselines updated (gas-goldens/module-pack/binary/parity-delta)
+    to this normalized allocator model.
 
 ---
 
