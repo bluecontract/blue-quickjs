@@ -660,6 +660,12 @@ function compareSnapshots(
           nativeChargeTapeHash: chargeTapeComparison.nativeHash,
           nodeChargeTapeLength: chargeTapeComparison.nodeLength,
           nativeChargeTapeLength: chargeTapeComparison.nativeLength,
+          ...(chargeTapeComparison.siteDeltaSummaryTop
+            ? {
+                chargeTapeSiteDeltaSummaryTop:
+                  chargeTapeComparison.siteDeltaSummaryTop,
+              }
+            : {}),
           ...(chargeTapeComparison.firstDivergence
             ? {
                 firstDivergentChargeIndex:
@@ -739,6 +745,7 @@ function compareGasChargeTape(nodeRecords, nativeRecords) {
   const nodeHash = hashGasChargeTape(nodeRecords);
   const nativeHash = hashGasChargeTape(nativeRecords);
   const maxLength = Math.max(nodeRecords.length, nativeRecords.length);
+  const siteDeltaSummary = summarizeChargeSiteDeltas(nodeRecords, nativeRecords);
   let firstDivergence = null;
   for (let index = 0; index < maxLength; index += 1) {
     const left = nodeRecords[index];
@@ -762,12 +769,68 @@ function compareGasChargeTape(nodeRecords, nativeRecords) {
     nativeHash,
     nodeLength: nodeRecords.length,
     nativeLength: nativeRecords.length,
+    ...(siteDeltaSummary.length > 0
+      ? { siteDeltaSummaryTop: siteDeltaSummary }
+      : {}),
     firstDivergence,
   };
 }
 
 function hashGasChargeTape(records) {
   return sha256Hex(JSON.stringify(records));
+}
+
+function summarizeChargeSiteDeltas(nodeRecords, nativeRecords, limit = 8) {
+  const nodeBySite = new Map();
+  const nativeBySite = new Map();
+  for (const record of nodeRecords) {
+    const siteId = Number(record.siteId);
+    const entry = nodeBySite.get(siteId) ?? { gas: 0n, count: 0n };
+    entry.gas += BigInt(record.amount);
+    entry.count += 1n;
+    nodeBySite.set(siteId, entry);
+  }
+  for (const record of nativeRecords) {
+    const siteId = Number(record.siteId);
+    const entry = nativeBySite.get(siteId) ?? { gas: 0n, count: 0n };
+    entry.gas += BigInt(record.amount);
+    entry.count += 1n;
+    nativeBySite.set(siteId, entry);
+  }
+  const allSiteIds = new Set([...nodeBySite.keys(), ...nativeBySite.keys()]);
+  const rows = [];
+  for (const siteId of allSiteIds) {
+    const nodeEntry = nodeBySite.get(siteId) ?? { gas: 0n, count: 0n };
+    const nativeEntry = nativeBySite.get(siteId) ?? { gas: 0n, count: 0n };
+    const deltaGas = nodeEntry.gas - nativeEntry.gas;
+    const deltaCount = nodeEntry.count - nativeEntry.count;
+    if (deltaGas === 0n && deltaCount === 0n) {
+      continue;
+    }
+    rows.push({
+      siteId,
+      deltaGas: deltaGas.toString(),
+      deltaCount: deltaCount.toString(),
+      nodeGas: nodeEntry.gas.toString(),
+      nativeGas: nativeEntry.gas.toString(),
+      nodeCount: nodeEntry.count.toString(),
+      nativeCount: nativeEntry.count.toString(),
+    });
+  }
+  rows.sort((left, right) => {
+    const leftGasAbs = bigIntAbs(BigInt(left.deltaGas));
+    const rightGasAbs = bigIntAbs(BigInt(right.deltaGas));
+    if (leftGasAbs === rightGasAbs) {
+      const leftCountAbs = bigIntAbs(BigInt(left.deltaCount));
+      const rightCountAbs = bigIntAbs(BigInt(right.deltaCount));
+      if (leftCountAbs === rightCountAbs) {
+        return Number(left.siteId) - Number(right.siteId);
+      }
+      return rightCountAbs > leftCountAbs ? 1 : -1;
+    }
+    return rightGasAbs > leftGasAbs ? 1 : -1;
+  });
+  return rows.slice(0, limit);
 }
 
 function listSnapshotDifferences(nodeSnapshot, nativeSnapshot) {

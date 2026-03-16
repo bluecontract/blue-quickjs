@@ -27,7 +27,7 @@ Minimal native harness for the QuickJS fork. Builds a standalone binary that eva
     and profile rollups),
   - `--include-gas-charge-tape` attach per-charge event sequences and sequence
     hashes, and report the first divergent charge index/site for mismatching
-    fixtures,
+    fixtures (plus top per-site gas/count deltas for quick hotspot triage),
   - `--gas-charge-tape-capacity <u32>` control diagnostic charge-tape ring
     capacity (default `256`, max `8192`) when charge tape capture is enabled,
   - `--compare <report.json>` compare current run against a prior report.
