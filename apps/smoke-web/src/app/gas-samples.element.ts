@@ -65,7 +65,14 @@ declare global {
   }
 }
 
-const GAS_BOUNDARY_FIXTURE_NAMES = new Set(['return-1', 'loop-1k', 'array-ops']);
+const GAS_BOUNDARY_FIXTURE_NAMES = new Set([
+  'return-1',
+  'loop-1k',
+  'loop-10k',
+  'string-concat',
+  'object-alloc',
+  'array-ops',
+]);
 
 export class GasSamplesElement extends HTMLElement {
   private isRunning = false;

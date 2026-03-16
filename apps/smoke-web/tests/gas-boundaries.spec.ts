@@ -22,7 +22,14 @@ type BoundaryFixtureResult = {
   failureTag: string | null;
 };
 
-const GAS_BOUNDARY_FIXTURE_NAMES = new Set(['return-1', 'loop-1k', 'array-ops']);
+const GAS_BOUNDARY_FIXTURE_NAMES = new Set([
+  'return-1',
+  'loop-1k',
+  'loop-10k',
+  'string-concat',
+  'object-alloc',
+  'array-ops',
+]);
 
 test('browser and node share exact OOG boundaries', async ({ page }) => {
   const nodeResults = await runNodeBoundaries();

@@ -159,9 +159,24 @@ interface BoundaryFixtureCase {
 
 const boundaryCases: BoundaryFixtureCase[] = [
   {
+    name: 'opcode-addition',
+    fixture: 'addition.js',
+    expectedFirstSuccessGas: 39n,
+  },
+  {
     name: 'opcode-constant',
     fixture: 'constant.js',
     expectedFirstSuccessGas: 37n,
+  },
+  {
+    name: 'loop-counter',
+    fixture: 'loop-counter.js',
+    expectedFirstSuccessGas: 146n,
+  },
+  {
+    name: 'string-repeat',
+    fixture: 'string-repeat.js',
+    expectedFirstSuccessGas: 84n,
   },
   {
     name: 'json-parse-small',
@@ -172,6 +187,11 @@ const boundaryCases: BoundaryFixtureCase[] = [
     name: 'json-stringify-small',
     fixture: 'json-stringify-small.js',
     expectedFirstSuccessGas: 82n,
+  },
+  {
+    name: 'array-map-single',
+    fixture: 'array-map-single.js',
+    expectedFirstSuccessGas: 143n,
   },
   {
     name: 'array-map-multi',
