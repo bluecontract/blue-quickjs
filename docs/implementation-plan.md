@@ -2491,7 +2491,7 @@ while strict gas parity is still being closed.
 ### T-221: Strict parity release gate (consensus executors)
 
 **Phase:** P21 – Validation and release gate  
-**Status:** NOT STARTED  
+**Status:** IN PROGRESS  
 **Depends on:** T-220
 
 **Goal:**  
@@ -2500,12 +2500,12 @@ supported consensus executors.
 
 **Detailed tasks:**
 
-- [ ] Enforce strict zero gas delta (no baseline normalization) for:
+- [x] Enforce strict zero gas delta (no baseline normalization) for:
       `wasm-node` vs `wasm-browser`.
 - [ ] Enforce exact OOG boundary parity for the same consensus corpus.
-- [ ] Surface first-divergent gas event metadata in parity reports once
+- [x] Surface first-divergent gas event metadata in parity reports once
       charge-event tracing lands.
-- [ ] Keep native parity reporting, but treat it as diagnostic unless native is
+- [x] Keep native parity reporting, but treat it as diagnostic unless native is
       explicitly certified as a consensus executor.
 
 **Release gate policy (normative):**
@@ -2516,6 +2516,18 @@ supported consensus executors.
   OOG boundary parity are demonstrated under the same gate.
 - Release pipelines must fail on any strict parity mismatch across consensus
   executors and must not depend on `parity-gas-delta-baseline.json`.
+
+**Current state (P21 T-221):**
+
+- Allocation-charge model v8 closes fixture-corpus raw strict parity in the
+  parity harness path (`parity-report --assert-match` now succeeds without
+  `--gas-delta-baseline`).
+- Harness test gate now enforces strict raw parity directly
+  (`tools/quickjs-native-harness/scripts/test.sh` no longer passes a gas-delta
+  baseline file to parity-report).
+- Subsystem boundary fixtures now include explicit first-success/last-failure
+  OOG checks via binary-search boundary tests in
+  `libs/test-harness/src/lib/gas-equivalence.spec.ts`.
 
 ---
 
