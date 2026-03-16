@@ -49,13 +49,17 @@ Those belong to the embedding system (for example document-processor).
 
 ## Parity expectations
 
-For release confidence, embedders should run parity checks across:
+For release confidence, embedders should run strict parity checks across the
+supported **consensus executors**:
 
-- native harness,
 - wasm in Node,
 - wasm in browser,
 
-matching on result hash, gas, tape, and error code/tag.
+matching on result hash, gas, tape, error code/tag, and exact OOG boundary.
+
+Native harness parity remains strongly recommended for diagnostics and
+reconciliation. Treat native as non-consensus unless it is explicitly certified
+for strict zero-delta parity against canonical wasm execution.
 
 ## See also
 

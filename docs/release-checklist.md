@@ -6,15 +6,26 @@ Scope: steps to publish deterministic engine + ABI packages.
 
 - Confirm the working tree is clean and `vendor/quickjs` is pinned to the intended commit.
 - Run `pnpm lint`, `pnpm nx typecheck`, `pnpm nx test`, and `pnpm nx build`.
+- Run strict parity gating for consensus executors (`wasm-node` vs
+  `wasm-browser`) with raw gas equality (no gas-delta baseline normalization).
+- Verify OOG boundary parity checks are green for the consensus fixture corpus.
 
 ## Wasm build + metadata
 
 - Run `pnpm nx build quickjs-wasm-build`.
 - Verify `libs/quickjs-wasm-build/dist/quickjs-wasm-build.metadata.json`:
   - `engineBuildHash` is present.
+  - `gasVersion` is present and matches the release gas schedule.
   - `variants.wasm32.release.engineBuildHash` matches `sha256` of `quickjs-eval.wasm`.
 - Run `pnpm nx build quickjs-wasm` and confirm `libs/quickjs-wasm/dist/wasm` contains
   wasm, loader, and metadata assets.
+
+## Parity policy checks
+
+- Confirm release workflows do **not** depend on
+  `tools/quickjs-native-harness/scripts/parity-gas-delta-baseline.json`.
+- Diagnostic parity deltas may be retained for investigation workflows, but they
+  must not be part of release acceptance.
 
 ## Manifest + fixtures
 

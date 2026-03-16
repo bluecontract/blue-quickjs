@@ -2444,15 +2444,15 @@ source-map-aware VM remapping and a first-class CLI workflow.
 
 ## Phase P21 — Validation and release gate
 
-### T-220: Reproducibility report scaffolding
+### T-220: Diagnostic reconciliation workflow (non-release)
 
 **Phase:** P21 – Validation and release gate  
 **Status:** IN PROGRESS  
 **Depends on:** T-210
 
 **Goal:**  
-Provide a repeatable parity-report workflow that emits signed deterministic
-snapshots and can be compared across environments.
+Maintain a repeatable parity-report workflow for reconciliation and debugging
+while strict gas parity is still being closed.
 
 **Detailed tasks:**
 
@@ -2462,67 +2462,60 @@ snapshots and can be compared across environments.
       result hash, error code/tag, gas used/remaining, tape hash/length, and
       environment metadata.
 - [x] Add report signature digest and cross-run comparison support.
-- [ ] Wire strict parity mismatch assertions into final release gating once
-      fixture parity deltas are fully reconciled.
+- [x] Keep optional reconciliation helpers (`--gas-delta-baseline`,
+      `--include-gas-trace`) available for diagnostics.
+
+**Policy boundary (normative):**
+
+- Diagnostic reconciliation tooling is **not** a release gate.
+- `--gas-delta-baseline` exists only to measure/track drift while parity is
+  being closed and must never be used as a release acceptance criterion.
 
 **Current state (P21 T-220):**
 
 - Added `tools/quickjs-native-harness/scripts/parity-report.mjs`.
 - Script supports:
   - `--out <path>` report emission,
-  - `--assert-match` hard parity enforcement mode,
+  - `--assert-match` parity checks,
   - `--ignore-gas` comparison mode focused on result/error/tape parity while
-    preserving gas-delta diagnostics,
-  - `--compare <report.json>` cross-run diff mode.
+    preserving gas diagnostics,
+  - `--compare <report.json>` cross-run diff mode,
+  - `--gas-delta-baseline <path>` and
+    `--write-gas-delta-baseline <path>` for reconciliation-only workflows.
 - Reports include fixture-level node/native snapshots and a SHA-256 signature,
   allowing deterministic diffing between environments (local/CI/cloud), plus
-  suite-level max absolute gas-delta summaries for reconciliation tracking.
-- Native harness test workflow now executes the parity report in
-  `--assert-match --gas-delta-baseline ...` mode to enforce cross-runtime
-  result/error/tape parity together with locked per-fixture gas deltas.
-- Added gas-delta baseline enforcement hook:
-  - `--gas-delta-baseline <path>` validates per-fixture gas deltas in CI/test
-    workflows,
-  - baseline file is currently maintained at
-    `tools/quickjs-native-harness/scripts/parity-gas-delta-baseline.json`.
-- Added optional gas-trace diff diagnostics in parity reports:
-  - `--include-gas-trace` captures node/native trace counters and per-counter
-    deltas per fixture to support gas-reconciliation investigations.
-  - when enabled, gas-delta baseline checks are intentionally skipped because
-    trace instrumentation itself perturbs gas counters.
-  - reports now include aggregated `gasTraceSummary` counter rankings to
-    prioritize reconciliation hotspots.
-- Parity report now also computes traced-vs-total gas decomposition per fixture:
-  - `tracedGasDeltaUsed` (sum of traced gas component deltas),
-  - `residualGasDeltaUsed` (remaining untraced delta),
-  - `allocationGasDeltaUsed` and `nonAllocationTracedGasDeltaUsed`,
-  - `gasTraceSummary.topAllocationGasDeltas` and
-    `gasTraceSummary.topResiduals` to prioritize drift investigation,
-  - `gasTraceSummary.residualSignatures` and
-    `gasTraceSummary.residualProfiles` to identify repeated residual patterns
-    and profile-level drift concentration.
-- Gas-trace capture alignment and host-call charge tracing improvements landed:
-  - native harness now enables tape before gas trace reset to align with
-    wasm-node trace-window semantics,
-  - QuickJS gas trace now includes `hostCallPre*` and `hostCallPost*` counters
-    so host-call charging deltas are attributed directly in trace reports.
-- Added native harness parity-eval mode for report runs:
-  - `--parity-eval` routes eval-mode execution through DV encode/decode before
-    output formatting so script-path parity checks better mirror wasm eval flow.
-- Deterministic runtime allocator normalization landed in QuickJS fork:
-  - deterministic runtime now forces `js_malloc_usable_size` to the
-    platform-neutral fallback path,
-  - native gas baselines updated (gas-goldens/module-pack/binary/parity-delta)
-    to this normalized allocator model.
-- Deterministic allocation-size normalization tuned further for cross-runtime
-  reconciliation:
-  - 64-bit deterministic allocation metering now scales request sizes to a
-    `26/31` canonical model with zero allocation base gas before
-    charging/trace accounting,
-  - native baselines were refreshed to this model,
-  - raw strict parity still remains open, but max absolute gas delta was
-    reduced further across suites (determinism `442→139`,
-    module-pack `337→120`, binary `2087→67`).
+  suite-level gas-delta summaries for reconciliation tracking.
+- Optional gas-trace diff diagnostics (`--include-gas-trace`) are available to
+  prioritize reconciliation hotspots.
+
+### T-221: Strict parity release gate (consensus executors)
+
+**Phase:** P21 – Validation and release gate  
+**Status:** NOT STARTED  
+**Depends on:** T-220
+
+**Goal:**  
+Make exact gas parity and exact OOG boundary parity release-critical for
+supported consensus executors.
+
+**Detailed tasks:**
+
+- [ ] Enforce strict zero gas delta (no baseline normalization) for:
+      `wasm-node` vs `wasm-browser`.
+- [ ] Enforce exact OOG boundary parity for the same consensus corpus.
+- [ ] Surface first-divergent gas event metadata in parity reports once
+      charge-event tracing lands.
+- [ ] Keep native parity reporting, but treat it as diagnostic unless native is
+      explicitly certified as a consensus executor.
+
+**Release gate policy (normative):**
+
+- **Consensus executors (mandatory):** `wasm-node`, `wasm-browser`.
+- **Diagnostic executor (default):** native harness.
+- Native can be promoted to consensus only after strict zero-delta parity and
+  OOG boundary parity are demonstrated under the same gate.
+- Release pipelines must fail on any strict parity mismatch across consensus
+  executors and must not depend on `parity-gas-delta-baseline.json`.
 
 ---
 
@@ -2548,7 +2541,7 @@ Ergonomic aliases:
 
 - **Determinism:** Same `(P, I, G)` ⇒ same outputs + same exact OOG point across Node and browser.
 - **Canonical gas:** opcode + metered C builtins + deterministic alloc/GC; not wasm instruction counts.
-- **Strict capability profile:** no time/random/async/network/fs/locale leaks; no typed arrays/ArrayBuffer/WebAssembly.
+- **Strict baseline capability profile:** no time/random/async/network/fs/locale leaks; no typed arrays/ArrayBuffer/WebAssembly unless explicitly enabled by compatibility profile.
 - **Baseline #2 ABI:** single dispatcher + numeric fn_id + manifest-locked mapping + manifest hash validation.
 - **DV restrictions:** only allowed types; numeric restrictions; canonical key ordering; deterministic encoding.
 - **Two-phase host-call charging:** base+arg bytes before call; out bytes+units after; deterministic OOG boundaries.
