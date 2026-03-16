@@ -644,6 +644,7 @@ function createSuiteSummary(suite, reports) {
 }
 
 function buildReport({ fixtureReports, suites, mismatchCount }) {
+  const gasTraceSummary = summarizeGasTraceDeltas(fixtureReports);
   const payload = {
     generatedAt: new Date().toISOString(),
     gitCommit: readGitCommit(),
@@ -657,6 +658,7 @@ function buildReport({ fixtureReports, suites, mismatchCount }) {
     suites,
     fixtureReports,
     mismatchCount,
+    ...(gasTraceSummary ? { gasTraceSummary } : {}),
   };
   const digest = sha256Hex(JSON.stringify(payload));
   return {
@@ -896,6 +898,61 @@ function stableFixtureSnapshot(report) {
 
 function bigIntAbs(value) {
   return value < 0n ? -value : value;
+}
+
+function summarizeGasTraceDeltas(fixtureReports) {
+  const byCounter = new Map();
+  let fixturesWithTrace = 0;
+
+  for (const report of fixtureReports) {
+    if (!report.gasTraceDelta || typeof report.gasTraceDelta !== 'object') {
+      continue;
+    }
+    fixturesWithTrace += 1;
+    const fixtureKey = `${report.suite}:${report.fixtureName}`;
+    for (const [counter, rawDelta] of Object.entries(report.gasTraceDelta)) {
+      const delta = BigInt(String(rawDelta));
+      const current = byCounter.get(counter) ?? {
+        counter,
+        signedDelta: 0n,
+        totalAbsDelta: 0n,
+        maxAbsDelta: 0n,
+        maxAbsFixture: null,
+      };
+      current.signedDelta += delta;
+      current.totalAbsDelta += bigIntAbs(delta);
+      if (bigIntAbs(delta) > current.maxAbsDelta) {
+        current.maxAbsDelta = bigIntAbs(delta);
+        current.maxAbsFixture = fixtureKey;
+      }
+      byCounter.set(counter, current);
+    }
+  }
+
+  if (fixturesWithTrace === 0) {
+    return null;
+  }
+
+  const counters = [...byCounter.values()]
+    .sort((left, right) => {
+      if (left.totalAbsDelta === right.totalAbsDelta) {
+        return left.counter.localeCompare(right.counter);
+      }
+      return left.totalAbsDelta > right.totalAbsDelta ? -1 : 1;
+    })
+    .map((entry) => ({
+      counter: entry.counter,
+      signedDelta: entry.signedDelta.toString(),
+      totalAbsDelta: entry.totalAbsDelta.toString(),
+      maxAbsDelta: entry.maxAbsDelta.toString(),
+      maxAbsFixture: entry.maxAbsFixture,
+    }));
+
+  return {
+    fixturesWithTrace,
+    counterCount: counters.length,
+    counters,
+  };
 }
 
 function buildGasDeltaBaseline(report) {

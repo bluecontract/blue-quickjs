@@ -2490,6 +2490,8 @@ snapshots and can be compared across environments.
     deltas per fixture to support gas-reconciliation investigations.
   - when enabled, gas-delta baseline checks are intentionally skipped because
     trace instrumentation itself perturbs gas counters.
+  - reports now include aggregated `gasTraceSummary` counter rankings to
+    prioritize reconciliation hotspots.
 
 ---
 
