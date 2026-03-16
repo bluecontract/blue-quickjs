@@ -25,6 +25,8 @@ and are never an acceptable release gate.
 
 Release candidates must archive signed strict-parity reproducibility reports
 (parity report JSON signature + file checksum) for auditability.
+The repository command for the consensus wasm-node/wasm-browser report is:
+`node tools/consensus-parity/scripts/archive-consensus-reproducibility-report.mjs`.
 Native reproducibility reports remain diagnostic by default; use strict
 assertion mode only when native is explicitly promoted to a consensus executor.
 

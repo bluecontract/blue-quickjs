@@ -48,6 +48,9 @@ jobs:
       - name: Install emsdk (pinned 3.1.56)
         run: bash tools/scripts/setup-emsdk.sh
 
+      - name: Verify generated gas schedule docs are in sync
+        run: node tools/gas-spec/render-gas-artifacts.mjs --check
+
       - name: Reset Nx state (just in case)
         run: pnpm exec nx reset
 
