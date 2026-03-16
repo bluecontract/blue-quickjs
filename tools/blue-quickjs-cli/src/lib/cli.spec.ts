@@ -1,4 +1,4 @@
-import { parseArgMap } from './cli.js';
+import { extractStackLocations, parseArgMap } from './cli.js';
 
 describe('blue-quickjs-cli argument parsing', () => {
   it('parses command and key/value options', () => {
@@ -21,5 +21,16 @@ describe('blue-quickjs-cli argument parsing', () => {
     expect(() => parseArgMap(['run', '--artifact', 'a.json', 'extra'])).toThrow(
       /unexpected positional argument/i,
     );
+  });
+
+  it('extracts and de-duplicates stack locations', () => {
+    const locations = extractStackLocations(
+      'ModuleEvaluationError: Error at src/app.ts:12:4 and src/app.ts:12:4, helper ./entry.js:3:1',
+    );
+
+    expect(locations).toEqual([
+      { source: 'src/app.ts', line: 12, column: 4 },
+      { source: './entry.js', line: 3, column: 1 },
+    ]);
   });
 });

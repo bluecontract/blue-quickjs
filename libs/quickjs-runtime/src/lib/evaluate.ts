@@ -32,6 +32,7 @@ import {
   type EvaluateVmErrorDetail,
 } from './evaluate-errors.js';
 import { parseHexToBytes } from './hex-utils.js';
+import { remapModulePackErrorPayload } from './source-map-remap.js';
 
 export interface EvaluateOptions
   extends RuntimeArtifactSelection, HostDispatcherOptions {
@@ -155,7 +156,12 @@ export async function evaluate(
       : undefined;
 
     if (parsed.kind === 'error') {
-      const error = mapVmError(parsed.payload, runtime.manifest);
+      const payload =
+        program.mode === 'module-pack'
+          ? remapModulePackErrorPayload(parsed.payload, program.modulePack)
+              .payload
+          : parsed.payload;
+      const error = mapVmError(payload, runtime.manifest);
       return {
         ok: false,
         type: 'vm-error',

@@ -198,6 +198,9 @@ importers:
       '@blue-quickjs/quickjs-wasm':
         specifier: workspace:*
         version: link:../quickjs-wasm
+      '@jridgewell/trace-mapping':
+        specifier: ^0.3.31
+        version: 0.3.31
       tslib:
         specifier: ^2.3.0
         version: 2.8.1

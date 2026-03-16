@@ -26,6 +26,11 @@ import { DETERMINISM_INPUT } from '@blue-quickjs/test-harness';
 
 type ArgValue = string | true;
 type ArgMap = Map<string, ArgValue>;
+type StackLocation = {
+  source: string;
+  line: number;
+  column: number;
+};
 
 export function parseArgMap(args: string[]): {
   command: string | null;
@@ -220,6 +225,7 @@ async function runEvaluate(options: ArgMap): Promise<number> {
     return 0;
   }
 
+  const mappedLocations = extractStackLocations(result.message);
   console.log(
     JSON.stringify(
       {
@@ -228,6 +234,7 @@ async function runEvaluate(options: ArgMap): Promise<number> {
         code: result.error.code,
         tag: 'tag' in result.error ? result.error.tag : null,
         message: result.message,
+        mappedLocations,
         gasUsed: result.gasUsed.toString(),
         gasRemaining: result.gasRemaining.toString(),
       },
@@ -252,7 +259,17 @@ async function runExplainError(options: ArgMap): Promise<number> {
     ? validateAbiManifest((await readJsonFile(manifestPath)) as AbiManifest)
     : HOST_V1_MANIFEST;
   const mapped = mapVmPayload(payload, manifest);
-  console.log(JSON.stringify(mapped, null, 2));
+  const mappedLocations = extractStackLocations(payload);
+  console.log(
+    JSON.stringify(
+      {
+        ...mapped,
+        mappedLocations,
+      },
+      null,
+      2,
+    ),
+  );
   return 0;
 }
 
@@ -302,6 +319,21 @@ function summarizeProgramArtifact(
       program.sourceKind === 'module-pack' && 'modulePack' in program.source
         ? program.source.modulePack
         : null;
+    const moduleSpecifiers = modulePack
+      ? modulePack.modules.map((module) => module.specifier)
+      : [];
+    const modulesWithSourceMap = modulePack
+      ? modulePack.modules.filter((module) => !!module.sourceMap).length
+      : 0;
+    const packages = modulePack
+      ? [
+          ...new Set(
+            modulePack.modules
+              .map((module) => module.originMeta?.packageName)
+              .filter((value): value is string => Boolean(value)),
+          ),
+        ].sort()
+      : [];
     return {
       version: program.version,
       sourceKind: program.sourceKind,
@@ -309,8 +341,17 @@ function summarizeProgramArtifact(
       abiId: program.abiId,
       abiVersion: program.abiVersion,
       abiManifestHash: program.abiManifestHash,
+      engineBuildHash: program.engineBuildHash ?? null,
+      entrySpecifier: modulePack?.entrySpecifier ?? null,
+      entryExport: modulePack?.entryExport ?? 'default',
       moduleCount: modulePack ? modulePack.modules.length : null,
       graphHash: modulePack ? modulePack.graphHash : null,
+      builderVersion: modulePack?.builderVersion ?? null,
+      dependencyIntegrity: modulePack?.dependencyIntegrity ?? null,
+      moduleSpecifiers,
+      modulesWithSourceMap,
+      diagnosticsMeta: modulePack?.diagnosticsMeta ?? null,
+      npmPackages: packages,
     };
   }
 
@@ -324,6 +365,37 @@ function summarizeProgramArtifact(
     abiManifestHash: legacy.abiManifestHash,
     codeUnits: legacy.code.length,
   };
+}
+
+export function extractStackLocations(message: string): StackLocation[] {
+  const matches = message.matchAll(
+    /([^\s:()]+(?:\.[cm]?js|\.ts|\.tsx|\.jsx|\.mjs)):(\d+):(\d+)/g,
+  );
+  const dedup = new Set<string>();
+  const locations: StackLocation[] = [];
+
+  for (const match of matches) {
+    const source = match[1];
+    const line = Number(match[2]);
+    const column = Number(match[3]);
+    if (
+      !source ||
+      !Number.isInteger(line) ||
+      !Number.isInteger(column) ||
+      line <= 0 ||
+      column <= 0
+    ) {
+      continue;
+    }
+    const key = `${source}:${line}:${column}`;
+    if (dedup.has(key)) {
+      continue;
+    }
+    dedup.add(key);
+    locations.push({ source, line, column });
+  }
+
+  return locations;
 }
 
 function defaultManifestForProgram(
