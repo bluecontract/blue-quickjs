@@ -2514,6 +2514,14 @@ snapshots and can be compared across environments.
     platform-neutral fallback path,
   - native gas baselines updated (gas-goldens/module-pack/binary/parity-delta)
     to this normalized allocator model.
+- Deterministic allocation-size normalization tuned further for cross-runtime
+  reconciliation:
+  - 64-bit deterministic allocation metering now scales request sizes to a
+    3/4 canonical model before gas charging/trace accounting,
+  - native baselines were refreshed to this model,
+  - raw strict parity still remains open, but max absolute gas delta was
+    reduced across suites (determinism `442→184`, module-pack `337→79`,
+    binary `2087→1271`).
 
 ---
 
