@@ -2528,6 +2528,9 @@ supported consensus executors.
 - Subsystem boundary fixtures now include explicit first-success/last-failure
   OOG checks via binary-search boundary tests in
   `libs/test-harness/src/lib/gas-equivalence.spec.ts`.
+- Browser/Node consensus checks now include binary-search OOG boundary parity
+  for representative fixture classes (`return-1`, `loop-1k`, `array-ops`) via
+  `apps/smoke-web/tests/gas-boundaries.spec.ts`.
 
 ---
 
