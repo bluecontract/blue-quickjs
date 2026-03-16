@@ -9,6 +9,8 @@ This doc explains how to use the TypeScript runtime SDK (`libs/quickjs-runtime`)
 
 Conceptual overview: [Implementation summary](./implementation-summary.md).  
 ABI and DV specs: [Baseline #2](./baseline-2.md), [ABI manifest](./abi-manifest.md), [Host call ABI](./host-call-abi.md), [DV wire format](./dv-wire-format.md).
+Runnable scenario matrix (module-pack, promises, libraries, binary, OOG
+boundaries): [Examples corpus](../examples/README.md).
 
 ---
 

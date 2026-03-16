@@ -225,6 +225,78 @@ export const MODULE_PACK_FIXTURES: ModulePackFixture[] = [
     },
   },
   {
+    name: 'module-pack-async-import-host-call',
+    program: {
+      ...MODULE_PACK_BASE,
+      executionProfile: 'compat-general-v1',
+      source: {
+        modulePack: createModulePack({
+          entrySpecifier: './entry.js',
+          graphHash:
+            '629b89a6e192c62e9d7d0a1b6b2debd9bcad6b9110389e949ba5d86156bd000b',
+          modules: [
+            {
+              specifier: './entry.js',
+              source:
+                "import { plusOne } from \"./lib.js\";\nexport default Promise.resolve(plusOne(41)).then((value) => { Host.v1.emit({ phase: \"async-lib\", value }); return value; });\n",
+            },
+            {
+              specifier: './lib.js',
+              source: 'export const plusOne = (value) => value + 1;\n',
+            },
+          ],
+        }),
+      },
+    },
+    input: DETERMINISM_INPUT,
+    gasLimit: DETERMINISM_GAS_LIMIT,
+    manifest: HOST_V1_MANIFEST,
+    createHost: createDeterminismHost,
+    expected: {
+      ok: true,
+      value: 42,
+    },
+  },
+  {
+    name: 'module-pack-kitchen-sink',
+    program: {
+      ...MODULE_PACK_BASE,
+      executionProfile: 'compat-general-v1',
+      source: {
+        modulePack: createModulePack({
+          entrySpecifier: './entry.js',
+          graphHash:
+            'ce277312313ac06e3488d98b33b59213baf0d989beca4681b93cff31ba2532be',
+          modules: [
+            {
+              specifier: './entry.js',
+              source:
+                "import { summarize } from \"./workflow.js\";\nexport default (async () => {\n  const doc = document(\"path/to/doc\");\n  const canonical = document.canonical(\"path/to/doc\");\n  const result = await summarize(doc.path, canonical.canonical);\n  Host.v1.emit({ kind: \"kitchen\", result });\n  return result;\n})();\n",
+            },
+            {
+              specifier: './workflow.js',
+              source:
+                "export async function summarize(path, canonical) {\n  const queue = [];\n  queueMicrotask(() => queue.push(\"micro\"));\n  await Promise.resolve();\n  const records = [\n    { id: \"b\", rank: 2 },\n    { id: \"a\", rank: 1 },\n    { id: \"c\", rank: 2 },\n  ];\n  records.sort((left, right) => left.rank - right.rank);\n  return {\n    path,\n    canonical,\n    order: records.map((record) => record.id).join(\",\"),\n    queue: queue.join(\",\"),\n  };\n}\n",
+            },
+          ],
+        }),
+      },
+    },
+    input: DETERMINISM_INPUT,
+    gasLimit: DETERMINISM_GAS_LIMIT,
+    manifest: HOST_V1_MANIFEST,
+    createHost: createDeterminismHost,
+    expected: {
+      ok: true,
+      value: {
+        path: 'path/to/doc',
+        canonical: 'path/to/doc',
+        order: 'a,b,c',
+        queue: 'micro',
+      },
+    },
+  },
+  {
     name: 'module-pack-missing-entry-specifier',
     program: {
       ...MODULE_PACK_BASE,
