@@ -1,5 +1,5 @@
 {
-  "gasVersion": 6,
+  "gasVersion": 7,
   "allocation": {
     "base": 0,
     "perByteShift": 4,
@@ -12,7 +12,7 @@
       "propertySlotBytes": 16,
       "shapeHeaderBytes": 48,
       "shapePropertyBytes": 12,
-      "stringHeaderBytes": 24,
+      "stringHeaderBytes": 0,
       "arraySlotBytes": 8,
       "moduleRecordBytes": 128,
       "moduleEntryBytes": 24,
@@ -27,7 +27,8 @@
       "varRefRecordBytes": 32,
       "genericArrayUnitBytes": 16,
       "unknownSmallFloorBytes": 64,
-      "unknownSmallFloorMaxBytes": 4096
+      "unknownSmallFloorMaxBytes": 4096,
+      "unknownClassCharged": false
     }
   },
   "opcode": {

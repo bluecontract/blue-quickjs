@@ -9,7 +9,7 @@ Scope: define canonical gas units for QuickJS execution and host calls per Basel
 
 ## Gas version and limits
 
-- `JS_GAS_VERSION_LATEST = 6`
+- `JS_GAS_VERSION_LATEST = 7`
 - Gas amounts are uint64.
 - `JS_GAS_UNLIMITED` disables charging and reports gas used as 0.
 - `JS_UseGas` subtracts from `gas_remaining`; if `amount > gas_remaining`, it sets `gas_remaining = 0` and throws an uncatchable `OutOfGas: out of gas` error.
@@ -53,7 +53,7 @@ Canonical allocation classes (width-independent charged-byte formulas):
 - Property slot: `16`
 - Shape header: `48`
 - Shape property entry: `12`
-- String header: `24`
+- String header: `0`
 - Array slot: `8`
 - Module record: `128`
 - Module entry: `24`
@@ -69,6 +69,7 @@ Canonical allocation classes (width-independent charged-byte formulas):
 - Generic dynamic-array unit: `16`
 - Unknown-class small-allocation floor: `64`
 - Unknown-class small-allocation max size: `4096`
+- Unknown-class charges enabled: `false`
 
 ## Deterministic JSON builtin gas
 

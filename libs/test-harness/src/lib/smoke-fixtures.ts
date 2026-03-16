@@ -108,8 +108,8 @@ export const SMOKE_BASELINE: SmokeBaseline = {
   manifestHash: HOST_V1_HASH,
   resultHash:
     '4a13893d4d564c7c9e7dcb0b6bbc028b824268585a0cbbdb19ac28a34138f293',
-  gasUsed: 1052n,
-  gasRemaining: 48948n,
+  gasUsed: 520n,
+  gasRemaining: 49480n,
   emittedCount: 1,
   tapeLength: 3,
   tapeHash: '2ca437d26207d59b369ae74a448d497a79ae482071d61ff8b05fa78a7d5b570f',

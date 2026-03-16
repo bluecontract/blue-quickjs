@@ -93,6 +93,7 @@ Canonical allocation classes (width-independent charged-byte formulas):
 - Generic dynamic-array unit: \`${spec.allocation.canonicalClasses.genericArrayUnitBytes}\`
 - Unknown-class small-allocation floor: \`${spec.allocation.canonicalClasses.unknownSmallFloorBytes}\`
 - Unknown-class small-allocation max size: \`${spec.allocation.canonicalClasses.unknownSmallFloorMaxBytes}\`
+- Unknown-class charges enabled: \`${spec.allocation.canonicalClasses.unknownClassCharged}\`
 
 ## Deterministic JSON builtin gas
 
