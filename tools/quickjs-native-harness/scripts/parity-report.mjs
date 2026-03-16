@@ -542,6 +542,13 @@ function compareSnapshots(
     : null;
   const residualGasDeltaUsed =
     tracedGasDeltaUsed !== null ? gasDeltaUsed - tracedGasDeltaUsed : null;
+  const allocationGasDeltaUsed = gasTraceDelta
+    ? BigInt(String(gasTraceDelta.allocationGas ?? '0'))
+    : null;
+  const nonAllocationTracedGasDeltaUsed =
+    tracedGasDeltaUsed !== null && allocationGasDeltaUsed !== null
+      ? tracedGasDeltaUsed - allocationGasDeltaUsed
+      : null;
   return {
     suite,
     fixtureName,
@@ -559,6 +566,9 @@ function compareSnapshots(
           gasTraceDelta,
           tracedGasDeltaUsed: tracedGasDeltaUsed.toString(),
           residualGasDeltaUsed: residualGasDeltaUsed.toString(),
+          allocationGasDeltaUsed: allocationGasDeltaUsed.toString(),
+          nonAllocationTracedGasDeltaUsed:
+            nonAllocationTracedGasDeltaUsed.toString(),
         }
       : {}),
     node: snapshots.node,
@@ -926,6 +936,7 @@ function bigIntAbs(value) {
 function summarizeGasTraceDeltas(fixtureReports) {
   const byCounter = new Map();
   const residualByFixture = [];
+  const allocationByFixture = [];
   let fixturesWithTrace = 0;
 
   for (const report of fixtureReports) {
@@ -938,6 +949,12 @@ function summarizeGasTraceDeltas(fixtureReports) {
       residualByFixture.push({
         fixture: fixtureKey,
         residualGasDeltaUsed: String(report.residualGasDeltaUsed),
+      });
+    }
+    if (report.allocationGasDeltaUsed !== undefined) {
+      allocationByFixture.push({
+        fixture: fixtureKey,
+        allocationGasDeltaUsed: String(report.allocationGasDeltaUsed),
       });
     }
     for (const [counter, rawDelta] of Object.entries(report.gasTraceDelta)) {
@@ -996,10 +1013,29 @@ function summarizeGasTraceDeltas(fixtureReports) {
     })
     .slice(0, 10);
 
+  const topAllocationGasDeltas = allocationByFixture
+    .map((entry) => ({
+      fixture: entry.fixture,
+      allocationGasDeltaUsed: entry.allocationGasDeltaUsed,
+      absAllocationGasDeltaUsed: bigIntAbs(
+        BigInt(entry.allocationGasDeltaUsed),
+      ).toString(),
+    }))
+    .sort((left, right) => {
+      const leftAbs = BigInt(left.absAllocationGasDeltaUsed);
+      const rightAbs = BigInt(right.absAllocationGasDeltaUsed);
+      if (leftAbs === rightAbs) {
+        return left.fixture.localeCompare(right.fixture);
+      }
+      return leftAbs > rightAbs ? -1 : 1;
+    })
+    .slice(0, 10);
+
   return {
     fixturesWithTrace,
     counterCount: counters.length,
     counters,
+    topAllocationGasDeltas,
     topResiduals,
   };
 }
