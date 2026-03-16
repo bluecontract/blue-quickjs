@@ -54,6 +54,19 @@ jobs:
       - name: Print Environment Info
         run: pnpm exec nx report
 
+      - name: Build native harness for reproducibility report
+        run: pnpm nx build quickjs-native-harness
+
+      - name: Generate strict reproducibility report artifact
+        run: node tools/quickjs-native-harness/scripts/archive-reproducibility-report.mjs
+
+      - name: Upload reproducibility artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: reproducibility-report
+          path: artifacts/reproducibility/*.json*
+          if-no-files-found: error
+
       - name: Configure Git
         run: |
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
