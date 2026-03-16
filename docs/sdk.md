@@ -191,7 +191,7 @@ The hash pinning rules are described in:
 - [ABI manifest](./abi-manifest.md) (canonical encoding + hash)
 - [Release policy](./release-policy.md)
 
-### ProgramArtifact.v2 roadmap
+### ProgramArtifact.v2 runtime support
 
 The runtime now accepts both:
 

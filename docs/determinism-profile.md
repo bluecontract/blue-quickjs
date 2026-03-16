@@ -7,7 +7,7 @@ Scope: capture the deterministic VM configuration required by Baseline #1 for bo
 ## Deterministic init entrypoints
 
 - `JS_NewDeterministicRuntime(out_rt, out_ctx)` creates a runtime/context in deterministic mode, disables GC heuristics, and sets gas to `JS_GAS_UNLIMITED` by default.
-- `JS_NewDeterministicRuntimeWithFeatures(out_rt, out_ctx, feature_flags)` does the same with explicit deterministic feature toggles (currently `JS_DETERMINISTIC_FEATURE_REGEXP`).
+- `JS_NewDeterministicRuntimeWithFeatures(out_rt, out_ctx, feature_flags)` does the same with explicit deterministic feature toggles. Runtime integration uses this path for profile-controlled deterministic capabilities (RegExp, Promise jobs/`queueMicrotask`, console shim, stable sort, typed-array intrinsics).
 - `JS_InitDeterministicContext(ctx, options)` must run before user code. It:
   - requires manifest bytes and a lowercase hex hash; size limit 1 MiB (`JS_DETERMINISTIC_MAX_MANIFEST_BYTES`)
   - validates `sha256(manifest_bytes)` against the provided hash and throws `ManifestError` with code `ABI_MANIFEST_HASH_MISMATCH` on mismatch

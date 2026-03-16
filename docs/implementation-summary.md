@@ -10,6 +10,51 @@ For deep/normative details, this doc always points to the corresponding referenc
 
 ---
 
+## HEAD verification snapshot (2026-03-16)
+
+This snapshot reconciles code/docs/tests at current HEAD:
+
+### A) Implemented now
+
+- Canonical gas spec source (`tools/gas-spec/gas-spec.v3.json`) with generated
+  schedule docs (`gasVersion = 8`, allocation base gas `0`, normalization mode
+  `none`).
+- Runtime support for ProgramArtifact v1 and ProgramArtifact.v2
+  (`sourceKind: "script"` and `sourceKind: "module-pack"`).
+- Deterministic execution profiles (`baseline-v1`, `compat-regexp-v1`,
+  `compat-general-v1`, `compat-binary-v1`) and Host.v2/DV2 byte boundary path.
+- Release-mode pin validation for `engineBuildHash`, `gasVersion`, and
+  `executionProfile`.
+
+### B) Implemented but not yet fully product-proved
+
+- A polished end-user example corpus (script/module-pack/promises/binary/kitchen
+  sink/max-gas policy) with copy-paste commands and expected parity tables.
+- Consensus-focused archival parity reports explicitly centered on
+  wasm-node/wasm-browser release gates.
+
+### C) Strict parity status
+
+- Consensus path (`wasm-node` vs `wasm-browser`) is covered by smoke parity and
+  OOG-boundary suites.
+- Native parity tooling exists and remains diagnostic by default unless policy
+  explicitly promotes native as a consensus executor.
+
+### D) Drift reconciled in this phase
+
+- Historical notes that implied script-only runtime/module-pack future work.
+- Historical notes that implied profile feature toggles were regexp-only.
+- Historical compatibility wording that implied native divergence as the active
+  release contract.
+
+### E) Remaining release-grade work
+
+- Complete consensus reproducibility/report archival flow.
+- Expand and gate the deterministic examples corpus.
+- Keep release gates aligned with consensus executor policy and pinning rules.
+
+---
+
 ## What this repo provides
 
 At a high level, the repo provides a deterministic evaluator:
@@ -131,26 +176,36 @@ Ergonomics and injected globals: [Determinism profile](./determinism-profile.md)
 
 The evaluator runs JS with deterministic gas metering enabled. The final return value must be DV-encodable, otherwise evaluation fails deterministically.
 
-Evaluation semantics in this repo are **raw script mode**: `program.code` is evaluated as a global script, the resulting value comes from the script’s final expression, and top-level `return` is invalid. `emit(...)` side effects are allowed through Host.v1 wrappers, but wrapper-specific conventions (for example function-body wrappers in external workflow engines) are out of scope for this evaluator.
+Evaluation semantics in this repo support both:
+
+- **raw script mode** (`ProgramArtifact` v1 or v2 `sourceKind: "script"`):
+  `program.code` is evaluated as a global script, the resulting value comes from
+  the script’s final expression, and top-level `return` is invalid.
+- **module-pack mode** (`ProgramArtifact.v2` `sourceKind: "module-pack"`):
+  runtime validates `modulePack.graphHash`, resolves modules through the
+  deterministic in-memory loader, and returns `mainExport`.
+
+`emit(...)` side effects are allowed through Host wrappers, but
+wrapper-specific conventions (for example function-body wrappers in external
+workflow engines) are out of scope for this evaluator.
 
 Return encoding details: [DV wire format](./dv-wire-format.md).  
 Evaluation API: [TypeScript SDK usage](./sdk.md).
 
-### 6) Deterministic library reuse is currently bundled to one source string
+### 6) Deterministic library reuse paths
 
-The runtime contract still evaluates a single `program.code` string. To reuse
-normal multi-file libraries, this repo now provides a deterministic bundling
-step (`@blue-quickjs/deterministic-bundler`) that:
+This repo supports two deterministic reuse flows:
 
-- flattens static module graphs into one script string,
-- emits a stable content hash for the bundled code,
-- runs a compatibility scan for deterministic-profile restrictions before VM execution.
+1. **Script bundling flow** (`@blue-quickjs/deterministic-bundler`):
+   - flattens static module graphs into one script string,
+   - emits a stable content hash for bundled code,
+   - runs a compatibility scan before VM execution.
+2. **Module-pack flow** (`ProgramArtifact.v2` + `ModulePack.v1`):
+   - preserves module boundaries in a deterministic pack,
+   - validates graph hash in runtime before execution,
+   - resolves static imports through the deterministic in-memory loader.
 
-This keeps the evaluator contract simple while enabling practical third-party
-library reuse in a controlled way.
-
-The next product stage moves this to first-class module-pack execution via
-`ProgramArtifact.v2` and `ModulePack.v1`:
+Normative references:
 
 - [Program artifact v2](./program-artifact-v2.md)
 - [Module pack v1](./module-pack.md)
@@ -418,6 +473,8 @@ Details: [ABI manifest](./abi-manifest.md), [Host call ABI](./host-call-abi.md),
 - Wasm memory is configured for determinism (fixed sizing; no growth). See [Toolchain](./toolchain.md).
 - The determinism profile is intentionally restrictive; many JS APIs are not available. See [Determinism profile](./determinism-profile.md).
 - “Gas trace” includes VM-internal categories plus dedicated host-call pre/post counters. See [Gas schedule](./gas-schedule.md) and [Observability](./observability.md).
-- Runtime execution is still single-source script mode today; module-pack runtime
-  mode is specified in [Program artifact v2](./program-artifact-v2.md) and
-  [Module pack v1](./module-pack.md).
+- Runtime executes both single-source script artifacts and
+  `ProgramArtifact.v2` module-pack artifacts today. See
+  [Program artifact v2](./program-artifact-v2.md) and
+  [Module pack v1](./module-pack.md) for the normative artifact/runtime
+  contract.
