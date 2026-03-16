@@ -68,7 +68,7 @@ Canonical allocation classes (width-independent charged-byte formulas):
 - Var-ref record: `32`
 - Generic dynamic-array unit: `16`
 - Unknown-class small-allocation floor: `64`
-- Unknown-class small-allocation max size: `256`
+- Unknown-class small-allocation max size: `4096`
 
 ## Deterministic JSON builtin gas
 

@@ -4,140 +4,140 @@
     {
       "suite": "binary-library",
       "fixtureName": "base64-js-roundtrip",
-      "gasDeltaUsed": "195",
-      "gasDeltaRemaining": "-195"
+      "gasDeltaUsed": "799",
+      "gasDeltaRemaining": "-799"
     },
     {
       "suite": "binary-library",
       "fixtureName": "noble-sha256-hex",
-      "gasDeltaUsed": "155",
-      "gasDeltaRemaining": "-155"
+      "gasDeltaUsed": "1095",
+      "gasDeltaRemaining": "-1095"
     },
     {
       "suite": "determinism",
       "fixtureName": "async-promise-chain",
-      "gasDeltaUsed": "0",
-      "gasDeltaRemaining": "0"
+      "gasDeltaUsed": "412",
+      "gasDeltaRemaining": "-412"
     },
     {
       "suite": "determinism",
       "fixtureName": "async-promise-rejection",
-      "gasDeltaUsed": "-17",
-      "gasDeltaRemaining": "17"
+      "gasDeltaUsed": "395",
+      "gasDeltaRemaining": "-395"
     },
     {
       "suite": "determinism",
       "fixtureName": "async-queue-microtask-host",
-      "gasDeltaUsed": "69",
-      "gasDeltaRemaining": "-69"
+      "gasDeltaUsed": "481",
+      "gasDeltaRemaining": "-481"
     },
     {
       "suite": "determinism",
       "fixtureName": "canon-ops",
-      "gasDeltaUsed": "3",
-      "gasDeltaRemaining": "-3"
+      "gasDeltaUsed": "412",
+      "gasDeltaRemaining": "-412"
     },
     {
       "suite": "determinism",
       "fixtureName": "compat-binary-host-v2-bytes-roundtrip",
-      "gasDeltaUsed": "196",
-      "gasDeltaRemaining": "-196"
+      "gasDeltaUsed": "605",
+      "gasDeltaRemaining": "-605"
     },
     {
       "suite": "determinism",
       "fixtureName": "compat-console-shim",
-      "gasDeltaUsed": "100",
-      "gasDeltaRemaining": "-100"
+      "gasDeltaUsed": "512",
+      "gasDeltaRemaining": "-512"
     },
     {
       "suite": "determinism",
       "fixtureName": "compat-stable-sort",
-      "gasDeltaUsed": "14",
-      "gasDeltaRemaining": "-14"
+      "gasDeltaUsed": "412",
+      "gasDeltaRemaining": "-412"
     },
     {
       "suite": "determinism",
       "fixtureName": "doc-canonical",
-      "gasDeltaUsed": "55",
-      "gasDeltaRemaining": "-55"
+      "gasDeltaUsed": "467",
+      "gasDeltaRemaining": "-467"
     },
     {
       "suite": "determinism",
       "fixtureName": "doc-read",
-      "gasDeltaUsed": "55",
-      "gasDeltaRemaining": "-55"
+      "gasDeltaUsed": "467",
+      "gasDeltaRemaining": "-467"
     },
     {
       "suite": "determinism",
       "fixtureName": "host-error",
-      "gasDeltaUsed": "55",
-      "gasDeltaRemaining": "-55"
+      "gasDeltaUsed": "467",
+      "gasDeltaRemaining": "-467"
     },
     {
       "suite": "determinism",
       "fixtureName": "host-error-invalid",
-      "gasDeltaUsed": "55",
-      "gasDeltaRemaining": "-55"
+      "gasDeltaUsed": "467",
+      "gasDeltaRemaining": "-467"
     },
     {
       "suite": "determinism",
       "fixtureName": "host-error-limit",
-      "gasDeltaUsed": "55",
-      "gasDeltaRemaining": "-55"
+      "gasDeltaUsed": "467",
+      "gasDeltaRemaining": "-467"
     },
     {
       "suite": "determinism",
       "fixtureName": "host-gas-paths",
-      "gasDeltaUsed": "178",
-      "gasDeltaRemaining": "-178"
+      "gasDeltaUsed": "577",
+      "gasDeltaRemaining": "-577"
     },
     {
       "suite": "determinism",
       "fixtureName": "json-builtins",
-      "gasDeltaUsed": "0",
-      "gasDeltaRemaining": "0"
+      "gasDeltaUsed": "412",
+      "gasDeltaRemaining": "-412"
     },
     {
       "suite": "determinism",
       "fixtureName": "multi-host",
-      "gasDeltaUsed": "93",
-      "gasDeltaRemaining": "-93"
+      "gasDeltaUsed": "502",
+      "gasDeltaRemaining": "-502"
     },
     {
       "suite": "module-pack",
       "fixtureName": "module-pack-cyclic-imports",
-      "gasDeltaUsed": "0",
-      "gasDeltaRemaining": "0"
+      "gasDeltaUsed": "412",
+      "gasDeltaRemaining": "-412"
     },
     {
       "suite": "module-pack",
       "fixtureName": "module-pack-default-export",
-      "gasDeltaUsed": "0",
-      "gasDeltaRemaining": "0"
+      "gasDeltaUsed": "412",
+      "gasDeltaRemaining": "-412"
     },
     {
       "suite": "module-pack",
       "fixtureName": "module-pack-host-call-tape",
-      "gasDeltaUsed": "78",
-      "gasDeltaRemaining": "-78"
+      "gasDeltaUsed": "490",
+      "gasDeltaRemaining": "-490"
     },
     {
       "suite": "module-pack",
       "fixtureName": "module-pack-missing-entry-specifier",
-      "gasDeltaUsed": "17",
-      "gasDeltaRemaining": "-17"
+      "gasDeltaUsed": "429",
+      "gasDeltaRemaining": "-429"
     },
     {
       "suite": "module-pack",
       "fixtureName": "module-pack-missing-export",
-      "gasDeltaUsed": "16",
-      "gasDeltaRemaining": "-16"
+      "gasDeltaUsed": "428",
+      "gasDeltaRemaining": "-428"
     },
     {
       "suite": "module-pack",
       "fixtureName": "module-pack-named-export",
-      "gasDeltaUsed": "0",
-      "gasDeltaRemaining": "0"
+      "gasDeltaUsed": "412",
+      "gasDeltaRemaining": "-412"
     }
   ]
 }

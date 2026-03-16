@@ -118,7 +118,7 @@
       "--dump-global",
       "__counter"
     ],
-    "expected": "RESULT 3 GAS remaining=168 used=430 STATE 3"
+    "expected": "RESULT 3 GAS remaining=340 used=258 STATE 3"
   },
   {
     "name": "array-map-single",
@@ -130,7 +130,7 @@
       "--dump-global",
       "__calls"
     ],
-    "expected": "RESULT 1 GAS remaining=420 used=480 STATE 1"
+    "expected": "RESULT 1 GAS remaining=592 used=308 STATE 1"
   },
   {
     "name": "array-map-single-trace",
@@ -143,7 +143,7 @@
       "--dump-global",
       "__calls"
     ],
-    "expected": "RESULT 1 GAS remaining=420 used=480 STATE 1 TRACE {\"opcodeCount\":21,\"opcodeGas\":21,\"arrayCbBase\":{\"count\":1,\"gas\":5},\"arrayCbPerEl\":{\"count\":1,\"gas\":2},\"alloc\":{\"count\":67,\"bytes\":7129,\"gas\":452},\"jsonParse\":{\"count\":0,\"gas\":0,\"inputBytes\":0,\"values\":0,\"objectEntries\":0,\"arrayElements\":0},\"jsonStringify\":{\"count\":0,\"gas\":0,\"outputBytes\":0,\"values\":0,\"objectEntries\":0,\"arrayElements\":0,\"sortComparisons\":0},\"hostCallPre\":{\"count\":0,\"gas\":0},\"hostCallPost\":{\"count\":0,\"gas\":0}}"
+    "expected": "RESULT 1 GAS remaining=592 used=308 STATE 1 TRACE {\"opcodeCount\":21,\"opcodeGas\":21,\"arrayCbBase\":{\"count\":1,\"gas\":5},\"arrayCbPerEl\":{\"count\":1,\"gas\":2},\"alloc\":{\"count\":67,\"bytes\":4377,\"gas\":280},\"jsonParse\":{\"count\":0,\"gas\":0,\"inputBytes\":0,\"values\":0,\"objectEntries\":0,\"arrayElements\":0},\"jsonStringify\":{\"count\":0,\"gas\":0,\"outputBytes\":0,\"values\":0,\"objectEntries\":0,\"arrayElements\":0,\"sortComparisons\":0},\"hostCallPre\":{\"count\":0,\"gas\":0},\"hostCallPost\":{\"count\":0,\"gas\":0}}"
   },
   {
     "name": "array-map-multi",
@@ -155,7 +155,7 @@
       "--dump-global",
       "__calls"
     ],
-    "expected": "RESULT 5 GAS remaining=474 used=526 STATE 5"
+    "expected": "RESULT 5 GAS remaining=646 used=354 STATE 5"
   },
   {
     "name": "array-map-oog",
@@ -167,7 +167,7 @@
       "--dump-global",
       "__calls"
     ],
-    "expected": "RESULT 5 GAS remaining=219 used=526 STATE 5"
+    "expected": "RESULT 5 GAS remaining=391 used=354 STATE 5"
   },
   {
     "name": "array-filter-oog",
@@ -179,7 +179,7 @@
       "--dump-global",
       "__filterCount"
     ],
-    "expected": "RESULT 5 GAS remaining=205 used=535 STATE 5"
+    "expected": "RESULT 5 GAS remaining=377 used=363 STATE 5"
   },
   {
     "name": "array-reduce-oog",
@@ -191,7 +191,7 @@
       "--dump-global",
       "__reduceCount"
     ],
-    "expected": "RESULT 15 GAS remaining=208 used=522 STATE 5"
+    "expected": "RESULT 15 GAS remaining=380 used=350 STATE 5"
   },
   {
     "name": "gc-pending-trace",

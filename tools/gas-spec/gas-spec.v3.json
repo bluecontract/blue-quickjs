@@ -27,7 +27,7 @@
       "varRefRecordBytes": 32,
       "genericArrayUnitBytes": 16,
       "unknownSmallFloorBytes": 64,
-      "unknownSmallFloorMaxBytes": 256
+      "unknownSmallFloorMaxBytes": 4096
     }
   },
   "opcode": {
