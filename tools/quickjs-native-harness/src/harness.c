@@ -2186,10 +2186,7 @@ int main(int argc, char **argv) {
   } else if (module_pack_mode) {
     rc = eval_module_pack(&runtime, &options);
   } else {
-    if (run_gc_checkpoint(runtime.ctx, &options) != 0) {
-      free_runtime(&runtime);
-      return 1;
-    }
+    /* eval_source()/encode_dv_source() own their GC checkpoint sequencing. */
     if (options.dv_encode) {
       rc = encode_dv_source(runtime.ctx, &options);
     } else {
