@@ -57,6 +57,13 @@ jobs:
       - name: Build native harness for reproducibility report
         run: pnpm nx build quickjs-native-harness
 
+      - name: Run strict parity release gates
+        run: |
+          pnpm nx test quickjs-native-harness
+          pnpm nx test test-harness
+          pnpm nx run smoke-web:e2e
+          node tools/quickjs-native-harness/scripts/parity-report.mjs --assert-match
+
       - name: Generate strict reproducibility report artifact
         run: node tools/quickjs-native-harness/scripts/archive-reproducibility-report.mjs
 
