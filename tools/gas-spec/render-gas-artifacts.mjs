@@ -119,7 +119,7 @@ Interpretation:
 ## Garbage collection (GC) checkpoints
 
 - Automatic GC heuristics are disabled in deterministic mode (\`js_trigger_gc\` is a no-op and GC threshold is set to \`-1\`).
-- A deterministic counter tracks requested allocation bytes. When it reaches \`JS_DET_GC_THRESHOLD_BYTES = ${spec.gc.deterministicThresholdBytes}\`, \`det_gc_pending\` is set.
+- A deterministic counter tracks charged allocation bytes. When it reaches \`JS_DET_GC_THRESHOLD_BYTES = ${spec.gc.deterministicThresholdBytes}\`, \`det_gc_pending\` is set.
 - \`JS_RunGCCheckpoint(ctx)\` runs GC only when \`det_gc_pending\` is set; it then clears the flag and counter.
 - GC costs \`0\` gas; allocation gas amortizes it.
 - Checkpoints are invoked at deterministic points (pre/post eval and around host calls).

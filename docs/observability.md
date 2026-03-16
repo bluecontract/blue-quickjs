@@ -136,6 +136,9 @@ The trace includes dedicated host-call counters:
 So host-call charging can be attributed directly without deriving a residual from
 total gas usage.
 
+Allocation trace now reports both `requestedBytes` and charged `bytes` so
+allocator-model drift can be separated from canonical gas charging.
+
 ### Charge-event tape (debug mode)
 
 For first-divergence debugging, deterministic runtimes can enable a fixed-size

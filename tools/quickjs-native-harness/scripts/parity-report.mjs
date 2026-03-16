@@ -916,6 +916,9 @@ function normalizeNodeGasTrace(trace) {
     arrayCbPerElCount: normalizeBigIntString(trace.arrayCbPerElCount),
     arrayCbPerElGas: normalizeBigIntString(trace.arrayCbPerElGas),
     allocationCount: normalizeBigIntString(trace.allocationCount),
+    allocationRequestedBytes: normalizeBigIntString(
+      trace.allocationRequestedBytes ?? trace.allocationBytes,
+    ),
     allocationBytes: normalizeBigIntString(trace.allocationBytes),
     allocationGas: normalizeBigIntString(trace.allocationGas),
     jsonParseCount: normalizeBigIntString(trace.jsonParseCount),
@@ -968,6 +971,9 @@ function normalizeNativeGasTrace(trace) {
     arrayCbPerElCount: from(trace.arrayCbPerEl?.count),
     arrayCbPerElGas: from(trace.arrayCbPerEl?.gas),
     allocationCount: from(trace.alloc?.count),
+    allocationRequestedBytes: from(
+      trace.alloc?.requestedBytes ?? trace.alloc?.bytes,
+    ),
     allocationBytes: from(trace.alloc?.bytes),
     allocationGas: from(trace.alloc?.gas),
     jsonParseCount: from(trace.jsonParse?.count),

@@ -1064,7 +1064,9 @@ char *qjs_det_read_trace(void)
       "\",\"arrayCbBaseCount\":\"%" PRIu64 "\",\"arrayCbBaseGas\":\"%" PRIu64
       "\",\"arrayCbPerElCount\":\"%" PRIu64
       "\",\"arrayCbPerElGas\":\"%" PRIu64
-      "\",\"allocationCount\":\"%" PRIu64 "\",\"allocationBytes\":\"%" PRIu64
+      "\",\"allocationCount\":\"%" PRIu64
+      "\",\"allocationRequestedBytes\":\"%" PRIu64
+      "\",\"allocationBytes\":\"%" PRIu64
       "\",\"allocationGas\":\"%" PRIu64
       "\",\"jsonParseCount\":\"%" PRIu64 "\",\"jsonParseGas\":\"%" PRIu64
       "\",\"jsonParseInputBytes\":\"%" PRIu64
@@ -1085,7 +1087,8 @@ char *qjs_det_read_trace(void)
       trace.opcode_count, trace.opcode_gas, trace.builtin_array_cb_base_count,
       trace.builtin_array_cb_base_gas, trace.builtin_array_cb_per_element_count,
       trace.builtin_array_cb_per_element_gas, trace.allocation_count,
-      trace.allocation_bytes, trace.allocation_gas, trace.json_parse_count,
+      trace.allocation_requested_bytes, trace.allocation_bytes,
+      trace.allocation_gas, trace.json_parse_count,
       trace.json_parse_gas, trace.json_parse_input_bytes,
       trace.json_parse_value_count, trace.json_parse_object_entry_count,
       trace.json_parse_array_element_count, trace.json_stringify_count,

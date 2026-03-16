@@ -430,6 +430,7 @@ export interface GasTrace {
   arrayCbPerElCount: bigint;
   arrayCbPerElGas: bigint;
   allocationCount: bigint;
+  allocationRequestedBytes: bigint;
   allocationBytes: bigint;
   allocationGas: bigint;
   jsonParseCount: bigint;
@@ -476,6 +477,10 @@ function parseGasTrace(raw: string): GasTrace {
     allocationCount: expectBigIntString(
       obj.allocationCount,
       'gasTrace.allocationCount',
+    ),
+    allocationRequestedBytes: expectBigIntString(
+      obj.allocationRequestedBytes ?? obj.allocationBytes,
+      'gasTrace.allocationRequestedBytes',
     ),
     allocationBytes: expectBigIntString(
       obj.allocationBytes,
