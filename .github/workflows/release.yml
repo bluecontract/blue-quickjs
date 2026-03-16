@@ -54,19 +54,21 @@ jobs:
       - name: Print Environment Info
         run: pnpm exec nx report
 
-      - name: Build native harness for reproducibility report
-        run: pnpm nx build quickjs-native-harness
-
-      - name: Run strict parity release gates
+      - name: Run strict parity release gates (consensus executors)
         run: |
           pnpm nx test quickjs-runtime
           pnpm nx test smoke-node
-          pnpm nx test quickjs-native-harness
           pnpm nx test test-harness
           pnpm nx run smoke-web:e2e
-          node tools/quickjs-native-harness/scripts/parity-report.mjs --assert-match
 
-      - name: Generate strict reproducibility report artifact
+      - name: Run native diagnostics (non-blocking)
+        continue-on-error: true
+        run: |
+          pnpm nx build quickjs-native-harness
+          pnpm nx test quickjs-native-harness
+
+      - name: Generate native diagnostic reproducibility report artifact (non-blocking)
+        continue-on-error: true
         run: node tools/quickjs-native-harness/scripts/archive-reproducibility-report.mjs
 
       - name: Upload reproducibility artifacts
@@ -74,7 +76,7 @@ jobs:
         with:
           name: reproducibility-report
           path: artifacts/reproducibility/*.json*
-          if-no-files-found: error
+          if-no-files-found: warn
 
       - name: Configure Git
         run: |

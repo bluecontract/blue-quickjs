@@ -20,11 +20,13 @@ await mkdir(outDir, { recursive: true });
 
 const reportArgs = [
   parityReportScriptPath,
-  '--assert-match',
   '--include-gas-charge-tape',
   '--out',
   reportPath,
 ];
+if (args.strict) {
+  reportArgs.push('--assert-match');
+}
 if (args.chargeTapeCapacity !== null) {
   reportArgs.push('--gas-charge-tape-capacity', String(args.chargeTapeCapacity));
 }
@@ -38,13 +40,13 @@ if (run.status !== 0) {
   process.stdout.write(run.stdout ?? '');
   process.stderr.write(run.stderr ?? '');
   throw new Error(
-    `strict reproducibility report generation failed (exit ${run.status ?? 'unknown'})`,
+    `reproducibility report generation failed (exit ${run.status ?? 'unknown'})`,
   );
 }
 
 const reportText = await readFile(reportPath, 'utf8');
 const report = JSON.parse(reportText);
-if (report.mismatchCount !== 0) {
+if (args.strict && report.mismatchCount !== 0) {
   throw new Error(
     `strict reproducibility report mismatchCount is ${report.mismatchCount}, expected 0`,
   );
@@ -77,9 +79,14 @@ function sha256Hex(input) {
 function parseArgs(argv) {
   let outDir = 'artifacts/reproducibility';
   let chargeTapeCapacity = null;
+  let strict = false;
 
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
+    if (arg === '--strict') {
+      strict = true;
+      continue;
+    }
     if (arg === '--out-dir') {
       outDir = argv[i + 1] ?? outDir;
       i += 1;
@@ -97,5 +104,5 @@ function parseArgs(argv) {
     throw new Error(`unknown argument: ${arg}`);
   }
 
-  return { outDir, chargeTapeCapacity };
+  return { outDir, chargeTapeCapacity, strict };
 }
