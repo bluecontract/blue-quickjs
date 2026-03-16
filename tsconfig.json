@@ -38,6 +38,9 @@
     },
     {
       "path": "./libs/execution-profiles"
+    },
+    {
+      "path": "./tools/blue-quickjs-cli"
     }
   ]
 }
