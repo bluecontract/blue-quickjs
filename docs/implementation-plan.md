@@ -2497,7 +2497,10 @@ snapshots and can be compared across environments.
   - `residualGasDeltaUsed` (remaining untraced delta),
   - `allocationGasDeltaUsed` and `nonAllocationTracedGasDeltaUsed`,
   - `gasTraceSummary.topAllocationGasDeltas` and
-    `gasTraceSummary.topResiduals` to prioritize drift investigation.
+    `gasTraceSummary.topResiduals` to prioritize drift investigation,
+  - `gasTraceSummary.residualSignatures` and
+    `gasTraceSummary.residualProfiles` to identify repeated residual patterns
+    and profile-level drift concentration.
 - Added native harness parity-eval mode for report runs:
   - `--parity-eval` routes eval-mode execution through DV encode/decode before
     output formatting so script-path parity checks better mirror wasm eval flow.

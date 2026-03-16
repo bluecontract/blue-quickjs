@@ -139,6 +139,7 @@ async function main() {
         native: nativeSnapshot,
       },
       comparison,
+      extractProgramMetadata(program),
     );
     binaryFixtureReports.push(report);
   }
@@ -253,6 +254,7 @@ async function runFixtureSuite(
           native,
         },
         comparison,
+        extractProgramMetadata(program),
       ),
     );
   }
@@ -517,6 +519,7 @@ function compareSnapshots(
   fixtureName,
   snapshots,
   comparison = { ignoreGas: false },
+  metadata = { executionProfile: 'unknown', sourceKind: 'script' },
 ) {
   const baselineEntry = comparison.gasDeltaBaselineMap?.get(
     `${suite}:${fixtureName}`,
@@ -553,6 +556,7 @@ function compareSnapshots(
     suite,
     fixtureName,
     match,
+    metadata,
     gasDeltaUsed: gasDeltaUsed.toString(),
     gasDeltaRemaining: gasDeltaRemaining.toString(),
     ...(baselineEntry
@@ -711,6 +715,16 @@ function normalizeProgram(program) {
     return validateProgramArtifactV2(program);
   }
   return validateProgramArtifact(program);
+}
+
+function extractProgramMetadata(program) {
+  const executionProfile = program.executionProfile ?? 'baseline-v1';
+  const sourceKind =
+    program.version === 2 ? String(program.sourceKind) : 'script';
+  return {
+    executionProfile,
+    sourceKind,
+  };
 }
 
 function normalizeJsonValue(value) {
@@ -937,6 +951,8 @@ function summarizeGasTraceDeltas(fixtureReports) {
   const byCounter = new Map();
   const residualByFixture = [];
   const allocationByFixture = [];
+  const residualHistogram = new Map();
+  const residualByProfile = new Map();
   let fixturesWithTrace = 0;
 
   for (const report of fixtureReports) {
@@ -946,10 +962,41 @@ function summarizeGasTraceDeltas(fixtureReports) {
     fixturesWithTrace += 1;
     const fixtureKey = `${report.suite}:${report.fixtureName}`;
     if (report.residualGasDeltaUsed !== undefined) {
+      const residualValue = String(report.residualGasDeltaUsed);
       residualByFixture.push({
         fixture: fixtureKey,
-        residualGasDeltaUsed: String(report.residualGasDeltaUsed),
+        residualGasDeltaUsed: residualValue,
       });
+
+      const histogramEntry = residualHistogram.get(residualValue) ?? {
+        residualGasDeltaUsed: residualValue,
+        count: 0,
+        fixtures: [],
+      };
+      histogramEntry.count += 1;
+      if (histogramEntry.fixtures.length < 6) {
+        histogramEntry.fixtures.push(fixtureKey);
+      }
+      residualHistogram.set(residualValue, histogramEntry);
+
+      const profile = String(report.metadata?.executionProfile ?? 'unknown');
+      const profileEntry = residualByProfile.get(profile) ?? {
+        executionProfile: profile,
+        count: 0,
+        signedResidual: 0n,
+        totalAbsResidual: 0n,
+        maxAbsResidual: 0n,
+        maxAbsFixture: null,
+      };
+      const residualBigInt = BigInt(residualValue);
+      profileEntry.count += 1;
+      profileEntry.signedResidual += residualBigInt;
+      profileEntry.totalAbsResidual += bigIntAbs(residualBigInt);
+      if (bigIntAbs(residualBigInt) > profileEntry.maxAbsResidual) {
+        profileEntry.maxAbsResidual = bigIntAbs(residualBigInt);
+        profileEntry.maxAbsFixture = fixtureKey;
+      }
+      residualByProfile.set(profile, profileEntry);
     }
     if (report.allocationGasDeltaUsed !== undefined) {
       allocationByFixture.push({
@@ -1031,12 +1078,48 @@ function summarizeGasTraceDeltas(fixtureReports) {
     })
     .slice(0, 10);
 
+  const residualSignatures = [...residualHistogram.values()]
+    .sort((left, right) => {
+      if (left.count === right.count) {
+        const leftResidual = BigInt(left.residualGasDeltaUsed);
+        const rightResidual = BigInt(right.residualGasDeltaUsed);
+        if (leftResidual === rightResidual) {
+          return 0;
+        }
+        return rightResidual > leftResidual ? 1 : -1;
+      }
+      return right.count - left.count;
+    })
+    .map((entry) => ({
+      residualGasDeltaUsed: entry.residualGasDeltaUsed,
+      count: entry.count,
+      fixtures: entry.fixtures,
+    }));
+
+  const residualProfiles = [...residualByProfile.values()]
+    .sort((left, right) => {
+      if (left.totalAbsResidual === right.totalAbsResidual) {
+        return left.executionProfile.localeCompare(right.executionProfile);
+      }
+      return left.totalAbsResidual > right.totalAbsResidual ? -1 : 1;
+    })
+    .map((entry) => ({
+      executionProfile: entry.executionProfile,
+      count: entry.count,
+      signedResidual: entry.signedResidual.toString(),
+      totalAbsResidual: entry.totalAbsResidual.toString(),
+      maxAbsResidual: entry.maxAbsResidual.toString(),
+      maxAbsFixture: entry.maxAbsFixture,
+    }));
+
   return {
     fixturesWithTrace,
     counterCount: counters.length,
     counters,
     topAllocationGasDeltas,
     topResiduals,
+    residualSignatures,
+    residualProfiles,
   };
 }
 

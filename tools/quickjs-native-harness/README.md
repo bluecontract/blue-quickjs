@@ -22,7 +22,8 @@ Minimal native harness for the QuickJS fork. Builds a standalone binary that eva
     per-counter deltas to each fixture in the report output (this mode disables
     gas-delta baseline enforcement because gas tracing perturbs counters), plus
     an aggregated `gasTraceSummary` section ranking hottest counter deltas and
-    top fixtures by allocation-gas drift and residual untraced gas delta,
+    top fixtures by allocation-gas drift and residual untraced gas delta
+    (including residual signature histograms and profile rollups),
   - `--compare <report.json>` compare current run against a prior report.
   The harness test script runs this report in `--assert-match` mode with
   `--gas-delta-baseline` as part of
