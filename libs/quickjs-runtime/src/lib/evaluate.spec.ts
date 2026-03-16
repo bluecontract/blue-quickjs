@@ -858,6 +858,7 @@ describe('evaluate', () => {
 
     expect(result.gasTrace).toBeDefined();
     expect((result.gasTrace?.opcodeCount ?? 0n) >= 0n).toBe(true);
+    expect((result.gasTrace?.allocationRequestedBytes ?? 0n) >= 0n).toBe(true);
     expect((result.gasTrace?.allocationBytes ?? 0n) >= 0n).toBe(true);
     expect((result.gasTrace?.jsonParseCount ?? 0n) >= 0n).toBe(true);
     expect((result.gasTrace?.jsonStringifyCount ?? 0n) >= 0n).toBe(true);
