@@ -270,17 +270,32 @@ async function findOutOfGasBoundary(
   wasmBinary: Uint8Array,
 ): Promise<BoundaryFixtureResult> {
   let upperGas = fixture.expected.gasUsed;
-  let upper = await runFixtureAtGasLimit(fixture, upperGas, metadata, wasmBinary);
+  let upper = await runFixtureAtGasLimit(
+    fixture,
+    upperGas,
+    metadata,
+    wasmBinary,
+  );
   while (!upper.ok) {
     upperGas *= 2n;
     upper = await runFixtureAtGasLimit(fixture, upperGas, metadata, wasmBinary);
   }
 
   let lowerGas = 0n;
-  let lower = await runFixtureAtGasLimit(fixture, lowerGas, metadata, wasmBinary);
+  let lower = await runFixtureAtGasLimit(
+    fixture,
+    lowerGas,
+    metadata,
+    wasmBinary,
+  );
   while (lowerGas + 1n < upperGas) {
     const mid = (lowerGas + upperGas) >> 1n;
-    const current = await runFixtureAtGasLimit(fixture, mid, metadata, wasmBinary);
+    const current = await runFixtureAtGasLimit(
+      fixture,
+      mid,
+      metadata,
+      wasmBinary,
+    );
     if (current.ok) {
       upperGas = mid;
       upper = current;
@@ -291,10 +306,14 @@ async function findOutOfGasBoundary(
   }
 
   if (!upper.ok) {
-    throw new Error(`boundary search failed for ${fixture.name}: no successful gas limit found`);
+    throw new Error(
+      `boundary search failed for ${fixture.name}: no successful gas limit found`,
+    );
   }
   if (lower.ok) {
-    throw new Error(`boundary search failed for ${fixture.name}: expected failing gas limit`);
+    throw new Error(
+      `boundary search failed for ${fixture.name}: expected failing gas limit`,
+    );
   }
 
   return {

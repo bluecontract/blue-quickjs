@@ -1,6 +1,6 @@
 # Release-readiness report (current branch snapshot)
 
-Date: 2026-03-16  
+Date: 2026-03-17  
 Branch: `cursor/next-generation-quickjs-platform-1578`
 
 ## Environment
@@ -35,29 +35,36 @@ Branch: `cursor/next-generation-quickjs-platform-1578`
 Consensus report:
 
 - path:
-  `artifacts/reproducibility-consensus-final/consensus-parity-report-2026-03-16T23-57-34-872Z.json`
+  `artifacts/reproducibility-consensus-final/consensus-parity-report-2026-03-17T00-06-43-895Z.json`
 - signature digest:
-  `11fba081413603bdb3d1b57b291c9247bd2bf9b0176736210d1909a066bfc5b2`
+  `93e8ff7691373861695ab1b2a45c7e881340aff26a187405b346561b8f8a96e1`
 - file sha256:
-  `d34f691fdeff4e09b1e5a58a981c6c97784425dcba1c76bc07084bd44aa31adc`
+  `c695a4792ccf820483ace64fb0ef263ca5115f4cf339185ecc693a15ad7ca025`
 - mismatch count: `0`
 
 Native diagnostic report:
 
 - path:
-  `artifacts/reproducibility-native-final/parity-report-2026-03-16T23-57-39-057Z.json`
+  `artifacts/reproducibility-native-final/parity-report-2026-03-17T00-06-48-349Z.json`
 - signature digest:
-  `cba6049b318674eecbc4176d24ed8622bea96fedb307c8ae38563988689e9a30`
+  `412804756c6b7e109f4c4184976e26fd4226a67e4b000451f1e2362c54b2c95d`
 - file sha256:
-  `3e8c449b4f510f7d3b591b6025b2c67147b969fefde9904ccb6512002196c3f2`
+  `05dc3d210e71587a850ec918bc72b7233732d2df9f36aeff82da6c918c9f1a48`
 
 ## Validation commands executed
 
 ```bash
 source tools/emsdk/emsdk_env.sh
-pnpm nx run-many -t lint -p deterministic-bundler,test-harness,smoke-node,blue-quickjs-cli,quickjs-native-harness
-pnpm nx run-many -t typecheck,test -p deterministic-bundler,quickjs-runtime,test-harness,smoke-node,blue-quickjs-cli,quickjs-native-harness
+pnpm build
+pnpm test
+pnpm typecheck
+pnpm lint
+pnpm nx build quickjs-wasm-build
+pnpm nx test quickjs-runtime
+pnpm nx test smoke-node
 pnpm nx run smoke-web:e2e
+pnpm nx build quickjs-native-harness
+pnpm nx test quickjs-native-harness
 node tools/consensus-parity/scripts/archive-consensus-reproducibility-report.mjs --out-dir artifacts/reproducibility-consensus-final
 node tools/quickjs-native-harness/scripts/archive-reproducibility-report.mjs --out-dir artifacts/reproducibility-native-final
 ```

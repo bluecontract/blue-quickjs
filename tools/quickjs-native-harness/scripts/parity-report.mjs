@@ -34,6 +34,21 @@ const GAS_SPEC_PATH = path.join(
   'gas-spec',
   'gas-spec.v3.json',
 );
+const QUICKJS_RUNTIME_INDEX_PATH = path.join(
+  repoRoot,
+  'libs',
+  'quickjs-runtime',
+  'src',
+  'index.ts',
+);
+const QUICKJS_RUNTIME_EVALUATE_ERRORS_PATH = path.join(
+  repoRoot,
+  'libs',
+  'quickjs-runtime',
+  'src',
+  'lib',
+  'evaluate-errors.ts',
+);
 const GAS_VERSION = readGasVersion();
 
 const { encodeDv, encodeDv2 } = require('../../../libs/dv/src/index.ts');
@@ -42,10 +57,8 @@ const {
   validateProgramArtifact,
   validateProgramArtifactV2,
   validateInputEnvelope,
-} = require('../../../libs/quickjs-runtime/src/index.ts');
-const {
-  mapVmError,
-} = require('../../../libs/quickjs-runtime/src/lib/evaluate-errors.ts');
+} = require(QUICKJS_RUNTIME_INDEX_PATH);
+const { mapVmError } = require(QUICKJS_RUNTIME_EVALUATE_ERRORS_PATH);
 const {
   hashAbiManifest,
   validateAbiManifest,
