@@ -38,6 +38,8 @@ Deterministic QuickJS-in-Wasm evaluator monorepo (Nx + pnpm), tracking a hardene
 - Host call ABI: `docs/host-call-abi.md`
 - Release policy: `docs/release-policy.md`
 - Release checklist: `docs/release-checklist.md`
+- Examples guide: `docs/examples.md`
+- Release-readiness evidence report: `docs/release-readiness-report.md`
 
 ## Determinism checklist
 
