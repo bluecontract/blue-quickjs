@@ -5,6 +5,7 @@ export * from './lib/determinism-fixtures.js';
 export * from './lib/module-pack-fixtures.js';
 export * from './lib/eval-output.js';
 export * from './lib/gas-fixtures.js';
+export * from './lib/example-fixtures.js';
 export * from './lib/smoke-fixtures.js';
 export * from './lib/test-harness.js';
 export * from './lib/deterministic-output.js';
