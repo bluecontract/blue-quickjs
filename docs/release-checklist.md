@@ -26,7 +26,11 @@ Scope: steps to publish deterministic engine + ABI packages.
   - Preserve both generated report JSON and matching `.sha256` sidecars.
 - Run workload/ecosystem certification reports:
   - `node apps/ecosystem-certifier/scripts/check-builder-determinism.mjs --out-dir artifacts/workload-certification`
+  - `node tools/workload-certification/compare-builder-determinism-matrix.mjs --input-dir artifacts`
   - `node apps/ecosystem-certifier/scripts/archive-workload-certification-report.mjs --out-dir artifacts/workload-certification`
+  - `node apps/ecosystem-certifier/scripts/run-oog-boundary-certification.mjs --out-dir artifacts/workload-certification`
+  - `node apps/ecosystem-certifier/scripts/run-repeatability-certification.mjs --out-dir artifacts/workload-certification --iterations 50 --flagship-iterations 20`
+  - `node apps/ecosystem-certifier/scripts/run-seeded-property-corpus.mjs --out-dir artifacts/workload-certification --seed-count 40`
 - Run downstream tarball consumer reproducibility proof:
   - `node tools/workload-certification/pack-public-tarballs.mjs --out-dir artifacts/consumer-proof/tarballs`
   - `pnpm --dir e2e/consumer-proof-app run install:tarballs -- --tarball-dir ../../artifacts/consumer-proof/tarballs`

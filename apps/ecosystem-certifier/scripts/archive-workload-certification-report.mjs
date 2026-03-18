@@ -33,6 +33,7 @@ const outDir = path.resolve(repoRoot, args.outDir);
 const jsonPath = path.join(outDir, `workload-certification-${timestamp}.json`);
 const mdPath = path.join(outDir, `workload-certification-${timestamp}.md`);
 const checksumPath = `${jsonPath}.sha256`;
+const matrixPath = path.join(outDir, `compatibility-matrix-${timestamp}.json`);
 
 await mkdir(outDir, { recursive: true });
 
@@ -172,6 +173,19 @@ await writeFile(
   'utf8',
 );
 await writeFile(mdPath, renderMarkdownReport(report), 'utf8');
+await writeFile(
+  matrixPath,
+  `${JSON.stringify(
+    {
+      generatedAt: now.toISOString(),
+      summary: report.summary,
+      compatibilityMatrix,
+    },
+    null,
+    2,
+  )}\n`,
+  'utf8',
+);
 
 console.log(
   JSON.stringify(
@@ -179,6 +193,7 @@ console.log(
       jsonPath,
       mdPath,
       checksumPath,
+      matrixPath,
       mismatches: mismatches.length,
     },
     null,

@@ -5,6 +5,10 @@ declare global {
     __ECOSYSTEM_CERT_CASES__?: BrowserEvaluationCase[];
     __ECOSYSTEM_CERT_RESULTS__?: FixtureParityRecord[];
     __ECOSYSTEM_CERT_RUNSTATE__?: 'idle' | 'running' | 'done' | 'error';
+    __ECOSYSTEM_CERT_RUN_CASE__?: (
+      certCase: BrowserEvaluationCase,
+      gasLimit?: string,
+    ) => Promise<import('./shared/types.js').FixtureSnapshot>;
   }
 }
 

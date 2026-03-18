@@ -29,7 +29,11 @@ pnpm nx run ecosystem-certifier:e2e
 
 # Builder path determinism + workload matrix report
 node apps/ecosystem-certifier/scripts/check-builder-determinism.mjs --out-dir artifacts/workload-certification
+node tools/workload-certification/compare-builder-determinism-matrix.mjs --input-dir artifacts
 node apps/ecosystem-certifier/scripts/archive-workload-certification-report.mjs --out-dir artifacts/workload-certification
+node apps/ecosystem-certifier/scripts/run-oog-boundary-certification.mjs --out-dir artifacts/workload-certification
+node apps/ecosystem-certifier/scripts/run-repeatability-certification.mjs --out-dir artifacts/workload-certification --iterations 50 --flagship-iterations 20
+node apps/ecosystem-certifier/scripts/run-seeded-property-corpus.mjs --out-dir artifacts/workload-certification --seed-count 40
 
 # Downstream tarball consumer proof
 node tools/workload-certification/pack-public-tarballs.mjs --out-dir artifacts/consumer-proof/tarballs
@@ -43,6 +47,10 @@ pnpm --dir e2e/consumer-proof-app run repro
 - `artifacts/workload-certification/workload-certification-<timestamp>.json`
 - `artifacts/workload-certification/workload-certification-<timestamp>.md`
 - `artifacts/workload-certification/workload-certification-<timestamp>.json.sha256`
+- `artifacts/workload-certification/compatibility-matrix-<timestamp>.json`
+- `artifacts/workload-certification/oog-boundaries.json`
+- `artifacts/workload-certification/repeatability-report.json`
+- `artifacts/workload-certification/seeded-property-corpus-report.json`
 - `e2e/consumer-proof-app/reports/reproducibility-report.json`
 - `e2e/consumer-proof-app/reports/oog-boundary.json`
 

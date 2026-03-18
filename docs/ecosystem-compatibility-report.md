@@ -3,7 +3,7 @@
 This report tracks the current certification corpus in
 `apps/ecosystem-certifier/src/shared/fixtures.ts`.
 
-## Green corpus (15 packages)
+## Green corpus (16 packages)
 
 All fixtures below are expected to pass with strict node/browser parity.
 
@@ -24,6 +24,7 @@ All fixtures below are expected to pass with strict node/browser parity.
 | `markdown-it` | `green-markdown-it` | `compat-binary-v1` |
 | `escape-string-regexp` | `green-escape-string-regexp` | `compat-general-v1` |
 | `fast-deep-equal` | `green-fast-deep-equal` | `compat-general-v1` |
+| Seeded stress corpus | `green-stress-corpus` | `compat-general-v1` |
 
 ## Red corpus (8 scenarios)
 

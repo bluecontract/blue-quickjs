@@ -18,6 +18,10 @@ declare global {
     __ECOSYSTEM_CERT_CASES__?: BrowserEvaluationCase[];
     __ECOSYSTEM_CERT_RESULTS__?: FixtureParityRecord[];
     __ECOSYSTEM_CERT_RUNSTATE__?: 'idle' | 'running' | 'done' | 'error';
+    __ECOSYSTEM_CERT_RUN_CASE__?: (
+      certCase: BrowserEvaluationCase,
+      gasLimit?: string,
+    ) => Promise<FixtureSnapshot>;
   }
 }
 
@@ -28,6 +32,7 @@ export async function runBrowserCertifier(): Promise<void> {
 
   try {
     const cases = window.__ECOSYSTEM_CERT_CASES__ ?? [];
+    window.__ECOSYSTEM_CERT_RUN_CASE__ = evaluateCaseInBrowser;
     window.__ECOSYSTEM_CERT_RUNSTATE__ = 'running';
     if (runstate) {
       runstate.dataset.runstate = 'running';
@@ -36,22 +41,7 @@ export async function runBrowserCertifier(): Promise<void> {
 
     const records: FixtureParityRecord[] = [];
     for (const certCase of cases) {
-      const host = createCertificationHost();
-      const result = await evaluate({
-        program: certCase.program,
-        input: {
-          event: { type: 'ecosystem-certifier' },
-          eventCanonical: { type: 'ecosystem-certifier' },
-          steps: [],
-          currentContract: { id: 'ecosystem-certifier' },
-          currentContractCanonical: { id: { value: 'ecosystem-certifier' } },
-        },
-        gasLimit: BigInt(certCase.gasLimit),
-        manifest: certCase.manifest,
-        handlers: host.handlers,
-        tape: { capacity: 64 },
-      });
-      const snapshot = await toSnapshot(result);
+      const snapshot = await evaluateCaseInBrowser(certCase, certCase.gasLimit);
       records.push({
         id: certCase.id,
         title: certCase.title,
@@ -123,6 +113,28 @@ async function toSnapshot(result: EvaluateResult): Promise<FixtureSnapshot> {
     tapeHash,
     tapeLength: tape.length,
   };
+}
+
+async function evaluateCaseInBrowser(
+  certCase: BrowserEvaluationCase,
+  gasLimit?: string,
+): Promise<FixtureSnapshot> {
+  const host = createCertificationHost();
+  const result = await evaluate({
+    program: certCase.program,
+    input: {
+      event: { type: 'ecosystem-certifier' },
+      eventCanonical: { type: 'ecosystem-certifier' },
+      steps: [],
+      currentContract: { id: 'ecosystem-certifier' },
+      currentContractCanonical: { id: { value: 'ecosystem-certifier' } },
+    },
+    gasLimit: BigInt(gasLimit ?? certCase.gasLimit),
+    manifest: certCase.manifest,
+    handlers: host.handlers,
+    tape: { capacity: 64 },
+  });
+  return toSnapshot(result);
 }
 
 function normalizeFailureStage(kind: string): FailureStage {

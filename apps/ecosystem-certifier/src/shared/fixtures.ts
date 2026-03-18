@@ -205,6 +205,18 @@ export const CERTIFIER_FIXTURES: BuildFixtureDefinition[] = [
     expect: { stage: 'success' },
   },
   {
+    id: 'green-stress-corpus',
+    title: 'seeded stress corpus deterministic summary',
+    kind: 'positive',
+    entryPath: 'apps/ecosystem-certifier/fixtures/positive/stress-corpus-entry.ts',
+    profile: 'compat-general-v1',
+    abiId: 'Host.v1',
+    abiVersion: 1,
+    abiManifestHash: HOST_V1_HASH,
+    gasLimit: 1_000_000n,
+    expect: { stage: 'success' },
+  },
+  {
     id: 'red-diff-timers',
     title: 'diff package timer references are deterministically rejected',
     kind: 'negative',
