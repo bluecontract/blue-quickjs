@@ -83,8 +83,19 @@ jobs:
           name: reproducibility-report
           path: |
             artifacts/reproducibility-consensus/*.json*
-            artifacts/reproducibility/*.json*
+            artifacts/reproducibility-consensus/*.md*
+            artifacts/reproducibility-consensus/*.sig
           if-no-files-found: error
+
+      - name: Upload native diagnostic reproducibility artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: reproducibility-native-diagnostic-report
+          path: |
+            artifacts/reproducibility/*.json*
+            artifacts/reproducibility/*.md*
+            artifacts/reproducibility/*.sig
+          if-no-files-found: warn
 
       - name: Configure Git
         run: |
