@@ -25,3 +25,9 @@ tarballs and validates deterministic parity.
    ```
 
 Reports are written to `e2e/consumer-proof-app/reports/`.
+
+Optional native diagnostic run (non-consensus):
+
+```bash
+pnpm run repro -- --with-native
+```

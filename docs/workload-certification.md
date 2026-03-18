@@ -39,6 +39,8 @@ node apps/ecosystem-certifier/scripts/run-seeded-property-corpus.mjs --out-dir a
 node tools/workload-certification/pack-public-tarballs.mjs --out-dir artifacts/consumer-proof/tarballs
 pnpm --dir e2e/consumer-proof-app run install:tarballs -- --tarball-dir ../../artifacts/consumer-proof/tarballs
 pnpm --dir e2e/consumer-proof-app run repro
+# optional native diagnostic section
+pnpm --dir e2e/consumer-proof-app run repro -- --with-native
 ```
 
 ## Expected artifact outputs
@@ -53,6 +55,7 @@ pnpm --dir e2e/consumer-proof-app run repro
 - `artifacts/workload-certification/seeded-property-corpus-report.json`
 - `e2e/consumer-proof-app/reports/reproducibility-report.json`
 - `e2e/consumer-proof-app/reports/oog-boundary.json`
+- `e2e/consumer-proof-app/reports/native-diagnostic.json` (optional)
 
 The workload-certification JSON includes:
 

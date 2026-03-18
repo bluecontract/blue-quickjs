@@ -9,6 +9,7 @@
     "run-node": "node scripts/run-node.mjs",
     "run-browser": "node scripts/run-browser.mjs",
     "find-oog": "node scripts/find-oog-boundary.mjs",
+    "run-native-diagnostic": "node scripts/run-native-diagnostic.mjs",
     "repro": "node scripts/reproducibility-report.mjs"
   },
   "dependencies": {

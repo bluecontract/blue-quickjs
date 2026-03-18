@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { spawn } from 'node:child_process';
+import path from 'node:path';
 import {
   appRoot,
   artifactPath,
@@ -13,15 +14,23 @@ import {
   writeJson,
 } from './_helpers.mjs';
 
+const args = parseArgs(process.argv.slice(2));
+
 await run('node', ['scripts/build-artifact.mjs']);
 await run('node', ['scripts/run-node.mjs']);
 await run('node', ['scripts/run-browser.mjs']);
 await run('node', ['scripts/find-oog-boundary.mjs']);
+if (args.withNative) {
+  await run('node', ['scripts/run-native-diagnostic.mjs']);
+}
 
 const artifact = await readJson(artifactPath);
 const nodeResult = await readJson(nodeResultPath);
 const browserResult = await readJson(browserResultPath);
 const oogBoundary = await readJson(oogBoundaryPath);
+const nativeDiagnostic = args.withNative
+  ? await readJson(path.join(appRoot, 'reports/native-diagnostic.json'))
+  : null;
 
 const nodeSnapshot = nodeResult.snapshot;
 const browserSnapshot = browserResult.snapshot;
@@ -41,6 +50,7 @@ const report = {
   node: nodeSnapshot,
   browser: browserSnapshot,
   oogBoundary,
+  nativeDiagnostic,
   parity,
   signature: {
     algorithm: 'sha256',
@@ -57,6 +67,22 @@ await writeJson(`${reproPath}.sha256`, {
 console.log(JSON.stringify({ reproPath, parity }, null, 2));
 if (!parity.snapshotEqual || !parity.oogEqual) {
   process.exitCode = 1;
+}
+
+function parseArgs(argv) {
+  let withNative = false;
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+    if (arg === '--') {
+      continue;
+    }
+    if (arg === '--with-native') {
+      withNative = true;
+      continue;
+    }
+    throw new Error(`unknown argument: ${arg}`);
+  }
+  return { withNative };
 }
 
 async function run(command, args) {
