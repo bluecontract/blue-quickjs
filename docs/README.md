@@ -19,6 +19,7 @@ If you are new to determinism/gas (or coming from “normal” JS runtimes), fol
 
 2. **Plan (design log)**
    - [Implementation plan](./implementation-plan.md)
+   - [HEAD verification note](./head-verification-note.md)
 
 3. **What was built (narrative + repo map)**
    - [Implementation summary](./implementation-summary.md)

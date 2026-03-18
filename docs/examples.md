@@ -1,13 +1,32 @@
 # Examples guide
 
-The runnable deterministic example corpus is maintained in:
+The canonical runnable corpus lives in:
 
 - [`examples/README.md`](../examples/README.md)
 
-That guide includes:
+## How to read the corpus
 
-- all 10 required example categories,
-- source-file locations for each scenario,
-- expected gas/result/OOG evidence keys,
-- consensus executor reproducibility commands (`wasm-node` vs `wasm-browser`),
-- native diagnostic reproducibility commands.
+Each example category in `examples/README.md` is tied to fixture-backed evidence
+from the strict consensus parity flow (`wasm-node` vs `wasm-browser`).
+
+For every category, the corpus identifies:
+
+- source files,
+- execution profile (`baseline-v1`, `compat-general-v1`, `compat-binary-v1`),
+- deterministic rationale,
+- gas/result evidence keys,
+- OOG-boundary evidence where relevant,
+- environment coverage notes (consensus executors vs native diagnostics).
+
+## Consensus-safe vs diagnostic-only interpretation
+
+- **Consensus-safe evidence:** wasm-node + wasm-browser strict parity report.
+- **Diagnostic-only evidence by default:** native harness reports.
+
+## Runbook entrypoints
+
+Use the corpus runbook in `examples/README.md` for:
+
+- smoke-node and smoke-web parity execution,
+- consensus reproducibility archive generation,
+- optional native diagnostic reproducibility runs.

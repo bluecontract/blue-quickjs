@@ -2,6 +2,16 @@
 
 Scope: define publishing and versioning policy so consumers can pin engine + ABI deterministically (Baseline #1 §1A; Baseline #2 §7).
 
+## What is consensus-safe today?
+
+- **Consensus-safe executors (mandatory release gate):**
+  - `wasm-node` with pinned canonical `wasm32` release artifact.
+  - `wasm-browser` with the same pinned canonical `wasm32` release artifact.
+- **Diagnostic-only by default:**
+  - native harness parity/reporting (`tools/quickjs-native-harness`) remains
+    non-consensus unless a release explicitly promotes native to consensus with
+    strict parity + OOG-boundary evidence under the same gate.
+
 ## Gas closure policy (release-critical)
 
 Gas is part of the deterministic consensus contract, not a benchmark hint.

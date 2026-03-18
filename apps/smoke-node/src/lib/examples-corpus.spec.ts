@@ -29,9 +29,13 @@ describe('examples corpus coverage', () => {
   it('maps examples to existing fixture coverage', () => {
     const fixtureSets = {
       determinism: new Set(DETERMINISM_FIXTURES.map((fixture) => fixture.name)),
-      'module-pack': new Set(MODULE_PACK_FIXTURES.map((fixture) => fixture.name)),
+      'module-pack': new Set(
+        MODULE_PACK_FIXTURES.map((fixture) => fixture.name),
+      ),
       'gas-sample': new Set(GAS_SAMPLE_FIXTURES.map((fixture) => fixture.name)),
-      'gas-boundary': new Set(GAS_SAMPLE_FIXTURES.map((fixture) => fixture.name)),
+      'gas-boundary': new Set(
+        GAS_SAMPLE_FIXTURES.map((fixture) => fixture.name),
+      ),
       'binary-library': new Set(
         BINARY_LIBRARY_FIXTURES.map((fixture) => fixture.name),
       ),

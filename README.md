@@ -2,6 +2,24 @@
 
 Deterministic QuickJS-in-Wasm evaluator monorepo (Nx + pnpm), tracking a hardened QuickJS fork and SDK/tooling to run it.
 
+## What is consensus-safe today?
+
+- **Consensus-safe executor matrix (release gate):**
+  - `wasm-node` (canonical `wasm32` release artifact)
+  - `wasm-browser` (same pinned canonical `wasm32` release artifact)
+- **Diagnostic-only by default:** native harness (`tools/quickjs-native-harness`)
+  unless a release explicitly promotes native to consensus with strict parity
+  evidence.
+
+## Execution profile surface (at a glance)
+
+- `baseline-v1`: strict deterministic baseline (no Promise jobs/microtasks,
+  no typed arrays/binary boundary, no ambient nondeterministic APIs).
+- `compat-general-v1`: baseline + deterministic Promise jobs,
+  `queueMicrotask`, stable sort, console shim, RegExp compatibility.
+- `compat-binary-v1`: compat-general + typed arrays / ArrayBuffer / DataView +
+  Host.v2/DV2 byte-boundary support.
+
 ## QuickJS fork
 
 - Submodule at `vendor/quickjs` (origin `git@github.com:bluecontract/quickjs.git`).
@@ -44,7 +62,7 @@ Deterministic QuickJS-in-Wasm evaluator monorepo (Nx + pnpm), tracking a hardene
 ## Determinism checklist
 
 - Same `(P, I, G)` yields identical result bytes, gas used/remaining, and host-call tape hashes across Node and browser.
-- Deterministic capability profiles: baseline disables time/random/async/binary surfaces; compatibility profiles (`compat-general-v1`, `compat-binary-v1`) selectively re-enable deterministic subsets (`docs/determinism-profile.md`, `docs/execution-profiles.md`).
+- Deterministic capability profiles: baseline stays strict; compatibility profiles (`compat-general-v1`, `compat-binary-v1`) selectively re-enable deterministic subsets (`docs/determinism-profile.md`, `docs/execution-profiles.md`).
 - Canonical gas: opcode/builtin/allocation/GC charges plus two-phase host-call gas (`docs/gas-schedule.md`).
 - DV and manifest: canonical DV encoding, safe numeric range, sorted keys, size caps, manifest hash pinning (`docs/dv-wire-format.md`, `docs/abi-manifest.md`).
 - Host ABI: `host_call` envelope, deterministic error mapping, and reentrancy rules (`docs/host-call-abi.md`).

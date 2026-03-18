@@ -20,7 +20,15 @@ However, Baseline #2 still applies: even read-only `document(path)` is a host ca
 
 - **Nx monorepo** (TypeScript-first) using **pnpm**, with consistent tooling (lint/format/test/build) and CI.
 - **QuickJS fork** lives as a **git submodule** at `vendor/quickjs` (pinned commit). All determinism + gas + host ABI changes live in that fork.
-- **Deterministic execution profile** is enforced in the VM init: time/random/async/network/fs/locale are removed or stubbed; typed arrays / ArrayBuffer / WebAssembly are disabled; dangerous features like `eval`/`Function` are disabled (Baseline #1 §1B–§1C, §3).
+- **Deterministic execution profiles** are enforced in VM init:
+  - `baseline-v1`: strict baseline restrictions (time/random/timers disabled,
+    no Promise jobs/microtasks, no typed arrays/binary boundary).
+  - `compat-general-v1`: deterministic Promise jobs + `queueMicrotask` +
+    stable sort + console shim + RegExp compatibility.
+  - `compat-binary-v1`: `compat-general-v1` + typed arrays / ArrayBuffer /
+    DataView + Host.v2/DV2 byte boundary support.
+  Dangerous dynamic-code features like `eval`/`Function` remain disabled across
+  profiles (Baseline #1 §1B–§1C, §3).
 - **Canonical gas** is implemented inside QuickJS: opcode metering, metered C builtins, allocation charges, deterministic GC checkpoints (Baseline #1 §2B).
 - **Single syscall ABI (`host_call`)** for all host capabilities: `fn_id + request_bytes -> response_bytes`, with **manifest mapping**, **manifest hash validation**, and **DV canonical encoding** (Baseline #2 §1.1–§1.4, §2).
 - VM exposes a frozen **`Host.v1`** namespace generated from the manifest, and provides ergonomic globals:
@@ -29,6 +37,12 @@ However, Baseline #2 still applies: even read-only `document(path)` is a host ca
 - **Emscripten build pipeline** produces deterministic Wasm with fixed memory sizing (Baseline #1 §2C) in `libs/quickjs-wasm-build`, packaged in `libs/quickjs-wasm`.
 - **SDK** in `libs/quickjs-runtime` loads the same Wasm bytes in Node and browsers, initializes `(P, I, G)`, wires host dispatch, evaluates JS deterministically, and returns DV output + gas used + optional tape.
 - **Test harness** verifies determinism and exact OOG point across Node and browser (Playwright), plus DV/manifest parity tests and host-call gas accounting.
+
+> Reader note: this document is an implementation **timeline** with phase-level
+> snapshots. Some early “current state” notes reflect intermediate milestones
+> (for example, before compatibility profiles were expanded in P17–P19). The
+> normative current behavior is defined by `docs/determinism-profile.md`,
+> `docs/execution-profiles.md`, and `docs/value-model-v2.md`.
 
 ---
 
@@ -343,7 +357,10 @@ Centralize deterministic runtime/context initialization so native and wasm use t
 **Current state (P1 T-011):**
 
 - Added `JS_NewDeterministicRuntime(JSRuntime **, JSContext **)` in the fork (`quickjs.c`/`quickjs.h`):
-  - Initializes a context with base objects + JSON + Map/Set only; no Date/Proxy/RegExp/typed arrays/Promise/WeakRef/etc. yet.
+  - Initializes a context with base objects + JSON + Map/Set only.
+  - At this P1 milestone, advanced compatibility surfaces (Promise jobs,
+    queueMicrotask, typed arrays, DV2 bytes) were intentionally deferred to
+    later phases and are now delivered via profile-gated behavior in P17–P19.
   - Stubs `eval` and `Function` with deterministic `TypeError` messages and clears `ctx->eval_internal`.
   - Installs a null-prototype `Host.v1` placeholder on the global object with non-configurable/non-writable descriptor (to be populated later from manifest).
 - Native harness now uses this initializer and tests assert the disabled `eval`/`Function` behavior and `Host` descriptor shape.
@@ -417,9 +434,14 @@ Enforce no async behavior and no hidden scheduling.
 
 **Current state (P1 T-013):**
 
-- Deterministic init overwrites the global `Promise` with a throwing stub (`TypeError: Promise is disabled in deterministic mode`) and keeps the runtime job queue unused.
-- Async functions compile but throw when invoked because they rely on the disabled `Promise`.
-- Harness tests assert `Promise` throws, async invocation errors, and `queueMicrotask` is absent; all pass.
+- At the P1 baseline milestone, deterministic init overwrote global `Promise`
+  with a throwing stub (`TypeError: Promise is disabled in deterministic mode`)
+  and kept the runtime job queue unused.
+- This baseline behavior remains true for `baseline-v1`; later phases (P17+)
+  add deterministic Promise/job draining + `queueMicrotask` in
+  `compat-general-v1` / `compat-binary-v1`.
+- Harness tests for both baseline denial and compatibility-profile Promise
+  enablement are now part of the runtime/smoke/native parity coverage.
 
 ---
 
@@ -475,8 +497,12 @@ Prevent float/NaN payload observability and low-level channels.
 
 **Current state (P1 T-015):**
 
-- Deterministic init installs TypeError stubs for `ArrayBuffer`, `SharedArrayBuffer`, `DataView`, all typed array constructors, `Atomics`, and `WebAssembly` so attempts to construct or call them fail with deterministic error strings.
-- Native harness tests assert deterministic failures for `ArrayBuffer`, `SharedArrayBuffer`, `DataView`, `Uint8Array`, `Atomics`, and `WebAssembly`.
+- At the P1 baseline milestone, deterministic init installed TypeError stubs for
+  `ArrayBuffer`, `SharedArrayBuffer`, `DataView`, all typed array constructors,
+  `Atomics`, and `WebAssembly`.
+- That strict behavior remains for `baseline-v1` / `compat-regexp-v1`.
+- Later phases (P19) enable typed arrays / ArrayBuffer / DataView under
+  `compat-binary-v1` with DV2/Host.v2 byte-boundary support.
 
 ---
 
@@ -503,8 +529,13 @@ Prevent nondeterministic host logging. Logging (if any) must be via deterministi
 
 **Current state (P1 T-016):**
 
-- Deterministic init installs a null-prototype `console` with common methods (`log`, `info`, `warn`, `error`, `debug`) all mapped to deterministic `TypeError: console is disabled in deterministic mode`; global `print` is similarly stubbed.
-- Native harness tests assert console/print calls throw deterministically (no host output); future logging should go through `Host.v1.emit(...)` once implemented.
+- At the P1 baseline milestone, deterministic init installed a null-prototype
+  `console` with common methods (`log`, `info`, `warn`, `error`, `debug`) all
+  mapped to deterministic `TypeError: console is disabled in deterministic mode`;
+  global `print` was similarly stubbed.
+- Baseline still keeps console disabled; later phases (P18) enable a
+  deterministic console shim for compatibility profiles by routing through
+  `Host.v1.emit(...)`.
 
 ---
 
@@ -674,8 +705,13 @@ Ensure no builtin performs unmetered large work.
 
 **Current state (P2 T-024):**
 
-- Deterministic profile now replaces `JSON.parse`, `JSON.stringify`, and `Array.prototype.sort` with a disabled stub that throws `TypeError: <name> is disabled in deterministic mode`, preventing unmetered O(n) / O(n log n) native work.
-- Harness tests assert these three disabled behaviors to lock in the restriction.
+- At this P2 checkpoint, deterministic profile temporarily replaced
+  `JSON.parse`, `JSON.stringify`, and `Array.prototype.sort` with disabled
+  stubs to prevent unmetered native work.
+- Subsequent phases replaced that stopgap with:
+  - deterministic metered `JSON.parse` / `JSON.stringify`, and
+  - profile-gated deterministic stable sort (`compat-general-v1` /
+    `compat-binary-v1`) while baseline keeps sort disabled.
 
 ---
 
@@ -2278,8 +2314,8 @@ builder/runtime/harness surfaces.
 - `libs/quickjs-runtime` now validates execution profiles via the shared
   registry and uses capability checks for QuickJS feature-flag mapping.
 - `tools/quickjs-native-harness` now accepts
-  `compat-general-v1|compat-binary-v1` profile names (currently mapped to
-  regexp feature-flag behavior in C until later capability widening phases).
+  `compat-general-v1|compat-binary-v1` profile names and applies the same
+  shared profile capability model used by runtime/builder surfaces.
 
 ---
 
