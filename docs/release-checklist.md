@@ -26,8 +26,10 @@ Scope: steps to publish deterministic engine + ABI packages.
   - Preserve consensus artifacts as a set:
     - report JSON (`consensus-parity-report-*.json`)
     - report checksum sidecar (`consensus-parity-report-*.json.sha256`)
+    - report signature sidecar (`consensus-parity-report-*.json.sig`)
     - human summary (`consensus-parity-summary-*.md`)
     - summary checksum sidecar (`consensus-parity-summary-*.md.sha256`)
+    - summary signature sidecar (`consensus-parity-summary-*.md.sig`)
 
 ## Consensus artifact inspection gate (release-critical)
 

@@ -38,13 +38,16 @@ Detailed deterministic rationale and gas/OOG evidence are maintained in
 ## Strict parity evidence location
 
 - Consensus report JSON:
-  - `artifacts/reproducibility-consensus-final/consensus-parity-report-2026-03-18T13-14-00-821Z.json`
+  - `artifacts/reproducibility-consensus-final/consensus-parity-report-2026-03-18T13-24-15-967Z.json`
 - Consensus summary artifact:
-  - `artifacts/reproducibility-consensus-final/consensus-parity-summary-2026-03-18T13-14-00-821Z.md`
+  - `artifacts/reproducibility-consensus-final/consensus-parity-summary-2026-03-18T13-24-15-967Z.md`
+- Signature sidecars:
+  - `artifacts/reproducibility-consensus-final/consensus-parity-report-2026-03-18T13-24-15-967Z.json.sig`
+  - `artifacts/reproducibility-consensus-final/consensus-parity-summary-2026-03-18T13-24-15-967Z.md.sig`
 - Report signature digest:
-  - `004745efc2e1693f9e334ede433772bd2b5e14cb3d34c98c782ae849211a1522`
+  - `676fd9cf9a854cbaa823737655450de82a40073db39c159b0a4ecf307934b6a1`
 - Report file sha256:
-  - `248fee4027a055cbc839cf561b578ec8c2efb1ba23d74357472661da8c4ed49f`
+  - `9f390771ea1a94b0a5ec529b7871034bab28338073ed795cc035c72457371054`
 - OOG parity status:
   - `exact-parity`
 

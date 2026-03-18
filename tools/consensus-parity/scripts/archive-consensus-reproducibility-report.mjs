@@ -191,6 +191,12 @@ try {
     `${fileDigest}  ${path.basename(reportPath)}\n`,
     'utf8',
   );
+  const signaturePath = `${reportPath}.sig`;
+  await writeFile(
+    signaturePath,
+    `${signatureDigest}  ${path.basename(reportPath)}\n`,
+    'utf8',
+  );
   const summaryText = buildConsensusSummaryMarkdown({
     report: signedReport,
     reportPath,
@@ -205,6 +211,12 @@ try {
     `${summaryDigest}  ${path.basename(summaryPath)}\n`,
     'utf8',
   );
+  const summarySignaturePath = `${summaryPath}.sig`;
+  await writeFile(
+    summarySignaturePath,
+    `${signatureDigest}  ${path.basename(summaryPath)}\n`,
+    'utf8',
+  );
 
   process.stdout.write(
     [
@@ -212,9 +224,11 @@ try {
       `report signature digest: ${signatureDigest}`,
       `file sha256: ${fileDigest}`,
       `file checksum: ${checksumPath}`,
+      `report signature sidecar: ${signaturePath}`,
       `summary report: ${summaryPath}`,
       `summary sha256: ${summaryDigest}`,
       `summary checksum: ${summaryChecksumPath}`,
+      `summary signature sidecar: ${summarySignaturePath}`,
       `total fixtures: ${fixtureCount}`,
       `total mismatches: ${mismatchCount}`,
       `exact OOG boundary parity: ${oogBoundaryParity.status}`,
