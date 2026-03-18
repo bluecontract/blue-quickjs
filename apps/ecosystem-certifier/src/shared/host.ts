@@ -1,0 +1,127 @@
+import type {
+  HostDispatcherHandlers,
+  HostCallResult,
+} from '@blue-quickjs/quickjs-runtime';
+
+const TEXT_DOCUMENTS = new Map<string, string>([
+  [
+    'pack/metadata.json',
+    JSON.stringify(
+      {
+        packId: 'kp-2026-rc',
+        release: '1.2.3',
+        requires: ['>=1.2.0 <2.0.0', '^1.2.0'],
+      },
+      null,
+      2,
+    ),
+  ],
+  [
+    'pack/metadata.yaml',
+    [
+      'packId: kp-2026-rc',
+      'release: 1.2.3',
+      'requires:',
+      '  - ">=1.2.0 <2.0.0"',
+      '  - "^1.2.0"',
+      'links:',
+      '  - docs/a.md',
+      '  - docs/b.md',
+      '',
+    ].join('\n'),
+  ],
+  [
+    'docs/a.md',
+    [
+      '# Alpha',
+      '',
+      'See [Beta](docs/b.md) and https://example.com/path.',
+      '',
+      'Encoded value: &amp; deterministic.',
+      '',
+    ].join('\n'),
+  ],
+  [
+    'docs/b.md',
+    [
+      '# Beta',
+      '',
+      'Backlink to [Alpha](docs/a.md).',
+      '',
+    ].join('\n'),
+  ],
+  [
+    'rules/findings.json',
+    JSON.stringify(
+      {
+        and: [
+          { '==': [{ var: 'linkCount' }, 3] },
+          { '==': [{ var: 'releaseOk' }, true] },
+        ],
+      },
+      null,
+      2,
+    ),
+  ],
+  ['text/semver-case', '1.2.3'],
+  ['text/path-case', '/document/:id/version/:version'],
+  ['text/yaml-case', 'name: Blue\nvalue: 42\n'],
+  ['text/markdown-case', '# Heading\n\nA [link](https://example.com).\n'],
+  ['text/he-case', '&lt;b&gt;safe&lt;/b&gt;'],
+  ['text/diff-left', 'alpha\nbeta\ngamma\n'],
+  ['text/diff-right', 'alpha\nbeta2\ngamma\n'],
+  ['text/json-logic-case', JSON.stringify({ score: 7, threshold: 5 })],
+]);
+
+const BINARY_DOCUMENTS = new Map<string, Uint8Array>([
+  ['bytes/payload', Uint8Array.from([222, 173, 190, 239])],
+  [
+    'pack/attachment.deflated',
+    Uint8Array.from([
+      120, 156, 179, 73, 77, 206, 79, 73, 45, 86, 112, 46, 41, 202, 204, 75,
+      87, 72, 206, 207, 43, 73, 45, 2, 0, 101, 57, 8, 181,
+    ]),
+  ],
+]);
+
+export function createCertificationHost(): {
+  handlers: HostDispatcherHandlers;
+  emitted: unknown[];
+} {
+  const emitted: unknown[] = [];
+
+  const handlers: HostDispatcherHandlers = {
+    document: {
+      get: (docPath: string): HostCallResult => {
+        if (BINARY_DOCUMENTS.has(docPath)) {
+          return { ok: BINARY_DOCUMENTS.get(docPath)!, units: 6 };
+        }
+        if (TEXT_DOCUMENTS.has(docPath)) {
+          return { ok: TEXT_DOCUMENTS.get(docPath)!, units: 2 };
+        }
+        return {
+          err: { code: 'NOT_FOUND', tag: 'host/not_found' },
+          units: 1,
+        };
+      },
+      getCanonical: (docPath: string): HostCallResult => {
+        if (TEXT_DOCUMENTS.has(docPath)) {
+          return { ok: TEXT_DOCUMENTS.get(docPath)!, units: 2 };
+        }
+        if (BINARY_DOCUMENTS.has(docPath)) {
+          return { ok: BINARY_DOCUMENTS.get(docPath)!, units: 6 };
+        }
+        return {
+          err: { code: 'NOT_FOUND', tag: 'host/not_found' },
+          units: 1,
+        };
+      },
+    },
+    emit: (value: unknown) => {
+      emitted.push(value);
+      return { ok: null, units: 1 };
+    },
+  };
+
+  return { handlers, emitted };
+}

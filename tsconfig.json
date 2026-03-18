@@ -41,6 +41,9 @@
     },
     {
       "path": "./tools/blue-quickjs-cli"
+    },
+    {
+      "path": "./apps/ecosystem-certifier"
     }
   ]
 }
