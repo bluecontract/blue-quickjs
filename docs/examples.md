@@ -18,6 +18,15 @@ For every category, the corpus identifies:
 - OOG-boundary evidence where relevant,
 - environment coverage notes (consensus executors vs native diagnostics).
 
+Flagship deep dives explicitly covered in the corpus:
+
+- Promises / async / microtasks
+- Imported libraries via deterministic module packs
+- Promise + import + host call tape parity
+- Binary typed arrays + Host.v2 DV2 boundary
+- Max-gas DoS boundary parity (`N` vs `N-1`)
+- Kitchen-sink real-app composition
+
 ## Consensus-safe vs diagnostic-only interpretation
 
 - **Consensus-safe evidence:** wasm-node + wasm-browser strict parity report.
