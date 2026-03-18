@@ -36,17 +36,17 @@ Branch: `cursor/next-generation-quickjs-platform-1578-rc-f838`
 Consensus report artifacts:
 
 - report JSON:
-  `artifacts/reproducibility-consensus-dev/consensus-parity-report-2026-03-18T13-05-16-272Z.json`
+  `artifacts/reproducibility-consensus-final/consensus-parity-report-2026-03-18T13-14-00-821Z.json`
 - report checksum:
-  `artifacts/reproducibility-consensus-dev/consensus-parity-report-2026-03-18T13-05-16-272Z.json.sha256`
+  `artifacts/reproducibility-consensus-final/consensus-parity-report-2026-03-18T13-14-00-821Z.json.sha256`
 - human summary:
-  `artifacts/reproducibility-consensus-dev/consensus-parity-summary-2026-03-18T13-05-16-272Z.md`
+  `artifacts/reproducibility-consensus-final/consensus-parity-summary-2026-03-18T13-14-00-821Z.md`
 - summary checksum:
-  `artifacts/reproducibility-consensus-dev/consensus-parity-summary-2026-03-18T13-05-16-272Z.md.sha256`
+  `artifacts/reproducibility-consensus-final/consensus-parity-summary-2026-03-18T13-14-00-821Z.md.sha256`
 - signature digest:
-  `98a96fecb8dc95545a4c023393930ee4d90f0be126b1e420cb7987cfd3b83406`
+  `004745efc2e1693f9e334ede433772bd2b5e14cb3d34c98c782ae849211a1522`
 - file sha256:
-  `e3f2d104ae2e18fcab3664330157a109c0251299472d1e1bc520a1c020027fe5`
+  `248fee4027a055cbc839cf561b578ec8c2efb1ba23d74357472661da8c4ed49f`
 - mismatch count: `0`
 - OOG boundary parity: `exact-parity`
 - executionProfile coverage:
@@ -55,11 +55,11 @@ Consensus report artifacts:
 Native diagnostic report:
 
 - path:
-  `artifacts/reproducibility-native-final/parity-report-2026-03-17T00-06-48-349Z.json`
+  `artifacts/reproducibility-native-final/parity-report-2026-03-18T13-14-16-293Z.json`
 - signature digest:
-  `412804756c6b7e109f4c4184976e26fd4226a67e4b000451f1e2362c54b2c95d`
+  `24175b7d6b6694c58076cd96f53dae5c63b59aa0e4eb422d235882a89d84ebf2`
 - file sha256:
-  `05dc3d210e71587a850ec918bc72b7233732d2df9f36aeff82da6c918c9f1a48`
+  `8093aca0571cd7102bf6a895e4afff662479728dbccd75d8a24d0a50305f80a8`
 
 ## Validation commands executed
 
