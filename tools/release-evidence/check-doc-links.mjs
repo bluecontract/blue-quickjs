@@ -55,6 +55,9 @@ function parseArgs(argv) {
   const files = [];
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
+    if (arg === '--') {
+      continue;
+    }
     if (arg === '--file') {
       const file = argv[index + 1];
       if (!file) {

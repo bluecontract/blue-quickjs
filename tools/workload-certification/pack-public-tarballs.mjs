@@ -4,6 +4,7 @@ import { mkdir, readdir, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 import { spawn } from 'node:child_process';
+import { PUBLIC_PACKAGES } from './public-packages.mjs';
 
 const repoRoot = process.cwd();
 const args = parseArgs(process.argv.slice(2));
@@ -15,15 +16,7 @@ for (const entry of await readdir(outDir)) {
   }
 }
 
-const packages = [
-  '@blue-quickjs/abi-manifest',
-  '@blue-quickjs/dv',
-  '@blue-quickjs/execution-profiles',
-  '@blue-quickjs/quickjs-wasm-constants',
-  '@blue-quickjs/quickjs-wasm',
-  '@blue-quickjs/quickjs-runtime',
-  '@blue-quickjs/deterministic-bundler',
-];
+const packages = PUBLIC_PACKAGES;
 
 for (const pkg of packages) {
   await run(

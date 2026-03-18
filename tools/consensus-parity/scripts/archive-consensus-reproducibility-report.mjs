@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { chromium } from '@playwright/test';
+import { chromium, firefox, webkit } from '@playwright/test';
 import { createHash } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -44,6 +44,7 @@ const { loadQuickjsWasmBinary, loadQuickjsWasmMetadata } = require(
 );
 
 const args = parseArgs(process.argv.slice(2));
+const browserType = resolveBrowserType(args.browser);
 
 const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
 const outDir = path.resolve(repoRoot, args.outDir);
@@ -72,7 +73,7 @@ if (viteServer) {
 }
 
 const baseUrl = args.baseUrl ?? 'http://127.0.0.1:4300';
-const browser = await chromium.launch({ headless: true });
+const browser = await browserType.launch({ headless: true });
 const context = await browser.newContext({ baseURL: baseUrl });
 
 try {
@@ -145,7 +146,7 @@ try {
     generatedAt: new Date().toISOString(),
     consensusExecutors: {
       primary: 'wasm-node',
-      secondary: 'wasm-browser',
+      secondary: `wasm-browser:${args.browser}`,
     },
     metadata: {
       gasVersion: metadata.gasVersion ?? null,
@@ -156,6 +157,7 @@ try {
       wasmFilename: variantMetadata?.wasm?.filename ?? null,
       wasmLoaderFilename: variantMetadata?.loader?.filename ?? null,
       baseUrl,
+      browser: args.browser,
     },
     suiteCount: suites.length,
     fixtureCount,
@@ -190,6 +192,7 @@ try {
       `file checksum: ${checksumPath}`,
       `total fixtures: ${fixtureCount}`,
       `total mismatches: ${mismatchCount}`,
+      `browser: ${args.browser}`,
     ].join('\n') + '\n',
   );
 
@@ -743,9 +746,13 @@ function parseArgs(argv) {
   let outDir = 'artifacts/reproducibility-consensus';
   let baseUrl = null;
   let reuseServer = false;
+  let browser = 'chromium';
 
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
+    if (arg === '--') {
+      continue;
+    }
     if (arg === '--out-dir') {
       outDir = argv[i + 1] ?? outDir;
       i += 1;
@@ -760,6 +767,11 @@ function parseArgs(argv) {
       reuseServer = true;
       continue;
     }
+    if (arg === '--browser') {
+      browser = argv[i + 1] ?? browser;
+      i += 1;
+      continue;
+    }
     throw new Error(`unknown argument: ${arg}`);
   }
 
@@ -767,5 +779,19 @@ function parseArgs(argv) {
     outDir,
     baseUrl,
     reuseServer,
+    browser,
   };
+}
+
+function resolveBrowserType(browser) {
+  if (browser === 'chromium') {
+    return chromium;
+  }
+  if (browser === 'firefox') {
+    return firefox;
+  }
+  if (browser === 'webkit') {
+    return webkit;
+  }
+  throw new Error(`unsupported browser: ${browser}`);
 }

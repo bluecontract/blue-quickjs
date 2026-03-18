@@ -24,6 +24,12 @@ tarballs and validates deterministic parity.
    pnpm run repro
    ```
 
+   Firefox parity run:
+
+   ```bash
+   pnpm run repro -- --browser firefox
+   ```
+
 Reports are written to `e2e/consumer-proof-app/reports/`.
 
 Optional native diagnostic run (non-consensus):

@@ -14,14 +14,14 @@ Workload and ecosystem certification app for deterministic `blue-quickjs`.
 - Unit tests: `pnpm nx test ecosystem-certifier`
 - Browser e2e: `pnpm nx run ecosystem-certifier:e2e`
 - Generate certification report:
-  `pnpm nx run ecosystem-certifier:certify -- --out-dir artifacts/workload-certification`
+  `pnpm nx run ecosystem-certifier:certify -- --out-dir artifacts/workload-certification --browser chromium`
 - Builder path-determinism check:
   `node apps/ecosystem-certifier/scripts/check-builder-determinism.mjs`
 - OOG boundary parity report:
-  `node apps/ecosystem-certifier/scripts/run-oog-boundary-certification.mjs --out-dir artifacts/workload-certification`
+  `node apps/ecosystem-certifier/scripts/run-oog-boundary-certification.mjs --out-dir artifacts/workload-certification --browser chromium`
 - Repeatability / soak report:
-  `node apps/ecosystem-certifier/scripts/run-repeatability-certification.mjs --out-dir artifacts/workload-certification --iterations 50 --flagship-iterations 20`
+  `node apps/ecosystem-certifier/scripts/run-repeatability-certification.mjs --out-dir artifacts/workload-certification --iterations 50 --flagship-iterations 20 --browser chromium`
 - Seeded property corpus parity report:
-  `node apps/ecosystem-certifier/scripts/run-seeded-property-corpus.mjs --out-dir artifacts/workload-certification --seed-count 40`
+  `node apps/ecosystem-certifier/scripts/run-seeded-property-corpus.mjs --out-dir artifacts/workload-certification --seed-count 40 --browser chromium`
 - Regenerate deterministic stress corpus:
   `node apps/ecosystem-certifier/scripts/generate-stress-corpus.mjs`

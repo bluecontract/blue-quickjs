@@ -17,7 +17,8 @@ Scope: steps to publish deterministic engine + ABI packages.
     `apps/smoke-web/tests/gas-boundaries.spec.ts`).
 - Archive reproducibility report artifacts for the release candidate:
   - Consensus release gate reports (wasm-node vs wasm-browser) are required.
-    - `node tools/consensus-parity/scripts/archive-consensus-reproducibility-report.mjs`
+    - `node tools/consensus-parity/scripts/archive-consensus-reproducibility-report.mjs --out-dir artifacts/reproducibility-consensus/chromium --browser chromium`
+    - `node tools/consensus-parity/scripts/archive-consensus-reproducibility-report.mjs --out-dir artifacts/reproducibility-consensus/firefox --browser firefox`
   - Native report generation is diagnostic by default:
     - `node tools/quickjs-native-harness/scripts/archive-reproducibility-report.mjs`
   - If native is explicitly promoted to a consensus executor for this release,
@@ -32,9 +33,23 @@ Scope: steps to publish deterministic engine + ABI packages.
   - `node apps/ecosystem-certifier/scripts/run-repeatability-certification.mjs --out-dir artifacts/workload-certification --iterations 50 --flagship-iterations 20`
   - `node apps/ecosystem-certifier/scripts/run-seeded-property-corpus.mjs --out-dir artifacts/workload-certification --seed-count 40`
 - Run downstream tarball consumer reproducibility proof:
+  - Version alignment + pack manifest checks:
+    - `pnpm workload:check-public-package-versions`
+    - `pnpm workload:check-pack-manifests -- --out-dir artifacts/consumer-proof/pack-manifests`
+  - Primary registry-style rehearsal:
+    - `pnpm publish-rehearsal:verdaccio -- --out-dir artifacts/consumer-proof/verdaccio`
+  - Secondary tarball rehearsal:
   - `node tools/workload-certification/pack-public-tarballs.mjs --out-dir artifacts/consumer-proof/tarballs`
   - `pnpm --dir e2e/consumer-proof-app run install:tarballs -- --tarball-dir ../../artifacts/consumer-proof/tarballs`
+  - `pnpm --dir e2e/consumer-proof-app exec playwright install --with-deps chromium`
   - `pnpm --dir e2e/consumer-proof-app run repro`
+- Synthesize release evidence bundle (manifest + summaries + checksums + signatures):
+  - `pnpm release-evidence:synthesize -- --out-dir artifacts/release-evidence`
+- Verify release evidence bundle locally (auditor command):
+  - `pnpm release-evidence:verify -- --evidence-dir artifacts/release-evidence`
+- Generate security/supply-chain artifacts:
+  - `pnpm release-evidence:sbom -- --out-dir artifacts/security`
+  - `pnpm release-evidence:licenses -- --out-dir artifacts/security`
 
 ## Wasm build + metadata
 

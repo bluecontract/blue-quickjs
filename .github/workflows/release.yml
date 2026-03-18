@@ -54,8 +54,13 @@ jobs:
       - name: Verify generated gas schedule docs are in sync
         run: node tools/gas-spec/render-gas-artifacts.mjs --check
 
-      - name: Install Playwright browsers (Chromium)
-        run: pnpm exec playwright install --with-deps chromium
+      - name: Generate SBOM and dependency license reports
+        run: |
+          pnpm release-evidence:sbom -- --out-dir artifacts/security
+          pnpm release-evidence:licenses -- --out-dir artifacts/security
+
+      - name: Install Playwright browsers (Chromium + Firefox)
+        run: pnpm exec playwright install --with-deps chromium firefox
 
       - name: Print Environment Info
         run: pnpm exec nx report
@@ -69,8 +74,10 @@ jobs:
           pnpm nx test ecosystem-certifier
           pnpm nx run ecosystem-certifier:e2e
 
-      - name: Generate consensus reproducibility report artifact
-        run: node tools/consensus-parity/scripts/archive-consensus-reproducibility-report.mjs
+      - name: Generate consensus reproducibility report artifacts (Chromium + Firefox)
+        run: |
+          node tools/consensus-parity/scripts/archive-consensus-reproducibility-report.mjs --out-dir artifacts/reproducibility-consensus/chromium --browser chromium
+          node tools/consensus-parity/scripts/archive-consensus-reproducibility-report.mjs --out-dir artifacts/reproducibility-consensus/firefox --browser firefox
 
       - name: Generate workload certification artifacts
         run: |
@@ -80,10 +87,19 @@ jobs:
           node apps/ecosystem-certifier/scripts/run-seeded-property-corpus.mjs --out-dir artifacts/workload-certification --seed-count 40
           node apps/ecosystem-certifier/scripts/run-repeatability-certification.mjs --out-dir artifacts/workload-certification --iterations 50 --flagship-iterations 20
 
-      - name: Generate downstream consumer reproducibility artifacts
+      - name: Validate public package release alignment
+        run: |
+          pnpm workload:check-public-package-versions
+          pnpm workload:check-pack-manifests -- --out-dir artifacts/consumer-proof/pack-manifests
+
+      - name: Run Verdaccio publish/install rehearsal (primary)
+        run: pnpm publish-rehearsal:verdaccio -- --out-dir artifacts/consumer-proof/verdaccio
+
+      - name: Generate downstream tarball reproducibility artifacts (secondary)
         run: |
           node tools/workload-certification/pack-public-tarballs.mjs --out-dir artifacts/consumer-proof/tarballs
           pnpm --dir e2e/consumer-proof-app run install:tarballs -- --tarball-dir ../../artifacts/consumer-proof/tarballs
+          pnpm --dir e2e/consumer-proof-app exec playwright install --with-deps chromium
           pnpm --dir e2e/consumer-proof-app run repro
 
       - name: Run native diagnostics (non-blocking)
@@ -96,14 +112,25 @@ jobs:
         continue-on-error: true
         run: node tools/quickjs-native-harness/scripts/archive-reproducibility-report.mjs
 
+      - name: Synthesize release evidence bundle
+        run: pnpm release-evidence:synthesize -- --out-dir artifacts/release-evidence
+
+      - name: Validate generated release evidence and docs freshness
+        run: |
+          EXPECTED_DATE=$(node -e "const fs=require('fs');console.log(JSON.parse(fs.readFileSync('artifacts/release-evidence/release-evidence-manifest.json','utf8')).date)")
+          pnpm docs:check-links
+          pnpm docs:check-freshness -- --expected-branch "${GITHUB_REF_NAME}" --expected-date "${EXPECTED_DATE}"
+          pnpm release-evidence:synthesize -- --out-dir artifacts/release-evidence --check
+          pnpm release-evidence:verify -- --evidence-dir artifacts/release-evidence --expected-branch "${GITHUB_REF_NAME}" --expected-date "${EXPECTED_DATE}"
+
       - name: Upload reproducibility artifacts
         uses: actions/upload-artifact@v4
         with:
           name: reproducibility-report
           path: |
-            artifacts/reproducibility-consensus/*.json*
-            artifacts/reproducibility-consensus/*.md*
-            artifacts/reproducibility-consensus/*.sig
+            artifacts/reproducibility-consensus/**/*.json*
+            artifacts/reproducibility-consensus/**/*.md*
+            artifacts/reproducibility-consensus/**/*.sig
           if-no-files-found: error
 
       - name: Upload native diagnostic reproducibility artifacts
@@ -129,7 +156,37 @@ jobs:
           name: consumer-proof-report
           path: |
             artifacts/consumer-proof/tarballs/tarball-manifest.json
+            artifacts/consumer-proof/pack-manifests/pack-manifest.json
+            artifacts/consumer-proof/verdaccio/*.json
+            artifacts/consumer-proof/verdaccio/*.log
             e2e/consumer-proof-app/reports/*.json*
+          if-no-files-found: error
+
+      - name: Upload release evidence bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-evidence-bundle
+          path: |
+            artifacts/release-evidence/release-evidence-summary.json
+            artifacts/release-evidence/release-evidence-summary.json.sha256
+            artifacts/release-evidence/release-evidence-summary.json.sig
+            artifacts/release-evidence/release-evidence-summary.md
+            artifacts/release-evidence/release-evidence-summary.md.sha256
+            artifacts/release-evidence/release-evidence-summary.md.sig
+            artifacts/release-evidence/release-evidence-manifest.json
+            artifacts/release-evidence/release-evidence-manifest.json.sha256
+            artifacts/release-evidence/release-evidence-manifest.json.sig
+            artifacts/release-evidence/inputs/*
+          if-no-files-found: error
+
+      - name: Upload security artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-security-artifacts
+          path: |
+            artifacts/security/sbom.cdx.json
+            artifacts/security/license-report.json
+            artifacts/security/license-report.md
           if-no-files-found: error
 
       - name: Configure Git
@@ -141,3 +198,48 @@ jobs:
       - name: Release
         run: pnpm exec nx release --skip-publish --first-release
         shell: bash
+
+  verify-release-evidence:
+    name: Verify release evidence bundle
+    runs-on: ubuntu-latest
+    needs:
+      - release
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.8.0
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Download release evidence bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: release-evidence-bundle
+          path: artifacts/release-evidence
+
+      - name: Verify evidence checksums and signatures
+        run: |
+          EXPECTED_DATE=$(node -e "const fs=require('fs');console.log(JSON.parse(fs.readFileSync('artifacts/release-evidence/release-evidence-manifest.json','utf8')).date)")
+          pnpm release-evidence:verify -- --evidence-dir artifacts/release-evidence --expected-branch "${GITHUB_REF_NAME}" --expected-date "${EXPECTED_DATE}"
+
+      - name: Assert tamper detection fails verification
+        run: |
+          cp -R artifacts/release-evidence artifacts/release-evidence-tampered
+          node -e "const fs=require('fs');fs.appendFileSync('artifacts/release-evidence-tampered/inputs/consumer-reproducibility.json','\n')"
+          EXPECTED_DATE=$(node -e "const fs=require('fs');console.log(JSON.parse(fs.readFileSync('artifacts/release-evidence-tampered/release-evidence-manifest.json','utf8')).date)")
+          if pnpm release-evidence:verify -- --evidence-dir artifacts/release-evidence-tampered --expected-branch "${GITHUB_REF_NAME}" --expected-date "${EXPECTED_DATE}"; then
+            echo "tamper verification unexpectedly passed"
+            exit 1
+          fi

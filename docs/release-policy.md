@@ -17,6 +17,11 @@ Consensus executor matrix:
 
 - mandatory: `wasm-node` vs `wasm-browser` using pinned canonical `wasm32`
   artifacts.
+- required browser engines for release-candidate/release parity evidence:
+  - Chromium
+  - Firefox
+- WebKit runs as scheduled diagnostic evidence unless explicitly promoted to a
+  required gate.
 - native harness parity is required only when native is explicitly declared a
   supported consensus executor for that release.
 

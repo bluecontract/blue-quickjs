@@ -18,8 +18,8 @@ const args = parseArgs(process.argv.slice(2));
 
 await run('node', ['scripts/build-artifact.mjs']);
 await run('node', ['scripts/run-node.mjs']);
-await run('node', ['scripts/run-browser.mjs']);
-await run('node', ['scripts/find-oog-boundary.mjs']);
+await run('node', ['scripts/run-browser.mjs', '--browser', args.browser]);
+await run('node', ['scripts/find-oog-boundary.mjs', '--browser', args.browser]);
 if (args.withNative) {
   await run('node', ['scripts/run-native-diagnostic.mjs']);
 }
@@ -43,6 +43,7 @@ const parity = {
 
 const report = {
   generatedAt: new Date().toISOString(),
+  browser: args.browser,
   artifact: {
     graphHash: artifact.graphHash,
     moduleCount: artifact.moduleCount,
@@ -71,6 +72,7 @@ if (!parity.snapshotEqual || !parity.oogEqual) {
 
 function parseArgs(argv) {
   let withNative = false;
+  let browser = 'chromium';
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
     if (arg === '--') {
@@ -80,9 +82,14 @@ function parseArgs(argv) {
       withNative = true;
       continue;
     }
+    if (arg === '--browser') {
+      browser = argv[index + 1] ?? browser;
+      index += 1;
+      continue;
+    }
     throw new Error(`unknown argument: ${arg}`);
   }
-  return { withNative };
+  return { withNative, browser };
 }
 
 async function run(command, args) {

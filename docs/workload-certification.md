@@ -11,6 +11,8 @@ ecosystem phase.
    `apps/ecosystem-certifier`.
 3. **Consensus parity**: strict wasm-node vs wasm-browser comparison for
    value/error, gas, tape, and expected failure stage.
+   - Required release-candidate browsers: **Chromium** and **Firefox**.
+   - WebKit remains diagnostic-only when run via scheduled workflow.
 4. **Builder path determinism**: hash equality checks from distinct absolute
    working directories.
 5. **Downstream tarball consumer proof**:
@@ -30,14 +32,20 @@ pnpm nx run ecosystem-certifier:e2e
 # Builder path determinism + workload matrix report
 node apps/ecosystem-certifier/scripts/check-builder-determinism.mjs --out-dir artifacts/workload-certification
 node tools/workload-certification/compare-builder-determinism-matrix.mjs --input-dir artifacts
-node apps/ecosystem-certifier/scripts/archive-workload-certification-report.mjs --out-dir artifacts/workload-certification
-node apps/ecosystem-certifier/scripts/run-oog-boundary-certification.mjs --out-dir artifacts/workload-certification
-node apps/ecosystem-certifier/scripts/run-repeatability-certification.mjs --out-dir artifacts/workload-certification --iterations 50 --flagship-iterations 20
-node apps/ecosystem-certifier/scripts/run-seeded-property-corpus.mjs --out-dir artifacts/workload-certification --seed-count 40
+node apps/ecosystem-certifier/scripts/archive-workload-certification-report.mjs --out-dir artifacts/workload-certification --browser chromium
+node apps/ecosystem-certifier/scripts/archive-workload-certification-report.mjs --out-dir artifacts/workload-certification --browser firefox
+node apps/ecosystem-certifier/scripts/run-oog-boundary-certification.mjs --out-dir artifacts/workload-certification --browser chromium
+node apps/ecosystem-certifier/scripts/run-oog-boundary-certification.mjs --out-dir artifacts/workload-certification --browser firefox
+node apps/ecosystem-certifier/scripts/run-repeatability-certification.mjs --out-dir artifacts/workload-certification --iterations 50 --flagship-iterations 20 --browser chromium
+node apps/ecosystem-certifier/scripts/run-seeded-property-corpus.mjs --out-dir artifacts/workload-certification --seed-count 40 --browser chromium
 
-# Downstream tarball consumer proof
+# Downstream tarball consumer proof (Node/OS matrix-ready)
+pnpm workload:check-public-package-versions
+pnpm workload:check-pack-manifests -- --out-dir artifacts/consumer-proof/pack-manifests
+pnpm publish-rehearsal:verdaccio -- --out-dir artifacts/consumer-proof/verdaccio
 node tools/workload-certification/pack-public-tarballs.mjs --out-dir artifacts/consumer-proof/tarballs
 pnpm --dir e2e/consumer-proof-app run install:tarballs -- --tarball-dir ../../artifacts/consumer-proof/tarballs
+pnpm --dir e2e/consumer-proof-app exec playwright install --with-deps chromium
 pnpm --dir e2e/consumer-proof-app run repro
 # optional native diagnostic section
 pnpm --dir e2e/consumer-proof-app run repro -- --with-native

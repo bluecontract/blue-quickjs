@@ -27,7 +27,7 @@ const args = parseArgs(process.argv.slice(2));
 const outDir = path.resolve(repoRoot, args.outDir);
 await mkdir(outDir, { recursive: true });
 
-const browser = await launchBrowserCertifier(args.baseUrl);
+const browser = await launchBrowserCertifier(args.baseUrl, args.browser);
 const records = [];
 
 try {
@@ -68,6 +68,7 @@ try {
 const mismatchCount = records.filter((record) => !record.match).length;
 const output = {
   generatedAt: new Date().toISOString(),
+  browser: args.browser,
   seedStart: args.seedStart,
   seedCount: args.seedCount,
   mismatchCount,
@@ -124,8 +125,12 @@ function parseArgs(argv) {
   let seedStart = defaultConfig.seedStart;
   let seedCount = defaultConfig.seedCount;
   let gasLimit = defaultConfig.gasLimit;
+  let browser = 'chromium';
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
+    if (arg === '--') {
+      continue;
+    }
     if (arg === '--out-dir') {
       outDir = argv[index + 1] ?? outDir;
       index += 1;
@@ -151,7 +156,12 @@ function parseArgs(argv) {
       index += 1;
       continue;
     }
+    if (arg === '--browser') {
+      browser = argv[index + 1] ?? browser;
+      index += 1;
+      continue;
+    }
     throw new Error(`unknown argument: ${arg}`);
   }
-  return { outDir, baseUrl, seedStart, seedCount, gasLimit };
+  return { outDir, baseUrl, seedStart, seedCount, gasLimit, browser };
 }

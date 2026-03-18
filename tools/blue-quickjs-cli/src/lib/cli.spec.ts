@@ -47,6 +47,8 @@ describe('blue-quickjs-cli argument parsing', () => {
       'artifacts/custom',
       '--base-url',
       'http://127.0.0.1:4300',
+      '--browser',
+      'firefox',
       '--reuse-server',
     ]);
 
@@ -55,6 +57,8 @@ describe('blue-quickjs-cli argument parsing', () => {
       'artifacts/custom',
       '--base-url',
       'http://127.0.0.1:4300',
+      '--browser',
+      'firefox',
       '--reuse-server',
     ]);
   });

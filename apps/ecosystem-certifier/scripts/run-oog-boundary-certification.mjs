@@ -23,7 +23,7 @@ const fixtureIds = args.fixtureIds ?? [
 ];
 
 const cases = await buildRunnableCasesByIds(fixtureIds);
-const browser = await launchBrowserCertifier(args.baseUrl);
+const browser = await launchBrowserCertifier(args.baseUrl, args.browser);
 const boundaries = [];
 
 try {
@@ -80,6 +80,7 @@ const mismatchCount = boundaries.filter(
 ).length;
 const output = {
   generatedAt: new Date().toISOString(),
+  browser: args.browser,
   fixtureCount: boundaries.length,
   mismatchCount,
   boundaries,
@@ -122,8 +123,12 @@ function parseArgs(argv) {
   let outDir = 'artifacts/workload-certification';
   let baseUrl = null;
   let fixtureIds = null;
+  let browser = 'chromium';
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
+    if (arg === '--') {
+      continue;
+    }
     if (arg === '--out-dir') {
       outDir = argv[index + 1] ?? outDir;
       index += 1;
@@ -142,7 +147,12 @@ function parseArgs(argv) {
       index += 1;
       continue;
     }
+    if (arg === '--browser') {
+      browser = argv[index + 1] ?? browser;
+      index += 1;
+      continue;
+    }
     throw new Error(`unknown argument: ${arg}`);
   }
-  return { outDir, baseUrl, fixtureIds };
+  return { outDir, baseUrl, fixtureIds, browser };
 }

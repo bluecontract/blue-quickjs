@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { chromium } from '@playwright/test';
+import { chromium, firefox, webkit } from '@playwright/test';
 import { createHash } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -46,6 +46,7 @@ for (const fixture of CERTIFIER_FIXTURES) {
     id: fixture.id,
     title: fixture.title,
     kind: fixture.kind,
+    profile: fixture.profile,
     expected: fixture.expect,
     node: null,
     browser: null,
@@ -126,7 +127,11 @@ for (const fixture of CERTIFIER_FIXTURES) {
   nodeRecords.push(entry);
 }
 
-const browserSnapshotsById = await runBrowserCases(browserCases, args.baseUrl);
+const browserSnapshotsById = await runBrowserCases(
+  browserCases,
+  args.baseUrl,
+  args.browser,
+);
 
 for (const record of nodeRecords) {
   record.browser = browserSnapshotsById.get(record.id) ?? null;
@@ -141,6 +146,7 @@ const compatibilityMatrix = nodeRecords.map((record) => ({
   id: record.id,
   title: record.title,
   kind: record.kind,
+    profile: record.profile,
   expectedStage: record.expected.stage,
   nodeStage: record.node?.stage ?? null,
   browserStage: record.browser?.stage ?? null,
@@ -149,6 +155,7 @@ const compatibilityMatrix = nodeRecords.map((record) => ({
 }));
 const report = {
   generatedAt: now.toISOString(),
+  browser: args.browser,
   summary: {
     total: nodeRecords.length,
     withBrowserRuns: browserCases.length,
@@ -246,7 +253,7 @@ function normalizeFailureStage(kind) {
   return 'runtime_error';
 }
 
-async function runBrowserCases(cases, baseUrlOverride) {
+async function runBrowserCases(cases, baseUrlOverride, browserName) {
   if (cases.length === 0) {
     return new Map();
   }
@@ -263,7 +270,8 @@ async function runBrowserCases(cases, baseUrlOverride) {
   await viteServer.listen();
 
   const baseUrl = baseUrlOverride ?? 'http://127.0.0.1:4310';
-  const browser = await chromium.launch({ headless: true });
+  const browserType = resolveBrowserType(browserName);
+  const browser = await browserType.launch({ headless: true });
   const context = await browser.newContext({ baseURL: baseUrl });
 
   try {
@@ -344,8 +352,12 @@ function renderMarkdownReport(report) {
 function parseArgs(argv) {
   let outDir = 'artifacts/workload-certification';
   let baseUrl = null;
+  let browser = 'chromium';
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
+    if (arg === '--') {
+      continue;
+    }
     if (arg === '--out-dir') {
       outDir = argv[i + 1] ?? outDir;
       i += 1;
@@ -356,11 +368,29 @@ function parseArgs(argv) {
       i += 1;
       continue;
     }
+    if (arg === '--browser') {
+      browser = argv[i + 1] ?? browser;
+      i += 1;
+      continue;
+    }
     throw new Error(`unknown argument: ${arg}`);
   }
-  return { outDir, baseUrl };
+  return { outDir, baseUrl, browser };
 }
 
 function sha256Hex(input) {
   return createHash('sha256').update(input).digest('hex');
+}
+
+function resolveBrowserType(browserName) {
+  if (browserName === 'chromium') {
+    return chromium;
+  }
+  if (browserName === 'firefox') {
+    return firefox;
+  }
+  if (browserName === 'webkit') {
+    return webkit;
+  }
+  throw new Error(`unsupported browser: ${browserName}`);
 }

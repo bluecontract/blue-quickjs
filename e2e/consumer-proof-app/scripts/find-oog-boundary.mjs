@@ -2,7 +2,7 @@
 
 import { HOST_V1_MANIFEST } from '@blue-quickjs/abi-manifest';
 import { evaluate } from '@blue-quickjs/quickjs-runtime';
-import { chromium } from '@playwright/test';
+import { chromium, firefox, webkit } from '@playwright/test';
 import { createServer } from 'vite';
 import path from 'node:path';
 import {
@@ -40,7 +40,8 @@ const viteServer = await createServer({
   clearScreen: false,
 });
 await viteServer.listen();
-const browser = await chromium.launch({ headless: true });
+const browserType = resolveBrowserType(args.browser);
+const browser = await browserType.launch({ headless: true });
 const context = await browser.newContext({ baseURL: args.baseUrl });
 
 let browserBoundary;
@@ -76,6 +77,7 @@ const parity = {
 
 const report = {
   generatedAt: new Date().toISOString(),
+  browser: args.browser,
   node: {
     firstSuccessGas: nodeBoundary.firstSuccessGas.toString(),
     lastFailureGas: nodeBoundary.lastFailureGas.toString(),
@@ -123,8 +125,12 @@ function parseArgs(argv) {
   let maxGas = '2000000';
   let artifact = null;
   let baseUrl = 'http://127.0.0.1:4320';
+  let browser = 'chromium';
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
+    if (arg === '--') {
+      continue;
+    }
     if (arg === '--max-gas') {
       maxGas = argv[index + 1] ?? maxGas;
       index += 1;
@@ -140,7 +146,25 @@ function parseArgs(argv) {
       index += 1;
       continue;
     }
+    if (arg === '--browser') {
+      browser = argv[index + 1] ?? browser;
+      index += 1;
+      continue;
+    }
     throw new Error(`unknown argument: ${arg}`);
   }
-  return { maxGas, artifactPath: artifact, baseUrl };
+  return { maxGas, artifactPath: artifact, baseUrl, browser };
+}
+
+function resolveBrowserType(browserName) {
+  if (browserName === 'chromium') {
+    return chromium;
+  }
+  if (browserName === 'firefox') {
+    return firefox;
+  }
+  if (browserName === 'webkit') {
+    return webkit;
+  }
+  throw new Error(`unsupported browser: ${browserName}`);
 }

@@ -21,7 +21,7 @@ const fixtures = args.fixtureIds ?? [
   'green-stress-corpus',
 ];
 const runnableCases = await buildRunnableCasesByIds(fixtures);
-const browser = await launchBrowserCertifier(args.baseUrl);
+const browser = await launchBrowserCertifier(args.baseUrl, args.browser);
 
 const records = [];
 try {
@@ -85,6 +85,7 @@ try {
 const unstableCount = records.filter((record) => !record.stable).length;
 const output = {
   generatedAt: new Date().toISOString(),
+  browser: args.browser,
   fixtureCount: records.length,
   unstableCount,
   records,
@@ -103,8 +104,12 @@ function parseArgs(argv) {
   let iterations = 50;
   let flagshipIterations = 20;
   let fixtureIds = null;
+  let browser = 'chromium';
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
+    if (arg === '--') {
+      continue;
+    }
     if (arg === '--out-dir') {
       outDir = argv[index + 1] ?? outDir;
       index += 1;
@@ -133,7 +138,19 @@ function parseArgs(argv) {
       index += 1;
       continue;
     }
+    if (arg === '--browser') {
+      browser = argv[index + 1] ?? browser;
+      index += 1;
+      continue;
+    }
     throw new Error(`unknown argument: ${arg}`);
   }
-  return { outDir, baseUrl, iterations, flagshipIterations, fixtureIds };
+  return {
+    outDir,
+    baseUrl,
+    iterations,
+    flagshipIterations,
+    fixtureIds,
+    browser,
+  };
 }

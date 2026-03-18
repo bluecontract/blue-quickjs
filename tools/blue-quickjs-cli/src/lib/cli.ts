@@ -535,6 +535,7 @@ export function buildConsensusReportArgs(options: ArgMap): string[] {
   const args: string[] = [];
   appendStringOption(args, options, 'out-dir');
   appendStringOption(args, options, 'base-url');
+  appendStringOption(args, options, 'browser');
   appendBooleanFlag(args, options, 'reuse-server');
   return args;
 }
@@ -683,7 +684,7 @@ function printHelp(): void {
       '  run --artifact <path> [--manifest <path>] [--input <path>] [--gas-limit <u64>]',
       '  inspect --artifact <path>',
       '  explain-error --payload <vm-payload> | --raw "ERROR ..."',
-      '  consensus-report [--out-dir artifacts/reproducibility-consensus] [--base-url http://127.0.0.1:4300] [--reuse-server]',
+      '  consensus-report [--out-dir artifacts/reproducibility-consensus] [--base-url http://127.0.0.1:4300] [--browser chromium|firefox|webkit] [--reuse-server]',
       '  native-report [--strict] [--out-dir artifacts/reproducibility] [--gas-charge-tape-capacity <u32>]',
       '  native-parity [--assert-match] [--out parity.json] [--compare previous.json] [--ignore-gas] [--include-gas-trace] [--include-gas-charge-tape]',
     ].join('\n'),

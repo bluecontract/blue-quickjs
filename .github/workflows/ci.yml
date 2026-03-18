@@ -45,6 +45,15 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - name: Validate docs links
+        run: pnpm docs:check-links
+
+      - name: Run release evidence unit tests
+        run: pnpm release-evidence:test
+
+      - name: Validate README quickstart script wiring
+        run: node tools/release-evidence/verify-readme-quickstart.mjs --skip-install --skip-emsdk-setup --skip-smoke-tests --skip-browser-tasks --skip-evidence
+
       - name: Install emsdk (pinned 3.1.56)
         run: bash tools/scripts/setup-emsdk.sh
 

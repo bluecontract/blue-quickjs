@@ -1,4 +1,4 @@
-import { chromium } from '@playwright/test';
+import { chromium, firefox, webkit } from '@playwright/test';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -82,7 +82,10 @@ export async function evaluateCaseNode(certCase, gasLimit) {
   return snapshotFromEvaluateResult(result);
 }
 
-export async function launchBrowserCertifier(baseUrlOverride) {
+export async function launchBrowserCertifier(
+  baseUrlOverride,
+  browserName = 'chromium',
+) {
   const viteServer = await createServer({
     configFile: path.join(appRoot, 'vite.config.mts'),
     server: {
@@ -95,7 +98,8 @@ export async function launchBrowserCertifier(baseUrlOverride) {
   await viteServer.listen();
 
   const baseUrl = baseUrlOverride ?? 'http://127.0.0.1:4310';
-  const browser = await chromium.launch({ headless: true });
+  const browserType = resolveBrowserType(browserName);
+  const browser = await browserType.launch({ headless: true });
   const context = await browser.newContext({ baseURL: baseUrl });
   const page = await context.newPage();
   await page.goto('/');
@@ -172,4 +176,17 @@ function normalizeFailureStage(kind) {
     return 'pin_enforcement';
   }
   return 'runtime_error';
+}
+
+function resolveBrowserType(browserName) {
+  if (browserName === 'chromium') {
+    return chromium;
+  }
+  if (browserName === 'firefox') {
+    return firefox;
+  }
+  if (browserName === 'webkit') {
+    return webkit;
+  }
+  throw new Error(`unsupported browser: ${browserName}`);
 }

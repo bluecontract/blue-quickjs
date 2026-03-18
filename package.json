@@ -14,7 +14,15 @@
     "lint": "nx run-many -t lint --all",
     "docs:check-links": "node tools/release-evidence/check-doc-links.mjs",
     "docs:check-freshness": "node tools/release-evidence/check-release-doc-freshness.mjs",
-    "quickstart:verify": "node tools/release-evidence/verify-readme-quickstart.mjs"
+    "quickstart:verify": "node tools/release-evidence/verify-readme-quickstart.mjs",
+    "release-evidence:synthesize": "node tools/release-evidence/synthesize-release-evidence.mjs",
+    "release-evidence:verify": "node tools/release-evidence/verify-release-evidence.mjs",
+    "release-evidence:test": "node --test tools/release-evidence/release-evidence.test.mjs",
+    "release-evidence:sbom": "node tools/release-evidence/generate-sbom.mjs",
+    "release-evidence:licenses": "node tools/release-evidence/generate-license-report.mjs",
+    "workload:check-public-package-versions": "node tools/workload-certification/check-public-package-versions.mjs",
+    "workload:check-pack-manifests": "node tools/workload-certification/check-pack-manifests.mjs",
+    "publish-rehearsal:verdaccio": "node tools/workload-certification/run-verdaccio-publish-rehearsal.mjs"
   },
   "private": true,
   "devDependencies": {

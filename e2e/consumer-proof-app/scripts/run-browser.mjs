@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { chromium } from '@playwright/test';
+import { chromium, firefox, webkit } from '@playwright/test';
 import { createServer } from 'vite';
 import path from 'node:path';
 import {
@@ -20,7 +20,8 @@ const viteServer = await createServer({
 });
 await viteServer.listen();
 
-const browser = await chromium.launch({ headless: true });
+const browserType = resolveBrowserType(args.browser);
+const browser = await browserType.launch({ headless: true });
 const context = await browser.newContext({ baseURL: args.baseUrl });
 try {
   const page = await context.newPage();
@@ -58,6 +59,7 @@ try {
   });
   await writeJson(browserResultPath, {
     generatedAt: new Date().toISOString(),
+    browser: args.browser,
     gasLimit: args.gasLimit,
     snapshot,
   });
@@ -72,8 +74,12 @@ function parseArgs(argv) {
   let gasLimit = '1000000';
   let artifact = null;
   let baseUrl = 'http://127.0.0.1:4320';
+  let browser = 'chromium';
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
+    if (arg === '--') {
+      continue;
+    }
     if (arg === '--gas-limit') {
       gasLimit = argv[index + 1] ?? gasLimit;
       index += 1;
@@ -89,7 +95,25 @@ function parseArgs(argv) {
       index += 1;
       continue;
     }
+    if (arg === '--browser') {
+      browser = argv[index + 1] ?? browser;
+      index += 1;
+      continue;
+    }
     throw new Error(`unknown argument: ${arg}`);
   }
-  return { gasLimit, artifactPath: artifact, baseUrl };
+  return { gasLimit, artifactPath: artifact, baseUrl, browser };
+}
+
+function resolveBrowserType(browserName) {
+  if (browserName === 'chromium') {
+    return chromium;
+  }
+  if (browserName === 'firefox') {
+    return firefox;
+  }
+  if (browserName === 'webkit') {
+    return webkit;
+  }
+  throw new Error(`unsupported browser: ${browserName}`);
 }
