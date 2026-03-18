@@ -58,4 +58,4 @@ playwright-report
 e2e/consumer-proof-app/node_modules/
 e2e/consumer-proof-app/reports/
 e2e/consumer-proof-app/package-lock.json
-artifacts/consumer-proof/
+artifacts/

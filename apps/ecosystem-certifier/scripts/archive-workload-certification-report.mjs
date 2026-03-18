@@ -133,15 +133,30 @@ for (const record of nodeRecords) {
 }
 
 const mismatches = nodeRecords.filter((record) => !record.match);
+const positiveRecords = nodeRecords.filter((record) => record.kind === 'positive');
+const negativeRecords = nodeRecords.filter((record) => record.kind === 'negative');
+const flagshipRecords = nodeRecords.filter((record) => record.kind === 'flagship');
+const compatibilityMatrix = nodeRecords.map((record) => ({
+  id: record.id,
+  title: record.title,
+  kind: record.kind,
+  expectedStage: record.expected.stage,
+  nodeStage: record.node?.stage ?? null,
+  browserStage: record.browser?.stage ?? null,
+  match: record.match,
+  diagnostics: record.builder?.diagnostics ?? [],
+}));
 const report = {
   generatedAt: now.toISOString(),
   summary: {
     total: nodeRecords.length,
     withBrowserRuns: browserCases.length,
     mismatches: mismatches.length,
-    greenCount: nodeRecords.filter((record) => record.kind !== 'negative').length,
-    redCount: nodeRecords.filter((record) => record.kind === 'negative').length,
+    greenCount: positiveRecords.length,
+    redCount: negativeRecords.length,
+    flagshipCount: flagshipRecords.length,
   },
+  compatibilityMatrix,
   records: nodeRecords,
   signature: {
     algorithm: 'sha256',
