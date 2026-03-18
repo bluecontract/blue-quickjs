@@ -34,6 +34,68 @@ Deterministic QuickJS-in-Wasm evaluator monorepo (Nx + pnpm), tracking a hardene
 - Run tests across projects: `pnpm nx run-many -t test`.
 - Apply lint fixes: `pnpm lint --fix`.
 
+## Quickstart (release-candidate flow)
+
+### 1) Build CLI + wasm artifacts
+
+```bash
+source tools/emsdk/emsdk_env.sh
+pnpm nx build quickjs-wasm-build
+pnpm nx build blue-quickjs-cli
+```
+
+### 2) Build deterministic module-pack artifact
+
+```bash
+node tools/blue-quickjs-cli/dist/cli.js build \
+  --entry examples/09-kitchen-sink/entry.js \
+  --profile compat-general-v1 \
+  --out artifacts/kitchen-sink.program.json
+```
+
+### 3) Run a script artifact
+
+```bash
+node tools/blue-quickjs-cli/dist/cli.js run \
+  --artifact artifacts/script.program.json \
+  --gas-limit 500000
+```
+
+### 4) Run a module-pack artifact
+
+```bash
+node tools/blue-quickjs-cli/dist/cli.js run \
+  --artifact artifacts/kitchen-sink.program.json \
+  --gas-limit 5000000
+```
+
+### 5) Inspect artifact pins/module metadata
+
+```bash
+node tools/blue-quickjs-cli/dist/cli.js inspect \
+  --artifact artifacts/kitchen-sink.program.json
+```
+
+### 6) Run example corpus parity checks
+
+```bash
+pnpm nx test smoke-node
+pnpm nx run smoke-web:e2e
+```
+
+### 7) Generate strict consensus parity evidence artifacts
+
+```bash
+node tools/consensus-parity/scripts/archive-consensus-reproducibility-report.mjs \
+  --out-dir artifacts/reproducibility-consensus
+```
+
+Optional native diagnostics:
+
+```bash
+node tools/quickjs-native-harness/scripts/archive-reproducibility-report.mjs
+```
+
 ## Toolchain
 
 - Emscripten is pinned to `3.1.56`; install via `tools/scripts/setup-emsdk.sh`, then `source tools/emsdk/emsdk_env.sh`. See `docs/toolchain.md` for details and CI cache notes.
@@ -58,6 +120,17 @@ Deterministic QuickJS-in-Wasm evaluator monorepo (Nx + pnpm), tracking a hardene
 - Release checklist: `docs/release-checklist.md`
 - Examples guide: `docs/examples.md`
 - Release-readiness evidence report: `docs/release-readiness-report.md`
+
+## Architecture at a glance
+
+```text
+source JS/TS
+  -> deterministic builder
+      -> ModulePack.v1 / ProgramArtifact.v2
+          -> deterministic runtime (wasm-node / wasm-browser)
+              -> result + exact gas + host tape
+                  -> consensus parity + reproducibility artifacts
+```
 
 ## Determinism checklist
 

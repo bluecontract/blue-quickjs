@@ -1,3 +1,21 @@
+## Unreleased
+
+### Release candidate draft — wasm consensus platform
+
+- **Consensus-safe scope:** strict release gate is `wasm-node` vs
+  `wasm-browser` on pinned canonical `wasm32` artifacts.
+- **Native status:** native harness remains diagnostic-only by default (not
+  consensus-safe unless explicitly promoted by policy).
+- **Gas contract:** `gasVersion = 8` with strict exact-gas parity and exact OOG
+  boundary parity requirements across consensus executors.
+- **Example corpus coverage:** 10 certified examples covering baseline script,
+  module-pack imports, Promise/microtasks, Promise+import+host-call,
+  binary/Host.v2 DV2, console shim, stable sort, kitchen-sink flow, and max-gas
+  boundary policy proof.
+- **Compatibility surface:** explicit profile model
+  (`baseline-v1`, `compat-general-v1`, `compat-binary-v1`) with deterministic
+  capability gating.
+
 ## 0.4.1 (2026-03-13)
 
 ### 🚀 Features

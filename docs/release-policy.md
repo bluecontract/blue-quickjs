@@ -40,6 +40,31 @@ The repository command for the consensus wasm-node/wasm-browser report is:
 Native reproducibility reports remain diagnostic by default; use strict
 assertion mode only when native is explicitly promoted to a consensus executor.
 
+## DoS-control max-gas policy validity envelope
+
+Document-level `maxGas` policy is consensus-safe **only** when all of the
+following are pinned together:
+
+- `engineBuildHash` (canonical `wasm32` release artifact hash)
+- `gasVersion`
+- `executionProfile`
+- ABI identity + manifest pins (`abiId`, `abiVersion`, `abiManifestHash`)
+
+This is enforced in release-mode runtime validation by requiring the artifact
+pins (`engineBuildHash`, `gasVersion`, `executionProfile`) and rejecting pin
+mismatches.
+
+### Corpus-backed OOG boundary example
+
+Using the certified example corpus boundary fixture (`loop-10k`,
+`examples/10-max-gas-policy/program.js`):
+
+- success at `N = 170099`
+- deterministic OOG failure at `N - 1 = 170098`
+
+The same boundary must hold exactly in both consensus executors
+(`wasm-node`, `wasm-browser`) for the policy to be valid.
+
 ## Published packages
 
 - `@blue-quickjs/dv`: DV encode/decode + validation (pure TS).
