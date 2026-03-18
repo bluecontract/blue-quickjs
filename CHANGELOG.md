@@ -1,3 +1,22 @@
+## 0.5.0-rc.0 (2026-03-18)
+
+### 🚀 Features
+
+- **release-policy:** promote strict gas/OOG parity to release-critical
+  consensus contract for `wasm-node` vs `wasm-browser`.
+- **ecosystem-certifier:** add flagship workload certification, deterministic
+  green/red compatibility matrix, builder determinism evidence, and downstream
+  consumer-proof integration.
+- **release-workflow:** run strict consensus parity gates and archive workload +
+  consumer evidence artifacts in release workflow.
+
+### 📚 Documentation
+
+- Promote README into a product/release landing page with consensus-safe scope,
+  execution profiles, and quickstart.
+- Add head verification note and release notes draft.
+- Refresh docs index for release-readiness and verification-oriented navigation.
+
 ## 0.4.1 (2026-03-13)
 
 ### 🚀 Features

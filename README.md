@@ -1,6 +1,74 @@
 # BlueQuickjs
 
-Deterministic QuickJS-in-Wasm evaluator monorepo (Nx + pnpm), tracking a hardened QuickJS fork and SDK/tooling to run it.
+BlueQuickjs is a deterministic JavaScript execution engine built on a hardened
+QuickJS runtime compiled to Wasm. It is designed for **consensus-critical
+execution** where result bytes, gas accounting, host-call tape, and OOG
+boundaries must be reproducible across environments.
+
+## Consensus-safe scope (today)
+
+- Consensus executors: **`wasm-node` vs `wasm-browser`** (canonical `wasm32` release artifact).
+- Release gates require exact parity for:
+  - value/error result,
+  - gas used and gas remaining,
+  - host-call tape evidence,
+  - first-success/last-failure OOG boundaries.
+- Native harness remains **diagnostic-only** unless explicitly promoted by
+  release policy.
+
+See:
+- Release policy: [`docs/release-policy.md`](docs/release-policy.md)
+- Workload certification: [`docs/workload-certification.md`](docs/workload-certification.md)
+- Ecosystem compatibility: [`docs/ecosystem-compatibility-report.md`](docs/ecosystem-compatibility-report.md)
+- Release evidence: [`docs/release-readiness-report.md`](docs/release-readiness-report.md)
+
+## Execution profiles
+
+| Profile | Purpose | Deterministic capability scope |
+| --- | --- | --- |
+| `baseline-v1` | Minimal consensus baseline | No Promise jobs/microtasks, no typed arrays/ArrayBuffer/DataView, no dynamic import/time/random/fs/network |
+| `compat-general-v1` | Real-world JS compatibility | `baseline-v1` + deterministic RegExp + Promise jobs + `queueMicrotask` + deterministic console shim + stable sort |
+| `compat-binary-v1` | Binary-heavy deterministic workloads | `compat-general-v1` + typed arrays/ArrayBuffer/DataView + DV2 bytes boundary |
+
+Profile details:
+- [`docs/execution-profiles.md`](docs/execution-profiles.md)
+- [`docs/determinism-profile.md`](docs/determinism-profile.md)
+
+## 3-step quickstart
+
+1. **Install dependencies + pinned Wasm toolchain**
+
+   ```bash
+   pnpm install
+   bash tools/scripts/setup-emsdk.sh
+   source tools/emsdk/emsdk_env.sh
+   ```
+
+2. **Run consensus smoke checks**
+
+   ```bash
+   pnpm exec playwright install --with-deps chromium
+   source tools/emsdk/emsdk_env.sh
+   pnpm nx test smoke-node
+   pnpm nx run smoke-web:e2e
+   ```
+
+3. **Generate parity and certification evidence**
+
+   ```bash
+   source tools/emsdk/emsdk_env.sh
+   node tools/consensus-parity/scripts/archive-consensus-reproducibility-report.mjs --out-dir artifacts/reproducibility-consensus
+   node apps/ecosystem-certifier/scripts/archive-workload-certification-report.mjs --out-dir artifacts/workload-certification
+   ```
+
+## Start here
+
+- Documentation index: [`docs/README.md`](docs/README.md)
+- Head verification snapshot: [`docs/head-verification-note.md`](docs/head-verification-note.md)
+- Examples corpus: [`examples/README.md`](examples/README.md)
+- Workload certification plan: [`docs/workload-certification-plan.md`](docs/workload-certification-plan.md)
+
+---
 
 ## QuickJS fork
 
@@ -20,34 +88,10 @@ Deterministic QuickJS-in-Wasm evaluator monorepo (Nx + pnpm), tracking a hardene
 
 - Emscripten is pinned to `3.1.56`; install via `tools/scripts/setup-emsdk.sh`, then `source tools/emsdk/emsdk_env.sh`. See `docs/toolchain.md` for details and CI cache notes.
 
-## Docs
-
-- Baselines (start here):
-  - Baseline #1 — Deterministic execution + canonical gas: `docs/baseline-1.md`
-  - Baseline #2 — Host ABI (manifest-locked) + DV wire format: `docs/baseline-2.md`
-- Determinism profile: `docs/determinism-profile.md`
-- Gas schedule: `docs/gas-schedule.md`
-- DV wire format: `docs/dv-wire-format.md`
-- Program artifact v2: `docs/program-artifact-v2.md`
-- Module pack v1: `docs/module-pack.md`
-- Execution profiles: `docs/execution-profiles.md`
-- Deterministic builder: `docs/builder.md`
-- Value model v2 (DV2): `docs/value-model-v2.md`
-- Embedder integration: `docs/embedders.md`
-- ABI manifest: `docs/abi-manifest.md`
-- Host call ABI: `docs/host-call-abi.md`
-- Release policy: `docs/release-policy.md`
-- Release checklist: `docs/release-checklist.md`
-- Workload certification plan: `docs/workload-certification-plan.md`
-- Workload certification report: `docs/workload-certification.md`
-- Ecosystem compatibility report: `docs/ecosystem-compatibility-report.md`
-- Examples guide: `docs/examples.md`
-- Release-readiness evidence report: `docs/release-readiness-report.md`
-
 ## Determinism checklist
 
 - Same `(P, I, G)` yields identical result bytes, gas used/remaining, and host-call tape hashes across Node and browser.
-- Deterministic capability profiles: baseline disables time/random/async/binary surfaces; compatibility profiles (`compat-general-v1`, `compat-binary-v1`) selectively re-enable deterministic subsets (`docs/determinism-profile.md`, `docs/execution-profiles.md`).
+- Deterministic capability profiles enforce explicit contracts per profile (`docs/determinism-profile.md`, `docs/execution-profiles.md`).
 - Canonical gas: opcode/builtin/allocation/GC charges plus two-phase host-call gas (`docs/gas-schedule.md`).
 - DV and manifest: canonical DV encoding, safe numeric range, sorted keys, size caps, manifest hash pinning (`docs/dv-wire-format.md`, `docs/abi-manifest.md`).
 - Host ABI: `host_call` envelope, deterministic error mapping, and reentrancy rules (`docs/host-call-abi.md`).

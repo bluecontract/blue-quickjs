@@ -20,7 +20,13 @@ However, Baseline #2 still applies: even read-only `document(path)` is a host ca
 
 - **Nx monorepo** (TypeScript-first) using **pnpm**, with consistent tooling (lint/format/test/build) and CI.
 - **QuickJS fork** lives as a **git submodule** at `vendor/quickjs` (pinned commit). All determinism + gas + host ABI changes live in that fork.
-- **Deterministic execution profile** is enforced in the VM init: time/random/async/network/fs/locale are removed or stubbed; typed arrays / ArrayBuffer / WebAssembly are disabled; dangerous features like `eval`/`Function` are disabled (Baseline #1 §1B–§1C, §3).
+- **Deterministic execution profile** is enforced in VM init with explicit
+  profile contracts: baseline removes/stubs ambient nondeterministic surfaces
+  (time/random/network/fs/locale and dynamic-codegen paths), while
+  compatibility profiles (`compat-general-v1`, `compat-binary-v1`) selectively
+  re-enable deterministic Promise/job-queue and binary capabilities. Dangerous
+  dynamic-codegen surfaces (`eval`/`Function`) remain disabled (Baseline #1
+  §1B–§1C, §3).
 - **Canonical gas** is implemented inside QuickJS: opcode metering, metered C builtins, allocation charges, deterministic GC checkpoints (Baseline #1 §2B).
 - **Single syscall ABI (`host_call`)** for all host capabilities: `fn_id + request_bytes -> response_bytes`, with **manifest mapping**, **manifest hash validation**, and **DV canonical encoding** (Baseline #2 §1.1–§1.4, §2).
 - VM exposes a frozen **`Host.v1`** namespace generated from the manifest, and provides ergonomic globals:

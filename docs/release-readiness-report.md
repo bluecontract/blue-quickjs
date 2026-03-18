@@ -1,7 +1,7 @@
 # Release-readiness report (current branch snapshot)
 
-Date: 2026-03-17  
-Branch: `cursor/next-generation-quickjs-platform-1578`
+Date: 2026-03-18  
+Branch: `cursor/wasm-consensus-ga-readiness-51ed`
 
 ## Environment
 
@@ -30,7 +30,7 @@ Branch: `cursor/next-generation-quickjs-platform-1578`
 - Native strict mode is available (`--strict`) but not required for consensus
   acceptance unless policy explicitly promotes native to consensus.
 
-## Evidence artifacts from latest validation run
+## Evidence artifacts from latest available validation run
 
 Consensus report:
 

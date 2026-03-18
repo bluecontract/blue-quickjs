@@ -22,6 +22,7 @@ If you are new to determinism/gas (or coming from “normal” JS runtimes), fol
 
 3. **What was built (narrative + repo map)**
    - [Implementation summary](./implementation-summary.md)
+   - [Head verification note](./head-verification-note.md)
 
 4. **Reference specs (details, normative behavior)**
    - [Determinism profile](./determinism-profile.md)
@@ -37,6 +38,7 @@ If you are new to determinism/gas (or coming from “normal” JS runtimes), fol
    - [Host call ABI (the `host_call` syscall)](./host-call-abi.md)
    - [Toolchain + build determinism](./toolchain.md)
    - [Release + compatibility policy](./release-policy.md)
+  - [Release-readiness report](./release-readiness-report.md)
   - [Workload certification plan](./workload-certification-plan.md)
   - [Workload certification report](./workload-certification.md)
   - [Ecosystem compatibility report](./ecosystem-compatibility-report.md)
@@ -45,6 +47,8 @@ If you are new to determinism/gas (or coming from “normal” JS runtimes), fol
    - [TypeScript SDK usage](./sdk.md)
    - [ABI limits explained](./abi-limits.md)
    - [Observability: host-call tape + gas trace](./observability.md)
+   - [Release notes draft](./release-notes-draft.md)
+   - [Repository metadata checklist](./repository-metadata-checklist.md)
 
 ## Quick “repo map”
 
