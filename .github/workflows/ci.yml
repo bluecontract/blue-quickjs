@@ -65,3 +65,11 @@ jobs:
 
       - name: Run smoke-web e2e
         run: pnpm nx run smoke-web:e2e
+
+      - name: Run ecosystem certifier e2e
+        run: pnpm nx run ecosystem-certifier:e2e
+
+      - name: Generate workload certification sanity artifacts
+        run: |
+          node apps/ecosystem-certifier/scripts/check-builder-determinism.mjs --out-dir artifacts/workload-certification-ci
+          node apps/ecosystem-certifier/scripts/archive-workload-certification-report.mjs --out-dir artifacts/workload-certification-ci

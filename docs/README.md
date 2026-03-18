@@ -37,6 +37,9 @@ If you are new to determinism/gas (or coming from “normal” JS runtimes), fol
    - [Host call ABI (the `host_call` syscall)](./host-call-abi.md)
    - [Toolchain + build determinism](./toolchain.md)
    - [Release + compatibility policy](./release-policy.md)
+  - [Workload certification plan](./workload-certification-plan.md)
+  - [Workload certification report](./workload-certification.md)
+  - [Ecosystem compatibility report](./ecosystem-compatibility-report.md)
 
 5. **Developer guides (practical usage)**
    - [TypeScript SDK usage](./sdk.md)

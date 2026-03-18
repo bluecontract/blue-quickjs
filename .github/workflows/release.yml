@@ -54,6 +54,9 @@ jobs:
       - name: Verify generated gas schedule docs are in sync
         run: node tools/gas-spec/render-gas-artifacts.mjs --check
 
+      - name: Install Playwright browsers (Chromium)
+        run: pnpm exec playwright install --with-deps chromium
+
       - name: Print Environment Info
         run: pnpm exec nx report
 
@@ -63,9 +66,22 @@ jobs:
           pnpm nx test smoke-node
           pnpm nx test test-harness
           pnpm nx run smoke-web:e2e
+          pnpm nx test ecosystem-certifier
+          pnpm nx run ecosystem-certifier:e2e
 
       - name: Generate consensus reproducibility report artifact
         run: node tools/consensus-parity/scripts/archive-consensus-reproducibility-report.mjs
+
+      - name: Generate workload certification artifacts
+        run: |
+          node apps/ecosystem-certifier/scripts/check-builder-determinism.mjs --out-dir artifacts/workload-certification
+          node apps/ecosystem-certifier/scripts/archive-workload-certification-report.mjs --out-dir artifacts/workload-certification
+
+      - name: Generate downstream consumer reproducibility artifacts
+        run: |
+          node tools/workload-certification/pack-public-tarballs.mjs --out-dir artifacts/consumer-proof/tarballs
+          pnpm --dir e2e/consumer-proof-app run install:tarballs -- --tarball-dir ../../artifacts/consumer-proof/tarballs
+          pnpm --dir e2e/consumer-proof-app run repro
 
       - name: Run native diagnostics (non-blocking)
         continue-on-error: true
@@ -96,6 +112,22 @@ jobs:
             artifacts/reproducibility/*.md*
             artifacts/reproducibility/*.sig
           if-no-files-found: warn
+
+      - name: Upload workload certification artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: workload-certification-report
+          path: artifacts/workload-certification/*
+          if-no-files-found: error
+
+      - name: Upload consumer-proof artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: consumer-proof-report
+          path: |
+            artifacts/consumer-proof/tarballs/tarball-manifest.json
+            e2e/consumer-proof-app/reports/*.json*
+          if-no-files-found: error
 
       - name: Configure Git
         run: |

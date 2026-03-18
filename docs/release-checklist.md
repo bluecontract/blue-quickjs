@@ -24,6 +24,13 @@ Scope: steps to publish deterministic engine + ABI packages.
     require strict native report generation:
     - `node tools/quickjs-native-harness/scripts/archive-reproducibility-report.mjs --strict`
   - Preserve both generated report JSON and matching `.sha256` sidecars.
+- Run workload/ecosystem certification reports:
+  - `node apps/ecosystem-certifier/scripts/check-builder-determinism.mjs --out-dir artifacts/workload-certification`
+  - `node apps/ecosystem-certifier/scripts/archive-workload-certification-report.mjs --out-dir artifacts/workload-certification`
+- Run downstream tarball consumer reproducibility proof:
+  - `node tools/workload-certification/pack-public-tarballs.mjs --out-dir artifacts/consumer-proof/tarballs`
+  - `pnpm --dir e2e/consumer-proof-app run install:tarballs -- --tarball-dir ../../artifacts/consumer-proof/tarballs`
+  - `pnpm --dir e2e/consumer-proof-app run repro`
 
 ## Wasm build + metadata
 
