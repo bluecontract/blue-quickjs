@@ -39,6 +39,8 @@ If you are new to determinism/gas (or coming from “normal” JS runtimes), fol
    - [Toolchain + build determinism](./toolchain.md)
    - [Release + compatibility policy](./release-policy.md)
   - [Release-readiness report](./release-readiness-report.md)
+  - [Release provenance and trust model](./release-provenance.md)
+  - [Signature rotation and rollback](./signature-rotation-and-rollback.md)
   - [Workload certification plan](./workload-certification-plan.md)
   - [Workload certification report](./workload-certification.md)
   - [Ecosystem compatibility report](./ecosystem-compatibility-report.md)
@@ -49,6 +51,11 @@ If you are new to determinism/gas (or coming from “normal” JS runtimes), fol
    - [Observability: host-call tape + gas trace](./observability.md)
    - [Release notes draft](./release-notes-draft.md)
    - [Repository metadata checklist](./repository-metadata-checklist.md)
+   - [Threat model (operator-facing)](./threat-model.md)
+   - [Production embedder checklist](./production-embedder-checklist.md)
+   - [Release go/no-go template](./release-go-no-go-template.md)
+   - [First 10 minutes guide](./first-10-minutes.md)
+   - [GA cutover decision](./ga-cutover-decision.md)
 
 ## Quick “repo map”
 

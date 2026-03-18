@@ -67,6 +67,9 @@ Profile details:
 - Head verification snapshot: [`docs/head-verification-note.md`](docs/head-verification-note.md)
 - Examples corpus: [`examples/README.md`](examples/README.md)
 - Workload certification plan: [`docs/workload-certification-plan.md`](docs/workload-certification-plan.md)
+- Production embedder checklist: [`docs/production-embedder-checklist.md`](docs/production-embedder-checklist.md)
+- Local auditor verification command:
+  `pnpm release-evidence:verify -- --evidence-dir artifacts/release-evidence`
 
 ---
 
