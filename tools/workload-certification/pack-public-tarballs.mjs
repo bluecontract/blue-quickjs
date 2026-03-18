@@ -1,0 +1,82 @@
+#!/usr/bin/env node
+
+import { mkdir, readdir, unlink, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+import process from 'node:process';
+import { spawn } from 'node:child_process';
+
+const repoRoot = process.cwd();
+const args = parseArgs(process.argv.slice(2));
+const outDir = path.resolve(repoRoot, args.outDir);
+await mkdir(outDir, { recursive: true });
+for (const entry of await readdir(outDir)) {
+  if (entry.endsWith('.tgz')) {
+    await unlink(path.join(outDir, entry));
+  }
+}
+
+const packages = [
+  '@blue-quickjs/abi-manifest',
+  '@blue-quickjs/dv',
+  '@blue-quickjs/execution-profiles',
+  '@blue-quickjs/quickjs-wasm-constants',
+  '@blue-quickjs/quickjs-wasm',
+  '@blue-quickjs/quickjs-runtime',
+  '@blue-quickjs/deterministic-bundler',
+];
+
+for (const pkg of packages) {
+  await run(
+    'pnpm',
+    ['--filter', pkg, 'pack', '--pack-destination', outDir],
+    repoRoot,
+  );
+}
+
+const tarballs = await listTarballs(outDir);
+const manifest = {
+  generatedAt: new Date().toISOString(),
+  outDir,
+  packages,
+  tarballs,
+};
+const manifestPath = path.join(outDir, 'tarball-manifest.json');
+await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
+
+console.log(JSON.stringify({ outDir, manifestPath, count: tarballs.length }, null, 2));
+
+async function listTarballs(directory) {
+  const entries = await readdir(directory);
+  return entries.filter((entry) => entry.endsWith('.tgz')).sort();
+}
+
+async function run(command, argsList, cwd) {
+  await new Promise((resolve, reject) => {
+    const child = spawn(command, argsList, {
+      cwd,
+      stdio: 'inherit',
+      shell: false,
+    });
+    child.on('exit', (code) => {
+      if (code === 0) {
+        resolve(undefined);
+        return;
+      }
+      reject(new Error(`command failed (${command} ${argsList.join(' ')}): ${code}`));
+    });
+  });
+}
+
+function parseArgs(argv) {
+  let outDir = 'artifacts/consumer-proof/tarballs';
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i];
+    if (arg === '--out-dir') {
+      outDir = argv[i + 1] ?? outDir;
+      i += 1;
+      continue;
+    }
+    throw new Error(`unknown argument: ${arg}`);
+  }
+  return { outDir };
+}
