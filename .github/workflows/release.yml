@@ -84,6 +84,7 @@ jobs:
           path: |
             artifacts/reproducibility-consensus/*.json*
             artifacts/reproducibility-consensus/*.md*
+            artifacts/reproducibility-consensus/*.sig
           if-no-files-found: error
 
       - name: Upload native diagnostic reproducibility artifacts
@@ -93,6 +94,7 @@ jobs:
           path: |
             artifacts/reproducibility/*.json*
             artifacts/reproducibility/*.md*
+            artifacts/reproducibility/*.sig
           if-no-files-found: warn
 
       - name: Configure Git
