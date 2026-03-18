@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 import jiti from 'jiti';
@@ -16,6 +16,12 @@ const { HOST_V1_HASH, HOST_V1_MANIFEST } = require(
 );
 const { evaluate } = require('../../../libs/quickjs-runtime/src/index.ts');
 const { createCertificationHost } = require('../src/shared/host.ts');
+
+const propertySeedConfigPath = path.resolve(
+  repoRoot,
+  'apps/ecosystem-certifier/src/shared/fixtures/property-seed-config.json',
+);
+const defaultConfig = JSON.parse(await readFile(propertySeedConfigPath, 'utf8'));
 
 const args = parseArgs(process.argv.slice(2));
 const outDir = path.resolve(repoRoot, args.outDir);
@@ -115,9 +121,9 @@ function createSeededCase(seed, gasLimit) {
 function parseArgs(argv) {
   let outDir = 'artifacts/workload-certification';
   let baseUrl = null;
-  let seedStart = 1;
-  let seedCount = 40;
-  let gasLimit = 600000;
+  let seedStart = defaultConfig.seedStart;
+  let seedCount = defaultConfig.seedCount;
+  let gasLimit = defaultConfig.gasLimit;
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
     if (arg === '--out-dir') {
