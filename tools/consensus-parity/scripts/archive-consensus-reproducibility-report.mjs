@@ -48,6 +48,10 @@ const args = parseArgs(process.argv.slice(2));
 const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
 const outDir = path.resolve(repoRoot, args.outDir);
 const reportPath = path.join(outDir, `consensus-parity-report-${timestamp}.json`);
+const summaryPath = path.join(
+  outDir,
+  `consensus-parity-summary-${timestamp}.md`,
+);
 
 await mkdir(outDir, { recursive: true });
 
@@ -140,6 +144,10 @@ try {
     0,
   );
   const fixtureCount = suites.reduce((sum, suite) => sum + suite.fixtureCount, 0);
+  const executionProfiles = collectExecutionProfiles();
+  const oogBoundaryParity = summarizeOogBoundaryParity(
+    suites.find((suite) => suite.name === 'gas-boundary-fixtures'),
+  );
 
   const report = {
     generatedAt: new Date().toISOString(),
@@ -151,6 +159,7 @@ try {
       gasVersion: metadata.gasVersion ?? null,
       engineBuildHash: metadata.engineBuildHash ?? null,
       executionProfile: 'fixture-defined',
+      executionProfiles,
       wasmVariant: 'wasm32',
       wasmBuildType: 'release',
       wasmFilename: variantMetadata?.wasm?.filename ?? null,
@@ -160,6 +169,7 @@ try {
     suiteCount: suites.length,
     fixtureCount,
     mismatchCount,
+    oogBoundaryParity,
     suites,
   };
   const signatureDigest = sha256Hex(JSON.stringify(report));
@@ -181,6 +191,20 @@ try {
     `${fileDigest}  ${path.basename(reportPath)}\n`,
     'utf8',
   );
+  const summaryText = buildConsensusSummaryMarkdown({
+    report: signedReport,
+    reportPath,
+    reportChecksumPath: checksumPath,
+    reportFileDigest: fileDigest,
+  });
+  await writeFile(summaryPath, summaryText, 'utf8');
+  const summaryDigest = sha256Hex(summaryText);
+  const summaryChecksumPath = `${summaryPath}.sha256`;
+  await writeFile(
+    summaryChecksumPath,
+    `${summaryDigest}  ${path.basename(summaryPath)}\n`,
+    'utf8',
+  );
 
   process.stdout.write(
     [
@@ -188,8 +212,12 @@ try {
       `report signature digest: ${signatureDigest}`,
       `file sha256: ${fileDigest}`,
       `file checksum: ${checksumPath}`,
+      `summary report: ${summaryPath}`,
+      `summary sha256: ${summaryDigest}`,
+      `summary checksum: ${summaryChecksumPath}`,
       `total fixtures: ${fixtureCount}`,
       `total mismatches: ${mismatchCount}`,
+      `exact OOG boundary parity: ${oogBoundaryParity.status}`,
     ].join('\n') + '\n',
   );
 
@@ -733,6 +761,99 @@ function hashTape(tape) {
     return null;
   }
   return sha256Hex(Buffer.from(serializeHostTape(tape)));
+}
+
+function collectExecutionProfiles() {
+  const profiles = new Set();
+  const addProfile = (value) => {
+    profiles.add(value ?? 'baseline-v1');
+  };
+
+  for (const fixture of DETERMINISM_FIXTURES) {
+    addProfile(fixture.program.executionProfile);
+  }
+  for (const fixture of GAS_SAMPLE_FIXTURES) {
+    addProfile(fixture.program.executionProfile);
+  }
+  for (const fixture of MODULE_PACK_FIXTURES) {
+    addProfile(fixture.program.executionProfile);
+  }
+  addProfile(CHESS_LIBRARY_PROGRAM_BASE.executionProfile);
+  addProfile(BINARY_LIBRARY_PROGRAM_BASE.executionProfile);
+
+  return Array.from(profiles).sort();
+}
+
+function summarizeOogBoundaryParity(gasBoundarySuite) {
+  if (!gasBoundarySuite) {
+    return {
+      status: 'unknown',
+      fixtureCount: 0,
+      mismatchCount: 0,
+      boundarySuite: 'gas-boundary-fixtures',
+    };
+  }
+  const status =
+    gasBoundarySuite.mismatchCount === 0 ? 'exact-parity' : 'mismatch';
+  return {
+    status,
+    fixtureCount: gasBoundarySuite.fixtureCount,
+    mismatchCount: gasBoundarySuite.mismatchCount,
+    boundarySuite: gasBoundarySuite.name,
+  };
+}
+
+function buildConsensusSummaryMarkdown({
+  report,
+  reportPath,
+  reportChecksumPath,
+  reportFileDigest,
+}) {
+  const relReportPath = path.relative(repoRoot, reportPath);
+  const relChecksumPath = path.relative(repoRoot, reportChecksumPath);
+  const suiteRows = report.suites
+    .map(
+      (suite) =>
+        `| ${suite.name} | ${suite.fixtureCount} | ${suite.mismatchCount} |`,
+    )
+    .join('\n');
+  const executionProfiles =
+    report.metadata.executionProfiles?.join(', ') ?? 'unknown';
+
+  return [
+    '# Consensus parity summary',
+    '',
+    `Generated at: ${report.generatedAt}`,
+    '',
+    '## Consensus-safe release gate',
+    '',
+    `- Primary executor: ${report.consensusExecutors.primary}`,
+    `- Secondary executor: ${report.consensusExecutors.secondary}`,
+    `- Canonical wasm variant/build: ${report.metadata.wasmVariant}/${report.metadata.wasmBuildType}`,
+    '',
+    '## Release metadata',
+    '',
+    `- engineBuildHash: ${report.metadata.engineBuildHash ?? 'unavailable'}`,
+    `- gasVersion: ${report.metadata.gasVersion ?? 'unavailable'}`,
+    `- executionProfile coverage: ${executionProfiles}`,
+    `- fixture count: ${report.fixtureCount}`,
+    `- mismatch count: ${report.mismatchCount}`,
+    `- exact OOG boundary parity: ${report.oogBoundaryParity?.status ?? 'unknown'}`,
+    '',
+    '## Integrity artifacts',
+    '',
+    `- report JSON: \`${relReportPath}\``,
+    `- report checksum sidecar: \`${relChecksumPath}\``,
+    `- report signature digest: ${report.signature?.digest ?? 'unavailable'}`,
+    `- report file sha256: ${reportFileDigest}`,
+    '',
+    '## Suite mismatch summary',
+    '',
+    '| Suite | Fixture count | Mismatches |',
+    '| --- | ---: | ---: |',
+    suiteRows,
+    '',
+  ].join('\n');
 }
 
 function sha256Hex(input) {

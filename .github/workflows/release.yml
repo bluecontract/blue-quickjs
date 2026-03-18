@@ -77,14 +77,23 @@ jobs:
         continue-on-error: true
         run: node tools/quickjs-native-harness/scripts/archive-reproducibility-report.mjs
 
-      - name: Upload reproducibility artifacts
+      - name: Upload consensus reproducibility artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: reproducibility-report
+          name: reproducibility-consensus-report
           path: |
             artifacts/reproducibility-consensus/*.json*
-            artifacts/reproducibility/*.json*
+            artifacts/reproducibility-consensus/*.md*
           if-no-files-found: error
+
+      - name: Upload native diagnostic reproducibility artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: reproducibility-native-diagnostic-report
+          path: |
+            artifacts/reproducibility/*.json*
+            artifacts/reproducibility/*.md*
+          if-no-files-found: warn
 
       - name: Configure Git
         run: |

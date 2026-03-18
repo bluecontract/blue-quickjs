@@ -23,7 +23,28 @@ Scope: steps to publish deterministic engine + ABI packages.
   - If native is explicitly promoted to a consensus executor for this release,
     require strict native report generation:
     - `node tools/quickjs-native-harness/scripts/archive-reproducibility-report.mjs --strict`
-  - Preserve both generated report JSON and matching `.sha256` sidecars.
+  - Preserve consensus artifacts as a set:
+    - report JSON (`consensus-parity-report-*.json`)
+    - report checksum sidecar (`consensus-parity-report-*.json.sha256`)
+    - human summary (`consensus-parity-summary-*.md`)
+    - summary checksum sidecar (`consensus-parity-summary-*.md.sha256`)
+
+## Consensus artifact inspection gate (release-critical)
+
+From the generated consensus summary artifact (`consensus-parity-summary-*.md`),
+verify all of the following are present and correct:
+
+- `engineBuildHash`
+- `gasVersion`
+- execution profile coverage set
+- total fixture count
+- total mismatch count (`0` required)
+- exact OOG boundary parity status (`exact-parity` required)
+- report signature digest
+- report file checksum (`sha256`) and checksum sidecar reference
+
+Releases must fail if any of the above fields are missing or if parity/OOG
+status is not green.
 
 ## Wasm build + metadata
 

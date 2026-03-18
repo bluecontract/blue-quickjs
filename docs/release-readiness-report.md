@@ -1,7 +1,7 @@
 # Release-readiness report (current branch snapshot)
 
-Date: 2026-03-17  
-Branch: `cursor/next-generation-quickjs-platform-1578`
+Date: 2026-03-18  
+Branch: `cursor/next-generation-quickjs-platform-1578-rc-f838`
 
 ## Environment
 
@@ -22,7 +22,8 @@ Branch: `cursor/next-generation-quickjs-platform-1578`
   - exact OOG boundary parity.
 - Current evidence:
   - consensus reproducibility report run with `total fixtures: 38`,
-  - `total mismatches: 0`.
+  - `total mismatches: 0`,
+  - exact OOG boundary parity status: `exact-parity`.
 
 ### Diagnostic-only
 
@@ -32,15 +33,24 @@ Branch: `cursor/next-generation-quickjs-platform-1578`
 
 ## Evidence artifacts from latest validation run
 
-Consensus report:
+Consensus report artifacts:
 
-- path:
-  `artifacts/reproducibility-consensus-final/consensus-parity-report-2026-03-17T00-06-43-895Z.json`
+- report JSON:
+  `artifacts/reproducibility-consensus-dev/consensus-parity-report-2026-03-18T13-05-16-272Z.json`
+- report checksum:
+  `artifacts/reproducibility-consensus-dev/consensus-parity-report-2026-03-18T13-05-16-272Z.json.sha256`
+- human summary:
+  `artifacts/reproducibility-consensus-dev/consensus-parity-summary-2026-03-18T13-05-16-272Z.md`
+- summary checksum:
+  `artifacts/reproducibility-consensus-dev/consensus-parity-summary-2026-03-18T13-05-16-272Z.md.sha256`
 - signature digest:
-  `93e8ff7691373861695ab1b2a45c7e881340aff26a187405b346561b8f8a96e1`
+  `98a96fecb8dc95545a4c023393930ee4d90f0be126b1e420cb7987cfd3b83406`
 - file sha256:
-  `c695a4792ccf820483ace64fb0ef263ca5115f4cf339185ecc693a15ad7ca025`
+  `e3f2d104ae2e18fcab3664330157a109c0251299472d1e1bc520a1c020027fe5`
 - mismatch count: `0`
+- OOG boundary parity: `exact-parity`
+- executionProfile coverage:
+  `baseline-v1, compat-general-v1, compat-binary-v1`
 
 Native diagnostic report:
 
