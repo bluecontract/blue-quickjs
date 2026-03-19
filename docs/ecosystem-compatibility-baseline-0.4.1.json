@@ -1,0 +1,36 @@
+{
+  "release": "0.4.1",
+  "date": "2026-03-13",
+  "summary": {
+    "greenCount": 16,
+    "redCount": 8,
+    "flagshipCount": 1
+  },
+  "fixtures": [
+    { "id": "flagship-knowledge-pack", "kind": "flagship", "expectedStage": "success" },
+    { "id": "green-chess", "kind": "positive", "expectedStage": "success" },
+    { "id": "green-base64", "kind": "positive", "expectedStage": "success" },
+    { "id": "green-noble-sha", "kind": "positive", "expectedStage": "success" },
+    { "id": "green-semver", "kind": "positive", "expectedStage": "success" },
+    { "id": "green-he", "kind": "positive", "expectedStage": "success" },
+    { "id": "green-path-to-regexp", "kind": "positive", "expectedStage": "success" },
+    { "id": "green-fast-json-stable-stringify", "kind": "positive", "expectedStage": "success" },
+    { "id": "green-json-logic-js", "kind": "positive", "expectedStage": "success" },
+    { "id": "green-crc32", "kind": "positive", "expectedStage": "success" },
+    { "id": "green-tinyqueue", "kind": "positive", "expectedStage": "success" },
+    { "id": "green-fflate", "kind": "positive", "expectedStage": "success" },
+    { "id": "green-linkify-it", "kind": "positive", "expectedStage": "success" },
+    { "id": "green-markdown-it", "kind": "positive", "expectedStage": "success" },
+    { "id": "green-escape-string-regexp", "kind": "positive", "expectedStage": "success" },
+    { "id": "green-fast-deep-equal", "kind": "positive", "expectedStage": "success" },
+    { "id": "green-stress-corpus", "kind": "positive", "expectedStage": "success" },
+    { "id": "red-diff-timers", "kind": "negative", "expectedStage": "builder_reject" },
+    { "id": "red-yaml-date", "kind": "negative", "expectedStage": "builder_reject" },
+    { "id": "red-graphlib-proxy", "kind": "negative", "expectedStage": "builder_reject" },
+    { "id": "red-dynamic-import", "kind": "negative", "expectedStage": "builder_reject" },
+    { "id": "red-proxy", "kind": "negative", "expectedStage": "builder_reject" },
+    { "id": "red-math-random", "kind": "negative", "expectedStage": "builder_reject" },
+    { "id": "red-lodash-function-constructor", "kind": "negative", "expectedStage": "artifact_validation" },
+    { "id": "red-function-constructor", "kind": "negative", "expectedStage": "artifact_validation" }
+  ]
+}

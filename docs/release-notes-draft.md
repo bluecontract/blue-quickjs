@@ -1,6 +1,6 @@
 # Release notes draft — wasm-consensus GA readiness
 
-Date: 2026-03-18  
+Date: 2026-03-19  
 Scope: wasm-consensus release line (`wasm-node` + `wasm-browser`), native
 diagnostic path retained as non-consensus.
 
@@ -10,10 +10,11 @@ diagnostic path retained as non-consensus.
   release-critical alongside value/error/tape parity.
 - Workload certification includes:
   - flagship knowledge/compliance workload,
-  - green ecosystem compatibility corpus,
+  - green ecosystem compatibility corpus (25 fixtures / 24 packages + seeded stress),
   - deterministic red-boundary scenarios,
   - builder determinism evidence,
-  - downstream consumer reproducibility proof.
+  - downstream consumer reproducibility proof,
+  - compatibility delta report against previous release baseline.
 - Release workflows archive strict parity and workload/consumer evidence.
 
 ## Consensus-safe scope (shipped)

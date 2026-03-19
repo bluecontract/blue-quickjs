@@ -1,4 +1,4 @@
-## 0.5.0-rc.0 (2026-03-18)
+## 0.5.0-rc.0 (2026-03-19)
 
 ### 🚀 Features
 
@@ -7,6 +7,9 @@
 - **ecosystem-certifier:** add flagship workload certification, deterministic
   green/red compatibility matrix, builder determinism evidence, and downstream
   consumer-proof integration.
+- **ecosystem-certifier:** expand green corpus to 25 fixtures, add
+  compatibility delta reporting, and raise repeatability/seeded workload
+  intensity for release/nightly runs.
 - **release-workflow:** run strict consensus parity gates and archive workload +
   consumer evidence artifacts in release workflow.
 

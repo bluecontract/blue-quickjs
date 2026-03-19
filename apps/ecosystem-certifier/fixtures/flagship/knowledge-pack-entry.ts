@@ -16,19 +16,24 @@ import CRC32 from 'crc-32';
 let summary;
 try {
   const metadataText = Host.v2.document.get('pack/metadata.json');
-  const docAText = Host.v2.document.get('docs/a.md');
-  const docBText = Host.v2.document.get('docs/b.md');
   const ruleText = Host.v2.document.get('rules/findings.json');
   const compressedAttachment = Host.v2.document.get('pack/attachment.deflated');
+  const payload = Host.v2.document.get('bytes/payload');
+  const extraPayload = Host.v2.document.get('bytes/flagship-extra');
 
   const metadata = JSON.parse(metadataText);
+  const docPaths = metadata.links ?? ['docs/a.md', 'docs/b.md'];
+  const docs = docPaths.map((docPath) => ({
+    docPath,
+    text: Host.v2.document.get(docPath),
+  }));
   const markdown = new MarkdownIt({ linkify: true });
   const linkify = new LinkifyIt();
-  const markdownTokens = markdown.parse(`${docAText}\n${docBText}`, {});
-  const linkMatches = [
-    ...(linkify.match(docAText) ?? []),
-    ...(linkify.match(docBText) ?? []),
-  ].map((item) => item.url);
+  const markdownSource = docs.map((doc) => doc.text).join('\n');
+  const markdownTokens = markdown.parse(markdownSource, {});
+  const linkMatches = docs
+    .flatMap((doc) => linkify.match(doc.text) ?? [])
+    .map((item) => item.url);
 
   const releaseChecks = (metadata.requires ?? []).map((range) =>
     semver.satisfies(metadata.release, range),
@@ -54,9 +59,15 @@ try {
   }
 
   const decompressed = inflateSync(compressedAttachment);
-  const base64RoundTrip = toByteArray(fromByteArray(decompressed));
-  const digestHex = bytesToHex(sha256(base64RoundTrip));
-  const crc32 = (CRC32.buf(base64RoundTrip) >>> 0)
+  const attachmentRoundTrip = toByteArray(fromByteArray(decompressed));
+  const mergedBinary = new Uint8Array(
+    attachmentRoundTrip.length + payload.length + extraPayload.length,
+  );
+  mergedBinary.set(attachmentRoundTrip, 0);
+  mergedBinary.set(payload, attachmentRoundTrip.length);
+  mergedBinary.set(extraPayload, attachmentRoundTrip.length + payload.length);
+  const digestHex = bytesToHex(sha256(mergedBinary));
+  const crc32 = (CRC32.buf(mergedBinary) >>> 0)
     .toString(16)
     .padStart(8, '0');
 
@@ -73,6 +84,14 @@ try {
   Promise.resolve('scheduled').then(() => undefined);
   queueMicrotask(() => undefined);
 
+  for (const doc of docs) {
+    Host.v2.emit({
+      type: 'knowledge-pack-doc',
+      docPath: doc.docPath,
+      length: doc.text.length,
+    });
+  }
+
   summary = {
     status: 'ok',
     packId: metadata.packId,
@@ -82,7 +101,7 @@ try {
     linkCount: linkMatches.length,
     uniqueLinks: [...new Set(orderedLinks)],
     binary: {
-      byteLength: base64RoundTrip.length,
+      byteLength: mergedBinary.length,
       digestHex,
       crc32,
     },
@@ -101,7 +120,18 @@ try {
 
 Host.v2.emit({
   type: 'knowledge-pack-summary',
-  summaryHash: bytesToHex(sha256(toByteArray(fromByteArray(Host.v2.document.get('bytes/payload'))))),
+  summaryHash: bytesToHex(
+    sha256(
+      toByteArray(
+        fromByteArray(
+          new Uint8Array([
+            ...Host.v2.document.get('bytes/payload'),
+            ...Host.v2.document.get('bytes/flagship-extra'),
+          ]),
+        ),
+      ),
+    ),
+  ),
   status: summary.status,
 });
 

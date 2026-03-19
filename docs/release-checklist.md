@@ -29,9 +29,10 @@ Scope: steps to publish deterministic engine + ABI packages.
   - `node apps/ecosystem-certifier/scripts/check-builder-determinism.mjs --out-dir artifacts/workload-certification`
   - `node tools/workload-certification/compare-builder-determinism-matrix.mjs --input-dir artifacts`
   - `node apps/ecosystem-certifier/scripts/archive-workload-certification-report.mjs --out-dir artifacts/workload-certification`
+  - `node apps/ecosystem-certifier/scripts/generate-compatibility-delta-report.mjs --current-dir artifacts/workload-certification --out-dir artifacts/workload-certification`
   - `node apps/ecosystem-certifier/scripts/run-oog-boundary-certification.mjs --out-dir artifacts/workload-certification`
-  - `node apps/ecosystem-certifier/scripts/run-repeatability-certification.mjs --out-dir artifacts/workload-certification --iterations 50 --flagship-iterations 20`
-  - `node apps/ecosystem-certifier/scripts/run-seeded-property-corpus.mjs --out-dir artifacts/workload-certification --seed-count 40`
+  - `node apps/ecosystem-certifier/scripts/run-repeatability-certification.mjs --out-dir artifacts/workload-certification --iterations 100 --flagship-iterations 40`
+  - `node apps/ecosystem-certifier/scripts/run-seeded-property-corpus.mjs --out-dir artifacts/workload-certification --seed-count 80`
 - Run downstream tarball consumer reproducibility proof:
   - Version alignment + pack manifest checks:
     - `pnpm workload:check-public-package-versions`

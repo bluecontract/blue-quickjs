@@ -65,6 +65,11 @@ const seededSource = path.resolve(
   args.seededReport ??
     path.join(artifactsRoot, 'workload-certification', 'seeded-property-corpus-report.json'),
 );
+const workloadDeltaSource = path.resolve(
+  repoRoot,
+  args.workloadDeltaReport ??
+    path.join(artifactsRoot, 'workload-certification', 'compatibility-delta-report.json'),
+);
 const workloadMatrixSource = path.resolve(
   repoRoot,
   args.workloadMatrixReport ??
@@ -117,6 +122,11 @@ if (await pathExists(seededSource)) {
     await copyArtifact(seededSource, 'workload-seeded-corpus.json', 'workload'),
   );
 }
+if (await pathExists(workloadDeltaSource)) {
+  copiedArtifacts.push(
+    await copyArtifact(workloadDeltaSource, 'workload-compatibility-delta.json', 'workload'),
+  );
+}
 if (nativeSource && (await pathExists(nativeSource))) {
   copiedArtifacts.push(
     await copyArtifact(nativeSource, 'native-diagnostic-report.json', 'native'),
@@ -135,6 +145,11 @@ const workloadOog = JSON.parse(
 const consumer = JSON.parse(
   await readFile(path.join(inputsDir, 'consumer-reproducibility.json'), 'utf8'),
 );
+const workloadDelta = (await pathExists(path.join(inputsDir, 'workload-compatibility-delta.json')))
+  ? JSON.parse(
+      await readFile(path.join(inputsDir, 'workload-compatibility-delta.json'), 'utf8'),
+    )
+  : null;
 
 const executionProfiles = [
   ...new Set(
@@ -176,6 +191,13 @@ const summary = {
     consumerParity:
       consumer.parity?.snapshotEqual && consumer.parity?.oogEqual ? 0 : 1,
   },
+  compatibilityDelta: workloadDelta
+    ? {
+        greenDelta: workloadDelta.deltas?.greenDelta ?? 0,
+        addedCount: workloadDelta.added?.length ?? 0,
+        removedCount: workloadDelta.removed?.length ?? 0,
+      }
+    : null,
   exactOogParity,
   consumerParity: {
     snapshotEqual: Boolean(consumer.parity?.snapshotEqual),
@@ -313,6 +335,7 @@ function renderSummaryMarkdown(summary, copiedArtifacts) {
     `- workload mismatches: ${summary.mismatchCounts.workload}`,
     `- workload OOG mismatches: ${summary.mismatchCounts.workloadOog}`,
     `- consumer parity mismatches: ${summary.mismatchCounts.consumerParity}`,
+    `- compatibility green delta: ${summary.compatibilityDelta?.greenDelta ?? 'n/a'}`,
     '',
     '## Included source evidence files',
     '',
@@ -357,6 +380,7 @@ function renderReleaseReadinessDoc(summary, manifest, evidenceDir) {
     `- Workload totals: \`${summary.fixtureCounts.workloadTotal}\` fixtures (\`${summary.fixtureCounts.workloadGreen}\` green / \`${summary.fixtureCounts.workloadRed}\` red / \`${summary.fixtureCounts.workloadFlagship}\` flagship)`,
     `- Workload mismatch count: \`${summary.mismatchCounts.workload}\``,
     `- Workload OOG mismatch count: \`${summary.mismatchCounts.workloadOog}\``,
+    `- Compatibility green delta vs baseline: \`${summary.compatibilityDelta?.greenDelta ?? 'n/a'}\``,
     `- Consumer snapshot parity: \`${summary.consumerParity.snapshotEqual}\``,
     `- Consumer OOG parity: \`${summary.consumerParity.oogEqual}\``,
     `- Exact OOG parity status: \`${summary.exactOogParity}\``,
@@ -506,6 +530,11 @@ function parseArgs(argv) {
     }
     if (arg === '--seeded-report') {
       parsed.seededReport = argv[index + 1];
+      index += 1;
+      continue;
+    }
+    if (arg === '--workload-delta-report') {
+      parsed.workloadDeltaReport = argv[index + 1];
       index += 1;
       continue;
     }

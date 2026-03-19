@@ -44,6 +44,7 @@ If you are new to determinism/gas (or coming from “normal” JS runtimes), fol
   - [Workload certification plan](./workload-certification-plan.md)
   - [Workload certification report](./workload-certification.md)
   - [Ecosystem compatibility report](./ecosystem-compatibility-report.md)
+  - [Ecosystem compatibility baseline (0.4.1)](./ecosystem-compatibility-baseline-0.4.1.json)
 
 5. **Developer guides (practical usage)**
    - [TypeScript SDK usage](./sdk.md)

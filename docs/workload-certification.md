@@ -34,10 +34,11 @@ node apps/ecosystem-certifier/scripts/check-builder-determinism.mjs --out-dir ar
 node tools/workload-certification/compare-builder-determinism-matrix.mjs --input-dir artifacts
 node apps/ecosystem-certifier/scripts/archive-workload-certification-report.mjs --out-dir artifacts/workload-certification --browser chromium
 node apps/ecosystem-certifier/scripts/archive-workload-certification-report.mjs --out-dir artifacts/workload-certification --browser firefox
+node apps/ecosystem-certifier/scripts/generate-compatibility-delta-report.mjs --current-dir artifacts/workload-certification --out-dir artifacts/workload-certification
 node apps/ecosystem-certifier/scripts/run-oog-boundary-certification.mjs --out-dir artifacts/workload-certification --browser chromium
 node apps/ecosystem-certifier/scripts/run-oog-boundary-certification.mjs --out-dir artifacts/workload-certification --browser firefox
-node apps/ecosystem-certifier/scripts/run-repeatability-certification.mjs --out-dir artifacts/workload-certification --iterations 50 --flagship-iterations 20 --browser chromium
-node apps/ecosystem-certifier/scripts/run-seeded-property-corpus.mjs --out-dir artifacts/workload-certification --seed-count 40 --browser chromium
+node apps/ecosystem-certifier/scripts/run-repeatability-certification.mjs --out-dir artifacts/workload-certification --iterations 100 --flagship-iterations 40 --browser chromium
+node apps/ecosystem-certifier/scripts/run-seeded-property-corpus.mjs --out-dir artifacts/workload-certification --seed-count 80 --browser chromium
 
 # Downstream tarball consumer proof (Node/OS matrix-ready)
 pnpm workload:check-public-package-versions
@@ -58,6 +59,7 @@ pnpm --dir e2e/consumer-proof-app run repro -- --with-native
 - `artifacts/workload-certification/workload-certification-<timestamp>.md`
 - `artifacts/workload-certification/workload-certification-<timestamp>.json.sha256`
 - `artifacts/workload-certification/compatibility-matrix-<timestamp>.json`
+- `artifacts/workload-certification/compatibility-delta-report.json`
 - `artifacts/workload-certification/oog-boundaries.json`
 - `artifacts/workload-certification/repeatability-report.json`
 - `artifacts/workload-certification/seeded-property-corpus-report.json`

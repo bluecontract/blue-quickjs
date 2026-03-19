@@ -22,6 +22,7 @@
     "release-evidence:licenses": "node tools/release-evidence/generate-license-report.mjs",
     "workload:check-public-package-versions": "node tools/workload-certification/check-public-package-versions.mjs",
     "workload:check-pack-manifests": "node tools/workload-certification/check-pack-manifests.mjs",
+    "workload:compat-delta": "node apps/ecosystem-certifier/scripts/generate-compatibility-delta-report.mjs",
     "publish-rehearsal:verdaccio": "node tools/workload-certification/run-verdaccio-publish-rehearsal.mjs"
   },
   "private": true,

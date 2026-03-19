@@ -101,8 +101,8 @@ if (unstableCount > 0) {
 function parseArgs(argv) {
   let outDir = 'artifacts/workload-certification';
   let baseUrl = null;
-  let iterations = 50;
-  let flagshipIterations = 20;
+  let iterations = 100;
+  let flagshipIterations = 40;
   let fixtureIds = null;
   let browser = 'chromium';
   for (let index = 0; index < argv.length; index += 1) {

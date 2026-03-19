@@ -20,8 +20,10 @@ Workload and ecosystem certification app for deterministic `blue-quickjs`.
 - OOG boundary parity report:
   `node apps/ecosystem-certifier/scripts/run-oog-boundary-certification.mjs --out-dir artifacts/workload-certification --browser chromium`
 - Repeatability / soak report:
-  `node apps/ecosystem-certifier/scripts/run-repeatability-certification.mjs --out-dir artifacts/workload-certification --iterations 50 --flagship-iterations 20 --browser chromium`
+  `node apps/ecosystem-certifier/scripts/run-repeatability-certification.mjs --out-dir artifacts/workload-certification --iterations 100 --flagship-iterations 40 --browser chromium`
 - Seeded property corpus parity report:
-  `node apps/ecosystem-certifier/scripts/run-seeded-property-corpus.mjs --out-dir artifacts/workload-certification --seed-count 40 --browser chromium`
+  `node apps/ecosystem-certifier/scripts/run-seeded-property-corpus.mjs --out-dir artifacts/workload-certification --seed-count 80 --browser chromium`
+- Compatibility delta report:
+  `node apps/ecosystem-certifier/scripts/generate-compatibility-delta-report.mjs --current-dir artifacts/workload-certification --out-dir artifacts/workload-certification`
 - Regenerate deterministic stress corpus:
   `node apps/ecosystem-certifier/scripts/generate-stress-corpus.mjs`

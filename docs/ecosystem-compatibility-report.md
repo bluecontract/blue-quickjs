@@ -3,9 +3,11 @@
 This report tracks the current certification corpus in
 `apps/ecosystem-certifier/src/shared/fixtures.ts`.
 
-## Green corpus (16 packages)
+## Green corpus (25 fixtures)
 
 All fixtures below are expected to pass with strict node/browser parity.
+This corpus currently includes **24 third-party packages** plus one seeded
+stress fixture.
 
 | Package | Fixture id | Profile |
 | --- | --- | --- |
@@ -24,6 +26,15 @@ All fixtures below are expected to pass with strict node/browser parity.
 | `markdown-it` | `green-markdown-it` | `compat-binary-v1` |
 | `escape-string-regexp` | `green-escape-string-regexp` | `compat-general-v1` |
 | `fast-deep-equal` | `green-fast-deep-equal` | `compat-general-v1` |
+| `camelcase` | `green-camelcase` | `compat-general-v1` |
+| `decamelize` | `green-decamelize` | `compat-general-v1` |
+| `fastest-levenshtein` | `green-fastest-levenshtein` | `compat-binary-v1` |
+| `dijkstrajs` | `green-dijkstrajs` | `compat-general-v1` |
+| `spark-md5` | `green-spark-md5` | `compat-binary-v1` |
+| `query-string` | `green-query-string` | `compat-general-v1` |
+| `deepmerge` | `green-deepmerge` | `compat-general-v1` |
+| `sort-keys` | `green-sort-keys` | `compat-general-v1` |
+| `array-move` | `green-array-move` | `compat-general-v1` |
 | Seeded stress corpus | `green-stress-corpus` | `compat-general-v1` |
 
 ## Red corpus (8 scenarios)
@@ -55,7 +66,10 @@ Generate and archive:
 
 ```bash
 node apps/ecosystem-certifier/scripts/archive-workload-certification-report.mjs --out-dir artifacts/workload-certification
+node apps/ecosystem-certifier/scripts/generate-compatibility-delta-report.mjs --current-dir artifacts/workload-certification --out-dir artifacts/workload-certification
 ```
 
 Use `compatibilityMatrix` and `records` in the generated JSON as canonical
 source-of-truth for certification decisions.
+Use `compatibility-delta-report.json` to compare fixture coverage against the
+previous release baseline.

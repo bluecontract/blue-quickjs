@@ -59,11 +59,20 @@ jobs:
 
       - name: Generate workload certification artifacts
         run: |
+          ITERATIONS=50
+          FLAGSHIP_ITERATIONS=20
+          SEED_COUNT=40
+          if [ "${{ github.event_name }}" = "schedule" ] && [ "${{ matrix.browser }}" = "chromium" ]; then
+            ITERATIONS=100
+            FLAGSHIP_ITERATIONS=40
+            SEED_COUNT=120
+          fi
           node apps/ecosystem-certifier/scripts/check-builder-determinism.mjs --out-dir artifacts/workload-certification
           node apps/ecosystem-certifier/scripts/archive-workload-certification-report.mjs --out-dir artifacts/workload-certification --browser ${{ matrix.browser }}
+          node apps/ecosystem-certifier/scripts/generate-compatibility-delta-report.mjs --current-dir artifacts/workload-certification --out-dir artifacts/workload-certification
           node apps/ecosystem-certifier/scripts/run-oog-boundary-certification.mjs --out-dir artifacts/workload-certification --browser ${{ matrix.browser }}
-          node apps/ecosystem-certifier/scripts/run-seeded-property-corpus.mjs --out-dir artifacts/workload-certification --seed-count 20 --browser ${{ matrix.browser }}
-          node apps/ecosystem-certifier/scripts/run-repeatability-certification.mjs --out-dir artifacts/workload-certification --iterations 20 --flagship-iterations 10 --browser ${{ matrix.browser }}
+          node apps/ecosystem-certifier/scripts/run-seeded-property-corpus.mjs --out-dir artifacts/workload-certification --seed-count "${SEED_COUNT}" --browser ${{ matrix.browser }}
+          node apps/ecosystem-certifier/scripts/run-repeatability-certification.mjs --out-dir artifacts/workload-certification --iterations "${ITERATIONS}" --flagship-iterations "${FLAGSHIP_ITERATIONS}" --browser ${{ matrix.browser }}
 
       - name: Upload workload certification artifacts
         uses: actions/upload-artifact@v4

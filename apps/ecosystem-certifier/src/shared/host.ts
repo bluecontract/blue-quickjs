@@ -11,6 +11,7 @@ const TEXT_DOCUMENTS = new Map<string, string>([
         packId: 'kp-2026-rc',
         release: '1.2.3',
         requires: ['>=1.2.0 <2.0.0', '^1.2.0'],
+        links: ['docs/a.md', 'docs/b.md', 'docs/c.md', 'docs/d.md'],
       },
       null,
       2,
@@ -35,9 +36,12 @@ const TEXT_DOCUMENTS = new Map<string, string>([
     [
       '# Alpha',
       '',
-      'See [Beta](docs/b.md) and https://example.com/path.',
+      'See [Beta](docs/b.md), [Gamma](docs/c.md), and https://example.com/path.',
       '',
       'Encoded value: &amp; deterministic.',
+      '',
+      'Paragraph: Deterministic workloads should remain stable across',
+      'wasm-node and wasm-browser executors.',
       '',
     ].join('\n'),
   ],
@@ -46,7 +50,31 @@ const TEXT_DOCUMENTS = new Map<string, string>([
     [
       '# Beta',
       '',
-      'Backlink to [Alpha](docs/a.md).',
+      'Backlink to [Alpha](docs/a.md) and [Delta](docs/d.md).',
+      '',
+      'Extra URL: https://example.net/release-notes.',
+      '',
+    ].join('\n'),
+  ],
+  [
+    'docs/c.md',
+    [
+      '# Gamma',
+      '',
+      'Cross-link to [Delta](docs/d.md).',
+      '',
+      'Reference URL: https://example.org/matrix.',
+      '',
+    ].join('\n'),
+  ],
+  [
+    'docs/d.md',
+    [
+      '# Delta',
+      '',
+      'Back to [Alpha](docs/a.md) and [Beta](docs/b.md).',
+      '',
+      'Reference URL: https://example.dev/consensus.',
       '',
     ].join('\n'),
   ],
@@ -55,7 +83,7 @@ const TEXT_DOCUMENTS = new Map<string, string>([
     JSON.stringify(
       {
         and: [
-          { '==': [{ var: 'linkCount' }, 3] },
+          { '>=': [{ var: 'linkCount' }, 8] },
           { '==': [{ var: 'releaseOk' }, true] },
         ],
       },
@@ -74,7 +102,16 @@ const TEXT_DOCUMENTS = new Map<string, string>([
 ]);
 
 const BINARY_DOCUMENTS = new Map<string, Uint8Array>([
-  ['bytes/payload', Uint8Array.from([222, 173, 190, 239])],
+  [
+    'bytes/payload',
+    Uint8Array.from(Array.from({ length: 64 }, (_, index) => (index * 17) % 251)),
+  ],
+  [
+    'bytes/flagship-extra',
+    Uint8Array.from(
+      Array.from({ length: 192 }, (_, index) => ((index * 29) + 11) % 251),
+    ),
+  ],
   [
     'pack/attachment.deflated',
     Uint8Array.from([
