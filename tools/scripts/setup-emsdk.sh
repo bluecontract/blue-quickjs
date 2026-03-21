@@ -10,7 +10,27 @@ EMSDK_VERSION="$(cat "${SCRIPT_DIR}/emsdk-version.txt")"
 EMSDK_DIR="${REPO_ROOT}/tools/emsdk"
 HOST_OS="$(uname -s)"
 HOST_ARCH="$(uname -m)"
-HOST_PYTHON="$(command -v python3 || command -v python || true)"
+
+resolve_host_python() {
+  if [ "${HOST_OS}" = "Darwin" ] && [ -x /usr/bin/python3 ]; then
+    echo /usr/bin/python3
+    return 0
+  fi
+
+  if command -v python3 >/dev/null 2>&1; then
+    command -v python3
+    return 0
+  fi
+
+  if command -v python >/dev/null 2>&1; then
+    command -v python
+    return 0
+  fi
+
+  echo ""
+}
+
+HOST_PYTHON="$(resolve_host_python)"
 
 run_with_retry() {
   local step_name="$1"
@@ -66,7 +86,15 @@ clear_quarantine_if_possible() {
 
 run_emsdk() {
   if [ -n "${HOST_PYTHON}" ] && [ -f "${EMSDK_DIR}/emsdk.py" ]; then
-    EMSDK_PYTHON="${HOST_PYTHON}" "${HOST_PYTHON}" "${EMSDK_DIR}/emsdk.py" "$@"
+    env \
+      -u PYTHONHOME \
+      -u PYTHONPATH \
+      -u CONDA_PREFIX \
+      -u CONDA_DEFAULT_ENV \
+      -u CONDA_EXE \
+      -u CONDA_PYTHON_EXE \
+      EMSDK_PYTHON="${HOST_PYTHON}" \
+      "${HOST_PYTHON}" "${EMSDK_DIR}/emsdk.py" "$@"
     return $?
   fi
 

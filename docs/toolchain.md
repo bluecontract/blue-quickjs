@@ -33,6 +33,9 @@ Notes:
 - The setup script now prefers the host `python3`/`python` to run `emsdk.py`
   directly, which avoids macOS repeatedly re-entering a partially installed
   bundled Python during retries.
+- On macOS specifically, the script prefers `/usr/bin/python3` over Conda or
+  other shimmed interpreters and clears `PYTHONHOME`, `PYTHONPATH`, and common
+  `CONDA_*` variables before invoking `emsdk.py`.
 
 ## CI caching
 
