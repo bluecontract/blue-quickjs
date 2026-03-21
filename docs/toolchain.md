@@ -21,6 +21,14 @@ Notes:
 
 - Script is idempotent; rerun after pulling a new pinned version.
 - Keep `emsdk` network access unblocked during install.
+- On macOS, the setup script now retries once automatically, clears quarantine
+  attributes if possible, and on Apple Silicon retries the install with
+  `EMSDK_ARCH=x86_64` as a fallback. If that fallback path succeeds, Rosetta may
+  be required:
+
+  ```bash
+  softwareupdate --install-rosetta --agree-to-license
+  ```
 
 ## CI caching
 
