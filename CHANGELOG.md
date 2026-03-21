@@ -12,13 +12,17 @@
   intensity for release/nightly runs.
 - **release-workflow:** run strict consensus parity gates and archive workload +
   consumer evidence artifacts in release workflow.
+- **playground:** add an in-repo BlueQuickjs playground backed by generated
+  certified examples, red fixtures, and OOG boundary data.
 
 ### 📚 Documentation
 
 - Promote README into a product/release landing page with consensus-safe scope,
   execution profiles, and quickstart.
-- Add head verification note and release notes draft.
-- Refresh docs index for release-readiness and verification-oriented navigation.
+- Add architecture overview, guided learning path, glossary/FAQ/support pages,
+  and playground docs.
+- Refresh docs index, head verification note, and release-facing checklists for
+  release-readiness and verification-oriented navigation.
 
 ## 0.4.1 (2026-03-13)
 

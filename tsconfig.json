@@ -44,6 +44,9 @@
     },
     {
       "path": "./apps/ecosystem-certifier"
+    },
+    {
+      "path": "./apps/bluequickjs-playground"
     }
   ]
 }

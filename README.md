@@ -1,26 +1,46 @@
 # BlueQuickjs
 
-BlueQuickjs is a deterministic JavaScript execution engine built on a hardened
-QuickJS runtime compiled to Wasm. It is designed for **consensus-critical
-execution** where result bytes, gas accounting, host-call tape, and OOG
-boundaries must be reproducible across environments.
+BlueQuickjs is a deterministic JavaScript execution stack built on a hardened
+QuickJS engine compiled to Wasm. It is designed for **consensus-critical
+execution** where independent runtimes must agree on:
 
-## Consensus-safe scope (today)
+- value or error,
+- gas used and gas remaining,
+- host-call tape,
+- exact out-of-gas boundaries.
 
-- Consensus executors: **`wasm-node` vs `wasm-browser`** (canonical `wasm32` release artifact).
-- Release gates require exact parity for:
-  - value/error result,
-  - gas used and gas remaining,
-  - host-call tape evidence,
-  - first-success/last-failure OOG boundaries.
-- Native harness remains **diagnostic-only** unless explicitly promoted by
-  release policy.
+## Consensus-safe scope
 
-See:
-- Release policy: [`docs/release-policy.md`](docs/release-policy.md)
-- Workload certification: [`docs/workload-certification.md`](docs/workload-certification.md)
-- Ecosystem compatibility: [`docs/ecosystem-compatibility-report.md`](docs/ecosystem-compatibility-report.md)
-- Release evidence: [`docs/release-readiness-report.md`](docs/release-readiness-report.md)
+Current consensus-safe release scope is intentionally explicit:
+
+- **consensus executors:** `wasm-node` vs `wasm-browser`
+- **canonical engine:** `wasm32` release artifact only
+- **release-critical parity:** exact
+  - value/error parity,
+  - gas used parity,
+  - gas remaining parity,
+  - host-call tape parity,
+  - OOG boundary parity
+- **native status:** diagnostic-only unless separately promoted by policy
+
+Use these docs for the current release contract:
+
+- [Consensus-safe vs diagnostic-only](docs/consensus-safe-vs-diagnostic-only.md)
+- [Release policy](docs/release-policy.md)
+- [HEAD verification note](docs/head-verification-note.md)
+
+## What “deterministic” means here
+
+For a fixed program artifact `P`, input envelope `I`, and gas limit `G`,
+BlueQuickjs expects the same consensus executors to produce the same:
+
+- result bytes or deterministic error,
+- gas accounting,
+- host-call tape,
+- OOG transition point.
+
+That is why the product centers on pinned artifacts, profiles, manifests, and
+generated evidence instead of ad hoc runtime behavior.
 
 ## Execution profiles
 
@@ -31,12 +51,13 @@ See:
 | `compat-binary-v1` | Binary-heavy deterministic workloads | `compat-general-v1` + typed arrays/ArrayBuffer/DataView + DV2 bytes boundary |
 
 Profile details:
+
 - [`docs/execution-profiles.md`](docs/execution-profiles.md)
 - [`docs/determinism-profile.md`](docs/determinism-profile.md)
 
-## 3-step quickstart
+## 5-step first-success path
 
-1. **Install dependencies + pinned Wasm toolchain**
+1. **Install dependencies + the pinned Wasm toolchain**
 
    ```bash
    pnpm install
@@ -44,7 +65,7 @@ Profile details:
    source tools/emsdk/emsdk_env.sh
    ```
 
-2. **Run consensus smoke checks**
+2. **Run the current consensus smoke checks**
 
    ```bash
    pnpm exec playwright install --with-deps chromium
@@ -61,17 +82,60 @@ Profile details:
    node apps/ecosystem-certifier/scripts/archive-workload-certification-report.mjs --out-dir artifacts/workload-certification
    ```
 
+4. **Verify the release evidence bundle**
+
+   ```bash
+   pnpm release-evidence:synthesize -- --out-dir artifacts/release-evidence
+   pnpm release-evidence:verify -- --evidence-dir artifacts/release-evidence
+   ```
+
+5. **Open the in-repo browser playground**
+
+   ```bash
+   source tools/emsdk/emsdk_env.sh
+   node apps/bluequickjs-playground/scripts/generate-playground-data.mjs
+   pnpm vite --host --port 4325 --config apps/bluequickjs-playground/vite.config.mts
+   ```
+
 ## Start here
 
-- Documentation index: [`docs/README.md`](docs/README.md)
-- Head verification snapshot: [`docs/head-verification-note.md`](docs/head-verification-note.md)
-- Examples corpus: [`examples/README.md`](examples/README.md)
-- Workload certification plan: [`docs/workload-certification-plan.md`](docs/workload-certification-plan.md)
-- Production embedder checklist: [`docs/production-embedder-checklist.md`](docs/production-embedder-checklist.md)
-- Local auditor verification command:
-  `pnpm release-evidence:verify -- --evidence-dir artifacts/release-evidence`
+### Learn the product
 
----
+- [Documentation hub](docs/README.md)
+- [Learning path](docs/learn/README.md)
+- [Architecture overview](docs/architecture-overview.md)
+- [Examples corpus](examples/README.md)
+- [Glossary](docs/glossary.md)
+- [FAQ](docs/faq.md)
+
+### Use the product
+
+- [Playground](docs/playground.md)
+- [Playground recipes](docs/playground-recipes.md)
+- [TypeScript SDK usage](docs/sdk.md)
+- [Production embedder checklist](docs/production-embedder-checklist.md)
+
+### Trust and verify the product
+
+- [HEAD verification snapshot](docs/head-verification-note.md)
+- [Workload certification](docs/workload-certification.md)
+- [Ecosystem compatibility report](docs/ecosystem-compatibility-report.md)
+- [Release-readiness report](docs/release-readiness-report.md)
+- [Release checklist](docs/release-checklist.md)
+
+## Consumer and operator proof paths
+
+BlueQuickjs already exercises both public-consumer rehearsal flows:
+
+- **tarball flow** — pack public tarballs and install them into the consumer
+  proof app
+- **registry/Verdaccio rehearsal flow** — publish to a local registry and run
+  the same consumer proof against that path
+
+See:
+
+- [Workload certification](docs/workload-certification.md)
+- [Release checklist](docs/release-checklist.md)
 
 ## QuickJS fork
 
@@ -89,12 +153,15 @@ Profile details:
 
 ## Toolchain
 
-- Emscripten is pinned to `3.1.56`; install via `tools/scripts/setup-emsdk.sh`, then `source tools/emsdk/emsdk_env.sh`. See `docs/toolchain.md` for details and CI cache notes.
+- Emscripten is pinned to `3.1.56`; install via `tools/scripts/setup-emsdk.sh`,
+  then `source tools/emsdk/emsdk_env.sh`. See `docs/toolchain.md` for details
+  and CI cache notes.
 
 ## Determinism checklist
 
-- Same `(P, I, G)` yields identical result bytes, gas used/remaining, and host-call tape hashes across Node and browser.
-- Deterministic capability profiles enforce explicit contracts per profile (`docs/determinism-profile.md`, `docs/execution-profiles.md`).
-- Canonical gas: opcode/builtin/allocation/GC charges plus two-phase host-call gas (`docs/gas-schedule.md`).
-- DV and manifest: canonical DV encoding, safe numeric range, sorted keys, size caps, manifest hash pinning (`docs/dv-wire-format.md`, `docs/abi-manifest.md`).
-- Host ABI: `host_call` envelope, deterministic error mapping, and reentrancy rules (`docs/host-call-abi.md`).
+- Same `(P, I, G)` yields identical result bytes, gas used/remaining, and
+  host-call tape hashes across Node and browser.
+- Deterministic capability profiles enforce explicit contracts per profile.
+- Canonical gas is metered inside the engine, including host-call gas.
+- DV and manifest hashes pin the host boundary contract.
+- Release evidence is generated and verified, not hand-maintained.

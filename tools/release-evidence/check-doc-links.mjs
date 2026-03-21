@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 
-import { access, readFile } from 'node:fs/promises';
+import { access, readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 
 const args = parseArgs(process.argv.slice(2));
 const repoRoot = process.cwd();
 const targets =
-  args.files.length > 0 ? args.files : ['README.md', 'docs/README.md'];
+  args.files.length > 0 ? args.files : await discoverDefaultTargets(repoRoot);
 
 const missingLinks = [];
 const checkedLinks = [];
@@ -97,4 +97,28 @@ function normalizeHref(href) {
   const withoutFragment = href.split('#', 1)[0];
   const withoutQuery = withoutFragment.split('?', 1)[0];
   return withoutQuery;
+}
+
+async function discoverDefaultTargets(repoRoot) {
+  const docsDir = path.join(repoRoot, 'docs');
+  const docsFiles = await walkMarkdownFiles(repoRoot, docsDir);
+  return ['README.md', ...docsFiles, 'examples/README.md'];
+}
+
+async function walkMarkdownFiles(repoRoot, currentDir) {
+  const entries = await readdir(currentDir, { withFileTypes: true });
+  const files = [];
+
+  for (const entry of entries) {
+    const absolutePath = path.join(currentDir, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...(await walkMarkdownFiles(repoRoot, absolutePath)));
+      continue;
+    }
+    if (entry.isFile() && entry.name.endsWith('.md')) {
+      files.push(path.relative(repoRoot, absolutePath));
+    }
+  }
+
+  return files.sort();
 }

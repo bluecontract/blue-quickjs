@@ -8,6 +8,8 @@ Use this checklist before embedding BlueQuickjs in production consensus flows.
 - [ ] Pin `gasVersion`.
 - [ ] Pin ABI manifest hash.
 - [ ] Pin execution profile per workload (`baseline-v1` / `compat-*`).
+- [ ] Keep consensus-safe scope explicit: `wasm-node` vs `wasm-browser`
+      (`wasm32` release engine only).
 
 ## B) Runtime contract enforcement
 
@@ -27,6 +29,8 @@ Use this checklist before embedding BlueQuickjs in production consensus flows.
 - [ ] Verify checksums for all listed artifacts.
 - [ ] Verify detached signatures (`*.sig`) using trusted key material.
 - [ ] Record manifest hash and parity summary in release go/no-go template.
+- [ ] Run the local auditor command:
+      `pnpm release-evidence:verify -- --evidence-dir artifacts/release-evidence`
 
 ## E) Security/supply chain
 
@@ -38,4 +42,12 @@ Use this checklist before embedding BlueQuickjs in production consensus flows.
 
 - [ ] Run consumer-proof matrix (Node 20/22 and multi-OS).
 - [ ] Run registry-style publish rehearsal.
+- [ ] Run tarball-based consumer rehearsal.
 - [ ] Confirm docs/release notes match shipped consensus-safe scope.
+- [ ] Keep the in-repo playground aligned with certified evidence and docs.
+
+## Reference docs
+
+- [Consensus-safe vs diagnostic-only](./consensus-safe-vs-diagnostic-only.md)
+- [Release checklist](./release-checklist.md)
+- [Playground](./playground.md)

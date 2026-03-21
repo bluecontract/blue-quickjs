@@ -1,0 +1,35 @@
+export const TOKENS = {
+  colors: {
+    canvas: '#f4f7fb',
+    surface: '#ffffff',
+    surfaceMuted: '#f8fafc',
+    border: '#d8e1ec',
+    borderStrong: '#c1cedc',
+    text: '#14213d',
+    textMuted: '#5c6b80',
+    accent: '#1f6fff',
+    accentSoft: '#e7f0ff',
+    success: '#0f9f65',
+    warning: '#b7791f',
+    danger: '#d14343',
+    codeBg: '#0f172a',
+    codeText: '#e2e8f0',
+  },
+  radius: {
+    xs: '10px',
+    sm: '14px',
+    md: '18px',
+    pill: '999px',
+  },
+  shadow: {
+    sm: '0 8px 24px rgba(20, 33, 61, 0.06)',
+    md: '0 18px 48px rgba(20, 33, 61, 0.08)',
+  },
+  spacing: {
+    xs: '8px',
+    sm: '12px',
+    md: '16px',
+    lg: '24px',
+    xl: '32px',
+  },
+} as const;

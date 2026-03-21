@@ -8,6 +8,10 @@ diagnostic path retained as non-consensus.
 
 - Consensus policy now treats **exact gas** and **exact OOG boundaries** as
   release-critical alongside value/error/tape parity.
+- The repo now includes a polished in-repo **BlueQuickjs Playground** tied to
+  generated certified examples, red fixtures, and OOG-boundary evidence.
+- New docs provide a step-by-step learning path from “what is BlueQuickjs?” to
+  production embedder guidance and release-evidence verification.
 - Workload certification includes:
   - flagship knowledge/compliance workload,
   - green ecosystem compatibility corpus (25 fixtures / 24 packages + seeded stress),
@@ -60,4 +64,5 @@ diagnostic path retained as non-consensus.
 - Release readiness report: `docs/release-readiness-report.md`
 - Workload certification report: `docs/workload-certification.md`
 - Ecosystem compatibility report: `docs/ecosystem-compatibility-report.md`
+- Playground docs: `docs/playground.md`
 - Release policy: `docs/release-policy.md`

@@ -36,6 +36,8 @@ scratch.
 - [FAQ](./faq.md)
 - [Unsupported features and why](./unsupported-features-and-why.md)
 - [Consensus-safe vs diagnostic-only](./consensus-safe-vs-diagnostic-only.md)
+- [Playground](./playground.md)
+- [Playground recipes](./playground-recipes.md)
 
 ## Build with BlueQuickjs
 
@@ -52,6 +54,7 @@ pipelines.
 - [Embedder integration guide](./embedders.md)
 - [TypeScript SDK usage](./sdk.md)
 - [Examples guide](./examples.md)
+- [Playground](./playground.md)
 - [ABI limits explained](./abi-limits.md)
 
 ## Verify determinism

@@ -54,6 +54,10 @@ jobs:
       - name: Verify generated gas schedule docs are in sync
         run: node tools/gas-spec/render-gas-artifacts.mjs --check
 
+      - name: Verify learning-path docs
+        run: |
+          pnpm docs:verify-learning-path
+
       - name: Generate SBOM and dependency license reports
         run: |
           pnpm release-evidence:sbom -- --out-dir artifacts/security
@@ -70,9 +74,11 @@ jobs:
           pnpm nx test quickjs-runtime
           pnpm nx test smoke-node
           pnpm nx test test-harness
+          pnpm nx test bluequickjs-playground
           pnpm nx run smoke-web:e2e
           pnpm nx test ecosystem-certifier
           pnpm nx run ecosystem-certifier:e2e
+          pnpm nx run bluequickjs-playground:e2e
 
       - name: Generate consensus reproducibility report artifacts (Chromium + Firefox)
         run: |
@@ -120,14 +126,16 @@ jobs:
         run: |
           EXPECTED_DATE=$(node -e "const fs=require('fs');console.log(JSON.parse(fs.readFileSync('artifacts/release-evidence/release-evidence-manifest.json','utf8')).date)")
           pnpm docs:check-links
+          pnpm docs:verify-learning-path
           pnpm docs:check-freshness -- --expected-branch "${GITHUB_REF_NAME}" --expected-date "${EXPECTED_DATE}"
+          pnpm playground:check-generated
           pnpm release-evidence:synthesize -- --out-dir artifacts/release-evidence --check
           pnpm release-evidence:verify -- --evidence-dir artifacts/release-evidence --expected-branch "${GITHUB_REF_NAME}" --expected-date "${EXPECTED_DATE}"
 
       - name: Upload reproducibility artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: reproducibility-report
+          name: consensus-reproducibility-report
           path: |
             artifacts/reproducibility-consensus/**/*.json*
             artifacts/reproducibility-consensus/**/*.md*
@@ -137,7 +145,7 @@ jobs:
       - name: Upload native diagnostic reproducibility artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: reproducibility-native-diagnostic-report
+          name: native-diagnostic-reproducibility-report
           path: |
             artifacts/reproducibility/*.json*
             artifacts/reproducibility/*.md*
@@ -147,14 +155,14 @@ jobs:
       - name: Upload workload certification artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: workload-certification-report
+          name: workload-certification-artifacts
           path: artifacts/workload-certification/*
           if-no-files-found: error
 
       - name: Upload consumer-proof artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: consumer-proof-report
+          name: consumer-proof-artifacts
           path: |
             artifacts/consumer-proof/tarballs/tarball-manifest.json
             artifacts/consumer-proof/pack-manifests/pack-manifest.json

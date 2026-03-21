@@ -1,0 +1,170 @@
+{
+  "generatedAt": "current-worktree",
+  "metadata": {
+    "engineBuildHash": "f91091cb7feb788df340305a877a9cadb0c6f4d13aea8a7da4040b6367d178ea",
+    "gasVersion": 8
+  },
+  "fixtures": [
+    {
+      "id": "red-diff-timers",
+      "title": "diff package timer references are deterministically rejected",
+      "kind": "negative",
+      "executionProfile": "compat-general-v1",
+      "failureStage": "builder_reject",
+      "errorCode": null,
+      "errorTag": null,
+      "certified": true,
+      "docsLinks": [
+        {
+          "label": "Workload certification",
+          "href": "/docs/workload-certification.md"
+        },
+        {
+          "label": "Compatibility report",
+          "href": "/docs/ecosystem-compatibility-report.md"
+        },
+        {
+          "label": "Unsupported features and why",
+          "href": "/docs/unsupported-features-and-why.md"
+        }
+      ],
+      "diagnostics": [
+        {
+          "filePath": "./diff-entry.js",
+          "ruleId": "timers_disabled",
+          "message": "forbidden API used: setTimeout"
+        }
+      ],
+      "runtimeArtifact": null,
+      "reportSource": "ecosystem-certifier:red-diff-timers"
+    },
+    {
+      "id": "red-dynamic-import",
+      "title": "dynamic import must be rejected at build stage",
+      "kind": "negative",
+      "executionProfile": "compat-general-v1",
+      "failureStage": "builder_reject",
+      "errorCode": null,
+      "errorTag": null,
+      "certified": true,
+      "docsLinks": [
+        {
+          "label": "Workload certification",
+          "href": "/docs/workload-certification.md"
+        },
+        {
+          "label": "Compatibility report",
+          "href": "/docs/ecosystem-compatibility-report.md"
+        },
+        {
+          "label": "Unsupported features and why",
+          "href": "/docs/unsupported-features-and-why.md"
+        }
+      ],
+      "diagnostics": [
+        {
+          "filePath": "./dynamic-import-entry.js",
+          "ruleId": "dynamic_import_disabled",
+          "message": "dynamic import() is disabled in deterministic mode"
+        }
+      ],
+      "runtimeArtifact": null,
+      "reportSource": "ecosystem-certifier:red-dynamic-import"
+    },
+    {
+      "id": "red-proxy",
+      "title": "Proxy usage must be rejected at build stage",
+      "kind": "negative",
+      "executionProfile": "compat-general-v1",
+      "failureStage": "builder_reject",
+      "errorCode": null,
+      "errorTag": null,
+      "certified": true,
+      "docsLinks": [
+        {
+          "label": "Workload certification",
+          "href": "/docs/workload-certification.md"
+        },
+        {
+          "label": "Compatibility report",
+          "href": "/docs/ecosystem-compatibility-report.md"
+        },
+        {
+          "label": "Unsupported features and why",
+          "href": "/docs/unsupported-features-and-why.md"
+        }
+      ],
+      "diagnostics": [
+        {
+          "filePath": "./proxy-entry.js",
+          "ruleId": "proxy_disabled",
+          "message": "forbidden API used: Proxy"
+        }
+      ],
+      "runtimeArtifact": null,
+      "reportSource": "ecosystem-certifier:red-proxy"
+    },
+    {
+      "id": "red-function-constructor",
+      "title": "Function constructor must fail deterministically in module-pack flow",
+      "kind": "negative",
+      "executionProfile": "compat-general-v1",
+      "failureStage": "artifact_validation",
+      "errorCode": "MODULE_EXPORT_MISSING",
+      "errorTag": "vm/module_pack",
+      "certified": true,
+      "docsLinks": [
+        {
+          "label": "Workload certification",
+          "href": "/docs/workload-certification.md"
+        },
+        {
+          "label": "Compatibility report",
+          "href": "/docs/ecosystem-compatibility-report.md"
+        },
+        {
+          "label": "Unsupported features and why",
+          "href": "/docs/unsupported-features-and-why.md"
+        }
+      ],
+      "diagnostics": [],
+      "runtimeArtifact": {
+        "version": 2,
+        "abiId": "Host.v1",
+        "abiVersion": 1,
+        "abiManifestHash": "e23b0b2ee169900bbde7aff78e6ce20fead1715c60f8a8e3106d9959450a3d34",
+        "engineBuildHash": "f91091cb7feb788df340305a877a9cadb0c6f4d13aea8a7da4040b6367d178ea",
+        "gasVersion": 8,
+        "executionProfile": "compat-general-v1",
+        "sourceKind": "module-pack",
+        "source": {
+          "modulePack": {
+            "version": 1,
+            "entrySpecifier": "./function-constructor-entry.js",
+            "entryExport": "default",
+            "modules": [
+              {
+                "specifier": "./function-constructor-entry.js",
+                "source": "// apps/ecosystem-certifier/fixtures/negative/function-constructor-entry.ts\nvar make = new Function(\"return 41 + 1;\");\nvar function_constructor_entry_default = make();\nexport {\n  function_constructor_entry_default as default\n};\n",
+                "sourceMap": "{\"mappings\":\";AAAA,IAAM,OAAO,IAAI,SAAS,gBAAgB;AAE1C,IAAO,qCAAQ,KAAK;\",\"names\":[],\"sources\":[\"../apps/ecosystem-certifier/fixtures/negative/function-constructor-entry.ts\"],\"sourcesContent\":[\"const make = new Function('return 41 + 1;');\\n\\nexport default make();\\n\"],\"version\":3}",
+                "originMeta": {
+                  "originalPath": "apps/ecosystem-certifier/fixtures/negative/function-constructor-entry.ts"
+                }
+              }
+            ],
+            "builderVersion": "deterministic-builder-v1",
+            "dependencyIntegrity": "483aad47a5ae3669a320d313a6ce1be9be705b5c52775cba1b4f45d1fada0562",
+            "diagnosticsMeta": {
+              "entryPath": "/workspace/apps/ecosystem-certifier/fixtures/negative/function-constructor-entry.ts",
+              "modulePaths": [
+                "./function-constructor-entry.js"
+              ]
+            },
+            "graphHash": "540034aad543c614a540b986b8c391e620261b8046c00edede6484f37461f21b"
+          }
+        }
+      },
+      "reportSource": "ecosystem-certifier:red-function-constructor"
+    }
+  ]
+}

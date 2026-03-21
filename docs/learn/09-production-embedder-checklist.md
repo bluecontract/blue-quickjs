@@ -38,9 +38,9 @@ pnpm workload:check-pack-manifests -- --out-dir artifacts/consumer-proof/pack-ma
 
 ## Continue
 
-- Revisit the full [Production embedder checklist](../production-embedder-checklist.md)
-- Review [Release checklist](../release-checklist.md)
-- Explore the examples corpus in [`examples/README.md`](../../examples/README.md)
+Next: return to the [documentation hub](../README.md), then revisit the full
+[Production embedder checklist](../production-embedder-checklist.md) and
+[Release checklist](../release-checklist.md).
 
 ## Troubleshooting
 

@@ -6,6 +6,10 @@ Scope: steps to publish deterministic engine + ABI packages.
 
 - Confirm the working tree is clean and `vendor/quickjs` is pinned to the intended commit.
 - Run `pnpm lint`, `pnpm nx typecheck`, `pnpm nx test`, and `pnpm nx build`.
+- Confirm release-facing docs still state the consensus-safe scope correctly:
+  - `wasm-node` vs `wasm-browser`
+  - canonical `wasm32` release engine
+  - native remains diagnostic-only
 - Run strict parity gating for consensus executors (`wasm-node` vs
   `wasm-browser`) with raw gas equality (no gas-delta baseline normalization).
 - Verify gas schedule docs are synchronized with the canonical spec source:
@@ -48,9 +52,14 @@ Scope: steps to publish deterministic engine + ABI packages.
   - `pnpm release-evidence:synthesize -- --out-dir artifacts/release-evidence`
 - Verify release evidence bundle locally (auditor command):
   - `pnpm release-evidence:verify -- --evidence-dir artifacts/release-evidence`
+- Confirm the release evidence manifest exists and is complete:
+  - `artifacts/release-evidence/release-evidence-manifest.json`
 - Generate security/supply-chain artifacts:
   - `pnpm release-evidence:sbom -- --out-dir artifacts/security`
   - `pnpm release-evidence:licenses -- --out-dir artifacts/security`
+- Refresh playground generated data and ensure it is not stale:
+  - `node apps/bluequickjs-playground/scripts/generate-playground-data.mjs`
+  - `node apps/bluequickjs-playground/scripts/generate-playground-data.mjs --check`
 
 ## Wasm build + metadata
 
@@ -89,3 +98,9 @@ Scope: steps to publish deterministic engine + ABI packages.
 
 - Publish the five packages from their package roots after build (dist/ is included in `files`).
 - Tag the release and record the engine build hash + manifest hash in the release notes.
+
+## Reference docs
+
+- [Release-readiness report](./release-readiness-report.md)
+- [Production embedder checklist](./production-embedder-checklist.md)
+- [Playground](./playground.md)

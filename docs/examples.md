@@ -9,5 +9,6 @@ That guide includes:
 - all 10 required example categories,
 - source-file locations for each scenario,
 - expected gas/result/OOG evidence keys,
+- the in-repo playground entry point for interactive inspection,
 - consensus executor reproducibility commands (`wasm-node` vs `wasm-browser`),
 - native diagnostic reproducibility commands.

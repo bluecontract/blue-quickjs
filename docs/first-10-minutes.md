@@ -43,3 +43,18 @@ From `docs/release-readiness-report.md` and release evidence summary:
 
 - Consensus-safe claim is wasm-node vs wasm-browser required matrix.
 - Native remains diagnostic-only unless explicitly promoted by release policy.
+
+## 7) Open the in-repo playground
+
+```bash
+node apps/bluequickjs-playground/scripts/generate-playground-data.mjs
+pnpm vite --host --port 4325 --config apps/bluequickjs-playground/vite.config.mts
+```
+
+Use the playground to inspect:
+
+- profiles,
+- gas/result metadata,
+- certified snapshot matches,
+- red deterministic failures,
+- exact OOG boundaries.
