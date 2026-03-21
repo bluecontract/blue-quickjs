@@ -9,7 +9,6 @@ import { encodeDv2 } from '@blue-quickjs/dv';
 import type {
   HostCallResult,
   HostDispatcherHandlers,
-  HostTapeRecord,
   ProgramArtifactV2,
 } from '@blue-quickjs/quickjs-runtime';
 import {
@@ -25,16 +24,13 @@ import {
   createDeterminismHost,
   serializeHostTape,
 } from '@blue-quickjs/test-harness';
-import { createCertificationHost } from '../../../ecosystem-certifier/src/shared/host.js';
 import type {
   EvidencePayload,
-  GalleryEntry,
   HostEvent,
   HostPresetId,
   LoadedPlaygroundData,
   OogPayload,
   PlaygroundRunResult,
-  RedPayload,
   RunSnapshot,
 } from './types.js';
 
@@ -45,6 +41,56 @@ const CERTIFICATION_INPUT = {
   currentContract: { id: 'ecosystem-certifier' },
   currentContractCanonical: { id: { value: 'ecosystem-certifier' } },
 };
+
+const CERT_TEXT_DOCUMENTS = new Map<string, string>([
+  [
+    'pack/metadata.json',
+    JSON.stringify(
+      {
+        packId: 'kp-2026-rc',
+        release: '1.2.3',
+        requires: ['>=1.2.0 <2.0.0', '^1.2.0'],
+        links: ['docs/a.md', 'docs/b.md', 'docs/c.md', 'docs/d.md'],
+      },
+      null,
+      2,
+    ),
+  ],
+  [
+    'pack/metadata.yaml',
+    [
+      'packId: kp-2026-rc',
+      'release: 1.2.3',
+      'requires:',
+      '  - ">=1.2.0 <2.0.0"',
+      '  - "^1.2.0"',
+      'links:',
+      '  - docs/a.md',
+      '  - docs/b.md',
+      '',
+    ].join('\n'),
+  ],
+  ['docs/a.md', '# Alpha\n\nSee [Beta](docs/b.md).\n'],
+  ['docs/b.md', '# Beta\n\nBacklink to [Alpha](docs/a.md).\n'],
+  ['docs/c.md', '# Gamma\n\nCross-link to [Delta](docs/d.md).\n'],
+  ['docs/d.md', '# Delta\n\nBack to [Alpha](docs/a.md).\n'],
+  ['text/semver-case', '1.2.3'],
+]);
+
+const CERT_BINARY_DOCUMENTS = new Map<string, Uint8Array>([
+  [
+    'bytes/payload',
+    Uint8Array.from(
+      Array.from({ length: 64 }, (_, index) => (index * 17) % 251),
+    ),
+  ],
+  [
+    'bytes/flagship-extra',
+    Uint8Array.from(
+      Array.from({ length: 192 }, (_, index) => (index * 29 + 11) % 251),
+    ),
+  ],
+]);
 
 let runtimeAssetsPromise:
   | Promise<{
@@ -73,7 +119,11 @@ export async function getRuntimeAssets() {
   if (!runtimeAssetsPromise) {
     runtimeAssetsPromise = (async () => {
       const metadata = await loadQuickjsWasmMetadata();
-      const wasmBinary = await loadQuickjsWasmBinary('wasm32', 'release', metadata);
+      const wasmBinary = await loadQuickjsWasmBinary(
+        'wasm32',
+        'release',
+        metadata,
+      );
       return { metadata, wasmBinary };
     })();
   }
@@ -91,7 +141,9 @@ export async function runArtifact(options: {
   const result = await evaluate({
     program: options.artifact,
     input:
-      options.hostPreset === 'certification' ? CERTIFICATION_INPUT : DETERMINISM_INPUT,
+      options.hostPreset === 'certification'
+        ? CERTIFICATION_INPUT
+        : DETERMINISM_INPUT,
     gasLimit: options.gasLimit,
     manifest: options.manifest,
     handlers: host.handlers,
@@ -198,15 +250,21 @@ export function createScriptArtifact(
     abiId: binary ? 'Host.v2' : 'Host.v1',
     abiVersion: binary ? 2 : 1,
     abiManifestHash: binary ? HOST_V2_HASH : HOST_V1_HASH,
-    ...(metadata.engineBuildHash ? { engineBuildHash: metadata.engineBuildHash } : {}),
-    ...(metadata.gasVersion !== null ? { gasVersion: metadata.gasVersion } : {}),
+    ...(metadata.engineBuildHash
+      ? { engineBuildHash: metadata.engineBuildHash }
+      : {}),
+    ...(metadata.gasVersion !== null
+      ? { gasVersion: metadata.gasVersion }
+      : {}),
     executionProfile: profile,
     sourceKind: 'script',
     source: { code },
   };
 }
 
-export function defaultManifestForArtifact(artifact: ProgramArtifactV2): AbiManifest {
+export function defaultManifestForArtifact(
+  artifact: ProgramArtifactV2,
+): AbiManifest {
   return artifact.abiId === 'Host.v2' ? HOST_V2_MANIFEST : HOST_V1_MANIFEST;
 }
 
@@ -249,7 +307,9 @@ function createWrappedHost(hostPreset: HostPresetId): {
   events: HostEvent[];
 } {
   const base =
-    hostPreset === 'certification' ? createCertificationHost() : createDeterminismHost();
+    hostPreset === 'certification'
+      ? createInlineCertificationHost()
+      : createDeterminismHost();
   const events: HostEvent[] = [];
 
   return {
@@ -288,6 +348,52 @@ function createWrappedHost(hostPreset: HostPresetId): {
       },
     },
     events,
+  };
+}
+
+function createInlineCertificationHost(): {
+  handlers: HostDispatcherHandlers;
+  emitted: unknown[];
+} {
+  const emitted: unknown[] = [];
+  return {
+    emitted,
+    handlers: {
+      document: {
+        get: (docPath: string): HostCallResult => {
+          const binaryDoc = CERT_BINARY_DOCUMENTS.get(docPath);
+          if (binaryDoc) {
+            return { ok: binaryDoc, units: 6 };
+          }
+          const textDoc = CERT_TEXT_DOCUMENTS.get(docPath);
+          if (textDoc) {
+            return { ok: textDoc, units: 2 };
+          }
+          return {
+            err: { code: 'NOT_FOUND', tag: 'host/not_found' },
+            units: 1,
+          };
+        },
+        getCanonical: (docPath: string): HostCallResult => {
+          const textDoc = CERT_TEXT_DOCUMENTS.get(docPath);
+          if (textDoc) {
+            return { ok: textDoc, units: 2 };
+          }
+          const binaryDoc = CERT_BINARY_DOCUMENTS.get(docPath);
+          if (binaryDoc) {
+            return { ok: binaryDoc, units: 6 };
+          }
+          return {
+            err: { code: 'NOT_FOUND', tag: 'host/not_found' },
+            units: 1,
+          };
+        },
+      },
+      emit: (value: unknown): HostCallResult => {
+        emitted.push(value);
+        return { ok: null, units: 1 };
+      },
+    },
   };
 }
 
@@ -374,7 +480,9 @@ function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
 async function loadJson(url: string): Promise<unknown> {
   const response = await fetch(url);
   if (!response.ok) {
-    throw new Error(`Failed to load ${url}: ${response.status} ${response.statusText}`);
+    throw new Error(
+      `Failed to load ${url}: ${response.status} ${response.statusText}`,
+    );
   }
   return response.json();
 }

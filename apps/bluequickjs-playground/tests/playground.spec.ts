@@ -1,12 +1,21 @@
 import { expect, test } from '@playwright/test';
 
-async function selectGalleryItem(page: import('@playwright/test').Page, text: string) {
-  await page.locator('button.gallery-item').filter({ hasText: text }).first().click();
+async function selectGalleryItem(
+  page: import('@playwright/test').Page,
+  text: string,
+) {
+  await page
+    .locator('button.gallery-item')
+    .filter({ hasText: text })
+    .first()
+    .click();
 }
 
 test('renders the landing state', async ({ page, browserName }) => {
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'BlueQuickjs Playground' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'BlueQuickjs Playground' }),
+  ).toBeVisible();
   await expect(page.locator('[data-selection-title]')).toContainText(
     'Basic deterministic script',
   );
@@ -29,7 +38,9 @@ test('runs the baseline example and matches certified evidence', async ({
   await expect(page.locator('[data-evidence-status]')).toContainText(
     'Matches certified snapshot',
   );
-  await expect(page.locator('[data-tab-panel]')).toContainText('"gasUsed": "74"');
+  await expect(page.locator('[data-tab-panel]')).toContainText(
+    '"gasUsed": "74"',
+  );
 
   if (browserName === 'chromium') {
     await expect(page).toHaveScreenshot('playground-success.png', {
@@ -70,14 +81,21 @@ test('shows deterministic failure messaging for red fixtures', async ({
   browserName,
 }) => {
   await page.goto('/');
-  await selectGalleryItem(page, 'dynamic import must be rejected at build stage');
+  await selectGalleryItem(
+    page,
+    'dynamic import must be rejected at build stage',
+  );
 
   await expect(page.locator('[data-selection-title]')).toContainText(
     'dynamic import must be rejected at build stage',
   );
-  await expect(page.getByRole('button', { name: 'Run current selection' })).toBeDisabled();
+  await expect(
+    page.getByRole('button', { name: 'Run current selection' }),
+  ).toBeDisabled();
   await page.getByRole('button', { name: 'Determinism evidence' }).click();
-  await expect(page.locator('[data-tab-panel]')).toContainText('builder_reject');
+  await expect(page.locator('[data-tab-panel]')).toContainText(
+    'builder_reject',
+  );
 
   if (browserName === 'chromium') {
     await expect(page).toHaveScreenshot('playground-failure.png', {
@@ -94,8 +112,12 @@ test('supports exact OOG boundary inspection and artifact-json roundtrips', asyn
   await selectGalleryItem(page, 'Max-gas policy / OOG boundary');
   await page.getByRole('button', { name: 'Find OOG boundary' }).click();
   await page.getByRole('button', { name: 'Determinism evidence' }).click();
-  await expect(page.locator('[data-tab-panel]')).toContainText('"firstSuccessGas": "170099"');
-  await expect(page.locator('[data-tab-panel]')).toContainText('"lastFailureGas": "170098"');
+  await expect(page.locator('[data-tab-panel]')).toContainText(
+    '"firstSuccessGas": "170099"',
+  );
+  await expect(page.locator('[data-tab-panel]')).toContainText(
+    '"lastFailureGas": "170098"',
+  );
 
   if (browserName === 'chromium') {
     await expect(page).toHaveScreenshot('playground-oog.png', {

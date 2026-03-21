@@ -121,7 +121,11 @@ export interface LoadedPlaygroundData {
 }
 
 export interface RunSnapshot {
-  stage: 'success' | 'artifact_validation' | 'runtime_error' | 'pin_enforcement';
+  stage:
+    | 'success'
+    | 'artifact_validation'
+    | 'runtime_error'
+    | 'pin_enforcement';
   resultHash: string | null;
   errorCode: string | null;
   errorTag: string | null;

@@ -15,7 +15,11 @@ describe('playground runtime helpers', () => {
   };
 
   it('creates baseline script artifacts against Host.v1', () => {
-    const artifact = createScriptArtifact('(() => 1)();', 'baseline-v1', metadata);
+    const artifact = createScriptArtifact(
+      '(() => 1)();',
+      'baseline-v1',
+      metadata,
+    );
     expect(artifact.abiId).toBe('Host.v1');
     expect(artifact.abiManifestHash).toBe(HOST_V1_HASH);
     expect(artifact.engineBuildHash).toBe(metadata.engineBuildHash);
@@ -33,7 +37,11 @@ describe('playground runtime helpers', () => {
   });
 
   it('parses artifact json through runtime validation', () => {
-    const artifact = createScriptArtifact('(() => 1)();', 'baseline-v1', metadata);
+    const artifact = createScriptArtifact(
+      '(() => 1)();',
+      'baseline-v1',
+      metadata,
+    );
     expect(parseArtifactJson(JSON.stringify(artifact))).toEqual(artifact);
   });
 

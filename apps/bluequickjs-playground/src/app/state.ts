@@ -16,7 +16,9 @@ export function getInitialExample(data: LoadedPlaygroundData): GalleryEntry {
   return data.examples.examples[0];
 }
 
-export function groupExamples(entries: GalleryEntry[]): Record<string, GalleryEntry[]> {
+export function groupExamples(
+  entries: GalleryEntry[],
+): Record<string, GalleryEntry[]> {
   return entries.reduce<Record<string, GalleryEntry[]>>((groups, entry) => {
     const key = entry.kind;
     groups[key] ??= [];

@@ -1,4 +1,8 @@
-import { getInitialExample, getProfileSummary, groupExamples } from './state.js';
+import {
+  getInitialExample,
+  getProfileSummary,
+  groupExamples,
+} from './state.js';
 import type { LoadedPlaygroundData } from './types.js';
 
 const DATA = {
@@ -60,7 +64,9 @@ const DATA = {
         sourceKind: 'module-pack',
         abiId: 'Host.v1',
         gasLimit: '1000000',
-        sourcePaths: ['apps/ecosystem-certifier/fixtures/positive/semver-entry.ts'],
+        sourcePaths: [
+          'apps/ecosystem-certifier/fixtures/positive/semver-entry.ts',
+        ],
         sourceText: 'export default 1;',
         hostPreset: 'certification',
         hostSummary: {
@@ -127,7 +133,9 @@ describe('playground state helpers', () => {
   });
 
   it('summarizes profile capabilities', () => {
-    expect(getProfileSummary('baseline-v1')).toContain('Minimal consensus baseline');
+    expect(getProfileSummary('baseline-v1')).toContain(
+      'Minimal consensus baseline',
+    );
     expect(getProfileSummary('compat-general-v1')).toContain('promiseJobs');
   });
 });

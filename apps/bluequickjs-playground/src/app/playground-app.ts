@@ -1,12 +1,6 @@
 import { isKnownExecutionProfile } from '@blue-quickjs/execution-profiles';
 import { monaco } from './monaco.js';
-import {
-  formatGas,
-  formatStage,
-  shortenHash,
-  slugToLabel,
-  toPrettyJson,
-} from './format.js';
+import { formatGas, shortenHash, slugToLabel, toPrettyJson } from './format.js';
 import {
   compareAgainstEvidence,
   createScriptArtifact,
@@ -16,8 +10,11 @@ import {
   parseArtifactJson,
   runArtifact,
 } from './runtime.js';
-import { TOKENS } from '../design/tokens.js';
-import { getInitialExample, getProfileSummary, groupExamples } from './state.js';
+import {
+  getInitialExample,
+  getProfileSummary,
+  groupExamples,
+} from './state.js';
 import type {
   GalleryEntry,
   HostPresetId,
@@ -27,9 +24,7 @@ import type {
   RedFixtureRecord,
 } from './types.js';
 
-type Selection =
-  | { type: 'gallery'; id: string }
-  | { type: 'red'; id: string };
+type Selection = { type: 'gallery'; id: string } | { type: 'red'; id: string };
 
 export class PlaygroundApp {
   private data: LoadedPlaygroundData | null = null;
@@ -60,7 +55,8 @@ export class PlaygroundApp {
   }
 
   async init(): Promise<void> {
-    this.root.innerHTML = '<div class="bq-loading">Loading BlueQuickjs Playground…</div>';
+    this.root.innerHTML =
+      '<div class="bq-loading">Loading BlueQuickjs Playground…</div>';
     this.data = await loadPlaygroundData();
     const initial = getInitialExample(this.data);
     this.selection = { type: 'gallery', id: initial.id };
@@ -209,25 +205,26 @@ export class PlaygroundApp {
   }
 
   private bindEvents(): void {
-    this.root.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((button) => {
-      button.addEventListener('click', () => {
-        this.mode = button.dataset.mode as typeof this.mode;
-        this.updateEditorForMode();
-        this.updateControls();
-        this.updatePanels();
+    this.root
+      .querySelectorAll<HTMLButtonElement>('[data-mode]')
+      .forEach((button) => {
+        button.addEventListener('click', () => {
+          this.mode = button.dataset.mode as typeof this.mode;
+          this.updateEditorForMode();
+          this.updateControls();
+          this.updatePanels();
+        });
       });
-    });
 
-    this.root.querySelector<HTMLSelectElement>('[data-profile]')?.addEventListener(
-      'change',
-      (event) => {
+    this.root
+      .querySelector<HTMLSelectElement>('[data-profile]')
+      ?.addEventListener('change', (event) => {
         const next = (event.currentTarget as HTMLSelectElement).value;
         if (isKnownExecutionProfile(next)) {
           this.scriptProfile = next;
           this.updateControls();
         }
-      },
-    );
+      });
 
     this.root
       .querySelector<HTMLInputElement>('[data-gas-limit]')
@@ -241,19 +238,21 @@ export class PlaygroundApp {
         this.updatePanels();
       });
 
-    this.root.querySelectorAll<HTMLButtonElement>('[data-gas-preset]').forEach((button) => {
-      button.addEventListener('click', () => {
-        const input = this.root.querySelector<HTMLInputElement>('[data-gas-limit]');
-        if (input && button.dataset.gasPreset) {
-          input.value = button.dataset.gasPreset;
-        }
+    this.root
+      .querySelectorAll<HTMLButtonElement>('[data-gas-preset]')
+      .forEach((button) => {
+        button.addEventListener('click', () => {
+          const input =
+            this.root.querySelector<HTMLInputElement>('[data-gas-limit]');
+          if (input && button.dataset.gasPreset) {
+            input.value = button.dataset.gasPreset;
+          }
+        });
       });
-    });
 
-    this.root.querySelector<HTMLButtonElement>('[data-run]')?.addEventListener(
-      'click',
-      () => void this.runCurrentSelection(),
-    );
+    this.root
+      .querySelector<HTMLButtonElement>('[data-run]')
+      ?.addEventListener('click', () => void this.runCurrentSelection());
     this.root
       .querySelector<HTMLButtonElement>('[data-find-oog]')
       ?.addEventListener('click', () => void this.findBoundary());
@@ -264,12 +263,14 @@ export class PlaygroundApp {
       .querySelector<HTMLButtonElement>('[data-export-evidence]')
       ?.addEventListener('click', () => this.exportEvidence());
 
-    this.root.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach((button) => {
-      button.addEventListener('click', () => {
-        this.activeTab = button.dataset.tab as typeof this.activeTab;
-        this.updatePanels();
+    this.root
+      .querySelectorAll<HTMLButtonElement>('[data-tab]')
+      .forEach((button) => {
+        button.addEventListener('click', () => {
+          this.activeTab = button.dataset.tab as typeof this.activeTab;
+          this.updatePanels();
+        });
       });
-    });
   }
 
   private createEditor(): void {
@@ -299,7 +300,9 @@ export class PlaygroundApp {
     }
 
     const grouped = groupExamples(this.data.examples.examples);
-    const groupsMount = this.root.querySelector<HTMLElement>('[data-gallery-groups]');
+    const groupsMount = this.root.querySelector<HTMLElement>(
+      '[data-gallery-groups]',
+    );
     const redMount = this.root.querySelector<HTMLElement>('[data-red-list]');
 
     if (groupsMount) {
@@ -329,7 +332,11 @@ export class PlaygroundApp {
         .querySelectorAll<HTMLButtonElement>('[data-gallery-id]')
         .forEach((button) => {
           button.addEventListener('click', () => {
-            this.selection = { type: 'gallery', id: button.dataset.galleryId! };
+            const galleryId = button.dataset.galleryId;
+            if (!galleryId) {
+              return;
+            }
+            this.selection = { type: 'gallery', id: galleryId };
             this.mode = 'gallery';
             this.boundaryOverride = null;
             this.runResult = null;
@@ -356,18 +363,24 @@ export class PlaygroundApp {
         )
         .join('');
 
-      redMount.querySelectorAll<HTMLButtonElement>('[data-red-id]').forEach((button) => {
-        button.addEventListener('click', () => {
-          this.selection = { type: 'red', id: button.dataset.redId! };
-          this.mode = 'gallery';
-          this.boundaryOverride = null;
-          this.runResult = null;
-          this.hostPreset = 'certification';
-          this.updateEditorForMode();
-          this.updateControls();
-          this.updatePanels();
+      redMount
+        .querySelectorAll<HTMLButtonElement>('[data-red-id]')
+        .forEach((button) => {
+          button.addEventListener('click', () => {
+            const redId = button.dataset.redId;
+            if (!redId) {
+              return;
+            }
+            this.selection = { type: 'red', id: redId };
+            this.mode = 'gallery';
+            this.boundaryOverride = null;
+            this.runResult = null;
+            this.hostPreset = 'certification';
+            this.updateEditorForMode();
+            this.updateControls();
+            this.updatePanels();
+          });
         });
-      });
     }
   }
 
@@ -376,7 +389,9 @@ export class PlaygroundApp {
       return null;
     }
     return (
-      this.data.examples.examples.find((entry) => entry.id === this.selection?.id) ?? null
+      this.data.examples.examples.find(
+        (entry) => entry.id === this.selection?.id,
+      ) ?? null
     );
   }
 
@@ -384,7 +399,10 @@ export class PlaygroundApp {
     if (!this.data || !this.selection || this.selection.type !== 'red') {
       return null;
     }
-    return this.data.red.fixtures.find((entry) => entry.id === this.selection?.id) ?? null;
+    return (
+      this.data.red.fixtures.find((entry) => entry.id === this.selection?.id) ??
+      null
+    );
   }
 
   private updateEditorForMode(): void {
@@ -394,14 +412,21 @@ export class PlaygroundApp {
 
     const selection = this.currentGalleryEntry();
     const redFixture = this.currentRedFixture();
-    const modeLabel = this.root.querySelector<HTMLElement>('[data-editor-mode-label]');
-    const sourcePaths = this.root.querySelector<HTMLElement>('[data-editor-source-paths]');
+    const modeLabel = this.root.querySelector<HTMLElement>(
+      '[data-editor-mode-label]',
+    );
+    const sourcePaths = this.root.querySelector<HTMLElement>(
+      '[data-editor-source-paths]',
+    );
 
     if (this.mode === 'script') {
       const seed = selection?.sourceText ?? 'export default (() => 1 + 2)();\n';
       this.editor.updateOptions({ readOnly: false });
       this.editor.setValue(seed);
-      monaco.editor.setModelLanguage(this.editor.getModel()!, 'javascript');
+      const model = this.editor.getModel();
+      if (model) {
+        monaco.editor.setModelLanguage(model, 'javascript');
+      }
       if (modeLabel) modeLabel.textContent = 'Script mode';
       if (sourcePaths) sourcePaths.textContent = 'Editable JavaScript snippet';
       return;
@@ -410,38 +435,52 @@ export class PlaygroundApp {
     if (this.mode === 'artifact') {
       if (!this.artifactJson) {
         this.artifactJson = toPrettyJson(
-          selection?.program ?? redFixture?.runtimeArtifact ?? createScriptArtifact(
-            'export default (() => 1 + 2)();\n',
-            this.scriptProfile as GalleryEntry['executionProfile'],
-            this.data.examples.metadata,
-          ),
+          selection?.program ??
+            redFixture?.runtimeArtifact ??
+            createScriptArtifact(
+              'export default (() => 1 + 2)();\n',
+              this.scriptProfile as GalleryEntry['executionProfile'],
+              this.data.examples.metadata,
+            ),
         );
       }
       this.editor.updateOptions({ readOnly: false });
       this.editor.setValue(this.artifactJson);
-      monaco.editor.setModelLanguage(this.editor.getModel()!, 'json');
+      const model = this.editor.getModel();
+      if (model) {
+        monaco.editor.setModelLanguage(model, 'json');
+      }
       if (modeLabel) modeLabel.textContent = 'Artifact JSON import mode';
-      if (sourcePaths) sourcePaths.textContent = 'Paste or edit ProgramArtifact.v2 JSON';
+      if (sourcePaths)
+        sourcePaths.textContent = 'Paste or edit ProgramArtifact.v2 JSON';
       return;
     }
 
     this.editor.updateOptions({ readOnly: true });
     if (selection) {
       this.editor.setValue(selection.sourceText);
-      monaco.editor.setModelLanguage(
-        this.editor.getModel()!,
-        selection.sourcePaths[0]?.endsWith('.ts') ? 'typescript' : 'javascript',
-      );
+      const model = this.editor.getModel();
+      if (model) {
+        monaco.editor.setModelLanguage(
+          model,
+          selection.sourcePaths[0]?.endsWith('.ts')
+            ? 'typescript'
+            : 'javascript',
+        );
+      }
       if (modeLabel) modeLabel.textContent = 'Certified gallery source';
-      if (sourcePaths) sourcePaths.textContent = selection.sourcePaths.join(' · ');
+      if (sourcePaths)
+        sourcePaths.textContent = selection.sourcePaths.join(' · ');
     } else if (redFixture) {
-      const payload =
-        redFixture.runtimeArtifact ?? {
-          diagnostics: redFixture.diagnostics,
-          failureStage: redFixture.failureStage,
-        };
+      const payload = redFixture.runtimeArtifact ?? {
+        diagnostics: redFixture.diagnostics,
+        failureStage: redFixture.failureStage,
+      };
       this.editor.setValue(toPrettyJson(payload));
-      monaco.editor.setModelLanguage(this.editor.getModel()!, 'json');
+      const model = this.editor.getModel();
+      if (model) {
+        monaco.editor.setModelLanguage(model, 'json');
+      }
       if (modeLabel) modeLabel.textContent = 'Deterministic failure fixture';
       if (sourcePaths) sourcePaths.textContent = redFixture.reportSource;
     }
@@ -450,12 +489,18 @@ export class PlaygroundApp {
   private updateControls(): void {
     const selection = this.currentGalleryEntry();
     const redFixture = this.currentRedFixture();
-    const profileSelect = this.root.querySelector<HTMLSelectElement>('[data-profile]');
-    const gasInput = this.root.querySelector<HTMLInputElement>('[data-gas-limit]');
-    const hostPreset = this.root.querySelector<HTMLSelectElement>('[data-host-preset]');
-    const profileHelp = this.root.querySelector<HTMLElement>('[data-profile-help]');
+    const profileSelect =
+      this.root.querySelector<HTMLSelectElement>('[data-profile]');
+    const gasInput =
+      this.root.querySelector<HTMLInputElement>('[data-gas-limit]');
+    const hostPreset =
+      this.root.querySelector<HTMLSelectElement>('[data-host-preset]');
+    const profileHelp = this.root.querySelector<HTMLElement>(
+      '[data-profile-help]',
+    );
     const runButton = this.root.querySelector<HTMLButtonElement>('[data-run]');
-    const oogButton = this.root.querySelector<HTMLButtonElement>('[data-find-oog]');
+    const oogButton =
+      this.root.querySelector<HTMLButtonElement>('[data-find-oog]');
 
     if (selection) {
       if (gasInput) gasInput.value = selection.gasLimit;
@@ -466,7 +511,10 @@ export class PlaygroundApp {
     }
 
     if (profileSelect) {
-      profileSelect.value = this.mode === 'script' ? this.scriptProfile : selection?.executionProfile ?? 'baseline-v1';
+      profileSelect.value =
+        this.mode === 'script'
+          ? this.scriptProfile
+          : (selection?.executionProfile ?? 'baseline-v1');
       profileSelect.disabled = this.mode !== 'script';
     }
 
@@ -474,7 +522,7 @@ export class PlaygroundApp {
       profileHelp.textContent = getProfileSummary(
         (this.mode === 'script'
           ? this.scriptProfile
-          : selection?.executionProfile ?? 'baseline-v1') as never,
+          : (selection?.executionProfile ?? 'baseline-v1')) as never,
       );
     }
 
@@ -486,25 +534,36 @@ export class PlaygroundApp {
     }
 
     if (oogButton) {
-      oogButton.disabled = this.mode === 'gallery'
-        ? selection === null || !selection.supportsOogSearch
-        : false;
+      oogButton.disabled =
+        this.mode === 'gallery'
+          ? selection === null || !selection.supportsOogSearch
+          : false;
     }
 
-    this.root.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((button) => {
-      button.dataset.active = String(button.dataset.mode === this.mode);
-    });
-    this.root.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach((button) => {
-      button.dataset.active = String(button.dataset.tab === this.activeTab);
-    });
+    this.root
+      .querySelectorAll<HTMLButtonElement>('[data-mode]')
+      .forEach((button) => {
+        button.dataset.active = String(button.dataset.mode === this.mode);
+      });
+    this.root
+      .querySelectorAll<HTMLButtonElement>('[data-tab]')
+      .forEach((button) => {
+        button.dataset.active = String(button.dataset.tab === this.activeTab);
+      });
   }
 
   private syncSelectionToSurface(): void {
     const selection = this.currentGalleryEntry();
     const redFixture = this.currentRedFixture();
-    const title = this.root.querySelector<HTMLElement>('[data-selection-title]');
-    const description = this.root.querySelector<HTMLElement>('[data-selection-description]');
-    const badge = this.root.querySelector<HTMLElement>('[data-selection-badge]');
+    const title = this.root.querySelector<HTMLElement>(
+      '[data-selection-title]',
+    );
+    const description = this.root.querySelector<HTMLElement>(
+      '[data-selection-description]',
+    );
+    const badge = this.root.querySelector<HTMLElement>(
+      '[data-selection-badge]',
+    );
     const cert = this.root.querySelector<HTMLElement>('[data-selection-cert]');
     const meta = this.root.querySelector<HTMLElement>('[data-selection-meta]');
 
@@ -512,7 +571,10 @@ export class PlaygroundApp {
       if (title) title.textContent = selection.title;
       if (description) description.textContent = selection.description;
       if (badge) badge.textContent = selection.badge;
-      if (cert) cert.textContent = selection.certified ? 'Consensus-certified evidence' : 'Uncertified';
+      if (cert)
+        cert.textContent = selection.certified
+          ? 'Consensus-certified evidence'
+          : 'Uncertified';
       if (meta) {
         meta.innerHTML = `
           <span>${selection.executionProfile}</span>
@@ -554,7 +616,9 @@ export class PlaygroundApp {
   private renderMetrics(): void {
     const mount = this.root.querySelector<HTMLElement>('[data-metrics-grid]');
     const runStatus = this.root.querySelector<HTMLElement>('[data-run-status]');
-    const evidenceStatus = this.root.querySelector<HTMLElement>('[data-evidence-status]');
+    const evidenceStatus = this.root.querySelector<HTMLElement>(
+      '[data-evidence-status]',
+    );
     if (!mount) {
       return;
     }
@@ -576,9 +640,12 @@ export class PlaygroundApp {
         ? this.selection.id
         : null;
     const evidence =
-      currentId && this.data ? this.data.evidence.evidence[currentId] : undefined;
+      currentId && this.data
+        ? this.data.evidence.evidence[currentId]
+        : undefined;
     const match = compareAgainstEvidence(this.runResult, evidence);
-    if (runStatus) runStatus.textContent = this.runResult.ok ? 'Success' : 'Failure';
+    if (runStatus)
+      runStatus.textContent = this.runResult.ok ? 'Success' : 'Failure';
     if (evidenceStatus) {
       evidenceStatus.textContent = !match.available
         ? 'No certified evidence'
@@ -590,9 +657,15 @@ export class PlaygroundApp {
     mount.innerHTML = [
       metricCard('Stage', this.runResult.snapshot.stage),
       metricCard('Gas used', formatGas(this.runResult.snapshot.gasUsed)),
-      metricCard('Gas remaining', formatGas(this.runResult.snapshot.gasRemaining)),
+      metricCard(
+        'Gas remaining',
+        formatGas(this.runResult.snapshot.gasRemaining),
+      ),
       metricCard('Tape length', String(this.runResult.snapshot.tapeLength)),
-      metricCard('Result hash', shortenHash(this.runResult.snapshot.resultHash)),
+      metricCard(
+        'Result hash',
+        shortenHash(this.runResult.snapshot.resultHash),
+      ),
       metricCard('Tape hash', shortenHash(this.runResult.snapshot.tapeHash)),
       metricCard(
         'engineBuildHash',
@@ -645,8 +718,7 @@ export class PlaygroundApp {
       mount.innerHTML = `
         <div class="stack">
           <pre>${toPrettyJson({
-            selection:
-              selection ??
+            selection: selection ??
               redFixture ?? {
                 mode: this.mode,
                 scriptProfile: this.scriptProfile,
@@ -688,7 +760,9 @@ export class PlaygroundApp {
         return;
       }
 
-      const comparison = this.runResult ? compareAgainstEvidence(this.runResult, evidence) : null;
+      const comparison = this.runResult
+        ? compareAgainstEvidence(this.runResult, evidence)
+        : null;
       mount.innerHTML = `
         <div class="stack">
           <pre>${toPrettyJson({
@@ -723,7 +797,8 @@ export class PlaygroundApp {
       let artifact;
       let manifest;
       const gasLimit = BigInt(
-        this.root.querySelector<HTMLInputElement>('[data-gas-limit]')?.value ?? '1000000',
+        this.root.querySelector<HTMLInputElement>('[data-gas-limit]')?.value ??
+          '1000000',
       );
       const selection = this.currentGalleryEntry();
       const redFixture = this.currentRedFixture();
@@ -796,7 +871,8 @@ export class PlaygroundApp {
     let artifact;
     let manifest;
     const initialGasLimit = BigInt(
-      this.root.querySelector<HTMLInputElement>('[data-gas-limit]')?.value ?? '1000000',
+      this.root.querySelector<HTMLInputElement>('[data-gas-limit]')?.value ??
+        '1000000',
     );
     const selection = this.currentGalleryEntry();
     const redFixture = this.currentRedFixture();

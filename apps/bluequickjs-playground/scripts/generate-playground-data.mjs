@@ -162,22 +162,13 @@ const redPayload = {
 };
 
 const outputs = new Map([
-  [
-    'playground-examples.json',
-    `${JSON.stringify(examplesPayload, null, 2)}\n`,
-  ],
-  [
-    'playground-evidence.json',
-    `${JSON.stringify(evidencePayload, null, 2)}\n`,
-  ],
+  ['playground-examples.json', `${JSON.stringify(examplesPayload, null, 2)}\n`],
+  ['playground-evidence.json', `${JSON.stringify(evidencePayload, null, 2)}\n`],
   [
     'playground-oog-boundaries.json',
     `${JSON.stringify(oogPayload, null, 2)}\n`,
   ],
-  [
-    'playground-red-fixtures.json',
-    `${JSON.stringify(redPayload, null, 2)}\n`,
-  ],
+  ['playground-red-fixtures.json', `${JSON.stringify(redPayload, null, 2)}\n`],
 ]);
 
 await mkdir(outDir, { recursive: true });
@@ -250,11 +241,13 @@ async function buildCorpusEntry(entry) {
   const gasLimit = gasLimitForExample(entry.slug);
   const sourcePaths = entry.sourcePaths;
   const sourceText = await readPrimarySource(sourcePaths[0]);
-  const profile = Array.isArray(entry.profile) ? entry.profile[0] : entry.profile;
+  const profile = Array.isArray(entry.profile)
+    ? entry.profile[0]
+    : entry.profile;
 
   let program;
   let manifest;
-  let hostPreset = 'determinism';
+  const hostPreset = 'determinism';
   let description = exampleDescription(entry.slug);
 
   switch (entry.slug) {
@@ -405,7 +398,9 @@ async function buildGreenFixtures() {
       ...execution.snapshot,
       certified: true,
       reportSource: `ecosystem-certifier:${fixture.id}`,
-      fixtureCoverage: [{ suite: 'ecosystem-certifier', fixtureName: fixture.id }],
+      fixtureCoverage: [
+        { suite: 'ecosystem-certifier', fixtureName: fixture.id },
+      ],
     };
   }
 
@@ -615,7 +610,9 @@ async function findOogBoundary({ program, manifest, gasLimit, hostPreset }) {
     failureGasRemaining: lowerResult.gasRemaining.toString(),
     failureCode: lowerResult.ok ? null : lowerResult.error.code,
     failureTag:
-      !lowerResult.ok && 'tag' in lowerResult.error ? lowerResult.error.tag : null,
+      !lowerResult.ok && 'tag' in lowerResult.error
+        ? lowerResult.error.tag
+        : null,
   };
 }
 
@@ -642,7 +639,8 @@ async function runRawEvaluate({ program, manifest, gasLimit, hostPreset }) {
   const host = createHostPreset(hostPreset);
   return evaluate({
     program,
-    input: hostPreset === 'certification' ? CERTIFICATION_INPUT : DETERMINISM_INPUT,
+    input:
+      hostPreset === 'certification' ? CERTIFICATION_INPUT : DETERMINISM_INPUT,
     gasLimit,
     manifest,
     handlers: host.handlers,
@@ -656,7 +654,8 @@ async function runRawEvaluate({ program, manifest, gasLimit, hostPreset }) {
 
 async function snapshotFromResult(result) {
   const tape = result.tape ?? [];
-  const tapeHash = tape.length === 0 ? null : sha256Hex(serializeHostTape(tape));
+  const tapeHash =
+    tape.length === 0 ? null : sha256Hex(serializeHostTape(tape));
 
   if (result.ok) {
     return {
@@ -739,7 +738,9 @@ async function buildProgramArtifact({
   });
 
   if (!built.programArtifact) {
-    throw new Error(`builder did not return ProgramArtifact.v2 for ${entryPath}`);
+    throw new Error(
+      `builder did not return ProgramArtifact.v2 for ${entryPath}`,
+    );
   }
 
   return built;
@@ -753,14 +754,38 @@ function docsLinksForExample(slug) {
 
   switch (slug) {
     case 'module-pack':
-      return [...base, { label: 'Module packs', href: '/docs/learn/03-module-packs-and-imports.md' }];
+      return [
+        ...base,
+        {
+          label: 'Module packs',
+          href: '/docs/learn/03-module-packs-and-imports.md',
+        },
+      ];
     case 'promises-async':
     case 'promises-library-host':
-      return [...base, { label: 'Promises and microtasks', href: '/docs/learn/04-promises-async-and-microtasks.md' }];
+      return [
+        ...base,
+        {
+          label: 'Promises and microtasks',
+          href: '/docs/learn/04-promises-async-and-microtasks.md',
+        },
+      ];
     case 'binary-host-v2':
-      return [...base, { label: 'Binary mode and Host.v2', href: '/docs/learn/05-binary-and-host-v2.md' }];
+      return [
+        ...base,
+        {
+          label: 'Binary mode and Host.v2',
+          href: '/docs/learn/05-binary-and-host-v2.md',
+        },
+      ];
     case 'max-gas-policy':
-      return [...base, { label: 'Gas and OOG', href: '/docs/learn/06-gas-oog-and-max-gas-policies.md' }];
+      return [
+        ...base,
+        {
+          label: 'Gas and OOG',
+          href: '/docs/learn/06-gas-oog-and-max-gas-policies.md',
+        },
+      ];
     default:
       return base;
   }
@@ -768,8 +793,14 @@ function docsLinksForExample(slug) {
 
 function docsLinksForFixture(fixtureId) {
   const base = [
-    { label: 'Workload certification', href: '/docs/workload-certification.md' },
-    { label: 'Compatibility report', href: '/docs/ecosystem-compatibility-report.md' },
+    {
+      label: 'Workload certification',
+      href: '/docs/workload-certification.md',
+    },
+    {
+      label: 'Compatibility report',
+      href: '/docs/ecosystem-compatibility-report.md',
+    },
   ];
 
   if (fixtureId.startsWith('red-')) {
@@ -785,7 +816,10 @@ function docsLinksForFixture(fixtureId) {
   if (fixtureId === 'flagship-knowledge-pack') {
     return [
       ...base,
-      { label: 'Architecture overview', href: '/docs/architecture-overview.md' },
+      {
+        label: 'Architecture overview',
+        href: '/docs/architecture-overview.md',
+      },
     ];
   }
 
@@ -795,7 +829,8 @@ function docsLinksForFixture(fixtureId) {
 function exampleDescription(slug) {
   return {
     'basic-script': 'Smallest possible deterministic script-mode example.',
-    'module-pack': 'Static ESM module-pack example with a deterministic graph hash.',
+    'module-pack':
+      'Static ESM module-pack example with a deterministic graph hash.',
     'library-reuse':
       'Real library reuse through a deterministic module-pack instead of runtime imports.',
     'promises-async':
@@ -805,7 +840,8 @@ function exampleDescription(slug) {
     'binary-host-v2':
       'Typed-array and bytes boundary example using Host.v2 and DV2.',
     'console-shim': 'Deterministic console shimming routed through host tape.',
-    'stable-sort': 'Compatibility profile example showing deterministic stable sort.',
+    'stable-sort':
+      'Compatibility profile example showing deterministic stable sort.',
     'kitchen-sink':
       'Composite example mixing modules, Promise jobs, host calls, and stable sort.',
     'max-gas-policy':
@@ -815,8 +851,10 @@ function exampleDescription(slug) {
 
 function fixtureDescription(fixtureId) {
   return {
-    'green-semver': 'Semver constraint evaluation from the certified green ecosystem corpus.',
-    'green-base64': 'Binary roundtrip coverage from the certified green ecosystem corpus.',
+    'green-semver':
+      'Semver constraint evaluation from the certified green ecosystem corpus.',
+    'green-base64':
+      'Binary roundtrip coverage from the certified green ecosystem corpus.',
     'green-markdown-it':
       'A larger parser-oriented compatibility fixture running under deterministic constraints.',
     'green-noble-sha':
@@ -844,7 +882,8 @@ async function readPrimarySource(relativePath) {
 }
 
 function sha256Hex(input) {
-  const bytes = typeof input === 'string' ? new TextEncoder().encode(input) : input;
+  const bytes =
+    typeof input === 'string' ? new TextEncoder().encode(input) : input;
   return createHash('sha256').update(bytes).digest('hex');
 }
 

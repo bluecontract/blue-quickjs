@@ -77,7 +77,7 @@ jobs:
       - name: Upload workload certification artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: workload-certification-${{ matrix.browser }}
+          name: workload-certification-${{ matrix.browser }}-artifacts
           path: artifacts/workload-certification/*
           if-no-files-found: error
 
@@ -124,7 +124,7 @@ jobs:
       - name: Upload webkit diagnostic artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: workload-certification-webkit-diagnostic
+          name: workload-certification-webkit-diagnostic-artifacts
           path: artifacts/workload-certification-webkit/*
           if-no-files-found: warn
 
@@ -186,7 +186,7 @@ jobs:
       - name: Upload consumer-proof matrix artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: consumer-proof-${{ matrix.os }}-node${{ matrix.node }}
+          name: consumer-proof-${{ matrix.os }}-node${{ matrix.node }}-artifacts
           path: |
             artifacts/consumer-proof/tarballs/tarball-manifest.json
             artifacts/consumer-proof/pack-manifests/pack-manifest.json
@@ -222,7 +222,7 @@ jobs:
       - name: Upload Verdaccio rehearsal artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: consumer-proof-verdaccio-rehearsal
+          name: consumer-proof-verdaccio-rehearsal-artifacts
           path: |
             artifacts/consumer-proof/verdaccio/*.json
             artifacts/consumer-proof/verdaccio/*.log
@@ -264,7 +264,7 @@ jobs:
       - name: Upload builder determinism artifact
         uses: actions/upload-artifact@v4
         with:
-          name: builder-determinism-${{ matrix.os }}
+          name: builder-determinism-${{ matrix.os }}-artifacts
           path: artifacts/workload-certification-matrix/*
           if-no-files-found: error
 

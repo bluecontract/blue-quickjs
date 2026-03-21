@@ -1,4 +1,10 @@
-import { formatGas, formatStage, shortenHash, slugToLabel, toPrettyJson } from './format.js';
+import {
+  formatGas,
+  formatStage,
+  shortenHash,
+  slugToLabel,
+  toPrettyJson,
+} from './format.js';
 
 describe('playground format helpers', () => {
   it('formats gas values with grouping', () => {
