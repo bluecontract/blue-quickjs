@@ -1,5 +1,19 @@
 # Deterministic QuickJS-in-Wasm Evaluator (Nx Monorepo) — Implementation Plan (Baseline #1 + #2 Compliant)
 
+> Historical design and implementation log.
+>
+> This file records the incremental execution plan that built the current
+> repository. It is still useful for design history, acceptance criteria, and
+> traceability, but it should not be read as the fastest overview of the
+> current product surface.
+>
+> For the current state of the product, start with:
+>
+> - `README.md`
+> - `docs/README.md`
+> - `docs/head-verification-note.md`
+> - `docs/architecture-overview.md`
+
 This file is the “source of truth” execution plan for Codex (Cursor IDE) to implement a deterministic QuickJS-in-Wasm **JS evaluator** with:
 
 - **Canonical gas metering inside QuickJS** (Baseline #1),
@@ -89,7 +103,7 @@ This repo ensures:
 
 ---
 
-# Current repo snapshot (kickoff)
+# Historical repo snapshot at kickoff
 
 - Nx 22.2 workspace scaffold exists with pnpm (`nx.json`, `tsconfig.base.json`, `package.json`, `pnpm-workspace.yaml`).
 - Publishable libs are scaffolded (`dv`, `abi-manifest`, `quickjs-wasm`, `quickjs-runtime`), with internal libs (`quickjs-wasm-build`, `test-harness`) plus smoke apps (`smoke-node`, `smoke-web`) and placeholder src/tests passing build/test targets.
