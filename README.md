@@ -92,9 +92,7 @@ Profile details:
 5. **Open the in-repo browser playground**
 
    ```bash
-   source tools/emsdk/emsdk_env.sh
-   node apps/bluequickjs-playground/scripts/generate-playground-data.mjs
-   pnpm vite --host --port 4325 --config apps/bluequickjs-playground/vite.config.mts
+   bash apps/bluequickjs-playground/scripts/dev.sh
    ```
 
 ## Start here

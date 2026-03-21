@@ -16,6 +16,7 @@
     "docs:verify-learning-path": "node tools/release-evidence/verify-learning-path.mjs",
     "docs:check-freshness": "node tools/release-evidence/check-release-doc-freshness.mjs",
     "quickstart:verify": "node tools/release-evidence/verify-readme-quickstart.mjs",
+    "playground:dev": "bash apps/bluequickjs-playground/scripts/dev.sh",
     "playground:generate": "node apps/bluequickjs-playground/scripts/generate-playground-data.mjs",
     "playground:check-generated": "node apps/bluequickjs-playground/scripts/generate-playground-data.mjs --check",
     "release-evidence:synthesize": "node tools/release-evidence/synthesize-release-evidence.mjs",

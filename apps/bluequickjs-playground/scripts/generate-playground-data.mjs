@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
 import { createHash } from 'node:crypto';
+import { spawnSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
@@ -14,6 +16,9 @@ const outDir = path.resolve(
   'apps/bluequickjs-playground/public/generated',
 );
 const args = parseArgs(process.argv.slice(2));
+
+await ensurePlaygroundBuildArtifacts();
+
 const require = jiti(import.meta.url, { interopDefault: true });
 
 const {
@@ -891,4 +896,65 @@ function parseArgs(argv) {
   return {
     check: argv.includes('--check'),
   };
+}
+
+async function ensurePlaygroundBuildArtifacts() {
+  const requiredFiles = [
+    'libs/dv/dist/index.js',
+    'libs/abi-manifest/dist/index.js',
+    'libs/quickjs-runtime/dist/index.js',
+    'libs/quickjs-wasm/dist/index.js',
+    'libs/test-harness/dist/index.js',
+    'libs/deterministic-builder/dist/index.js',
+  ].map((relativePath) => path.join(repoRoot, relativePath));
+
+  if (requiredFiles.every((targetPath) => existsSync(targetPath))) {
+    return;
+  }
+
+  const emsdkEnvPath = path.join(repoRoot, 'tools/emsdk/emsdk_env.sh');
+  if (!existsSync(emsdkEnvPath)) {
+    throw new Error(
+      [
+        'Playground generation needs built workspace libraries and the pinned Emscripten toolchain.',
+        'Missing tools/emsdk/emsdk_env.sh.',
+        'Run:',
+        '  bash tools/scripts/setup-emsdk.sh',
+        '  source tools/emsdk/emsdk_env.sh',
+        '  pnpm nx build bluequickjs-playground',
+        'or use:',
+        '  bash apps/bluequickjs-playground/scripts/dev.sh',
+      ].join('\n'),
+    );
+  }
+
+  const buildCommand =
+    'source tools/emsdk/emsdk_env.sh && pnpm nx build bluequickjs-playground';
+  process.stderr.write(
+    [
+      'bluequickjs-playground: built workspace outputs were not found.',
+      'Bootstrapping them now with:',
+      `  ${buildCommand}`,
+      '',
+    ].join('\n'),
+  );
+
+  const result = spawnSync('bash', ['-lc', buildCommand], {
+    cwd: repoRoot,
+    stdio: 'inherit',
+    env: process.env,
+  });
+
+  if (result.status !== 0) {
+    throw new Error(
+      [
+        'Automatic playground bootstrap build failed.',
+        'If tools/scripts/setup-emsdk.sh was interrupted, rerun it because the install is idempotent.',
+        'Then run:',
+        '  source tools/emsdk/emsdk_env.sh',
+        '  pnpm nx build bluequickjs-playground',
+        '  node apps/bluequickjs-playground/scripts/generate-playground-data.mjs',
+      ].join('\n'),
+    );
+  }
 }

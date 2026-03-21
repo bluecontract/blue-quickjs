@@ -47,8 +47,7 @@ From `docs/release-readiness-report.md` and release evidence summary:
 ## 7) Open the in-repo playground
 
 ```bash
-node apps/bluequickjs-playground/scripts/generate-playground-data.mjs
-pnpm vite --host --port 4325 --config apps/bluequickjs-playground/vite.config.mts
+bash apps/bluequickjs-playground/scripts/dev.sh
 ```
 
 Use the playground to inspect:

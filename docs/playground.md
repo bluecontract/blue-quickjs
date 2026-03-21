@@ -66,14 +66,18 @@ separate browser-only toolchain.
 ## Run it locally
 
 ```bash
-source tools/emsdk/emsdk_env.sh
-node apps/bluequickjs-playground/scripts/generate-playground-data.mjs
-pnpm vite --host --port 4325 --config apps/bluequickjs-playground/vite.config.mts
+bash apps/bluequickjs-playground/scripts/dev.sh
 ```
 
 Open:
 
 - `http://localhost:4325`
+
+The dev script does three important things for a fresh checkout:
+
+1. sources the pinned Emscripten environment,
+2. builds the workspace libraries the playground depends on,
+3. regenerates the playground’s evidence-backed JSON before starting Vite.
 
 ## Core UI areas
 
