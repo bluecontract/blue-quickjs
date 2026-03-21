@@ -14,8 +14,16 @@ Baseline anchors: see `docs/baseline-1.md` (deterministic execution constraints)
 1. From repo root: `tools/scripts/setup-emsdk.sh`
    - Clones `emsdk` into `tools/emsdk` if missing.
    - Installs + activates the pinned version.
-2. Load env into your shell for the session: `source tools/emsdk/emsdk_env.sh`.
-3. Verify: `emcc --version` should report `3.1.56`.
+2. Ensure the pinned QuickJS submodule is present:
+
+   ```bash
+   git submodule update --init --recursive vendor/quickjs
+   ```
+
+   The repo now auto-runs this check before native-harness and wasm builds, but
+   it is still useful as an explicit recovery step on fresh clones.
+3. Load env into your shell for the session: `source tools/emsdk/emsdk_env.sh`.
+4. Verify: `emcc --version` should report `3.1.56`.
 
 Notes:
 

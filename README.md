@@ -61,6 +61,7 @@ Profile details:
 
    ```bash
    pnpm install
+   git submodule update --init --recursive vendor/quickjs
    bash tools/scripts/setup-emsdk.sh
    source tools/emsdk/emsdk_env.sh
    ```

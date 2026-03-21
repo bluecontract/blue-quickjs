@@ -66,6 +66,8 @@ separate browser-only toolchain.
 ## Run it locally
 
 ```bash
+git submodule update --init --recursive vendor/quickjs
+bash tools/scripts/setup-emsdk.sh
 bash apps/bluequickjs-playground/scripts/dev.sh
 ```
 
