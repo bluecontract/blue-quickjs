@@ -10,6 +10,7 @@ EMSDK_VERSION="$(cat "${SCRIPT_DIR}/emsdk-version.txt")"
 EMSDK_DIR="${REPO_ROOT}/tools/emsdk"
 HOST_OS="$(uname -s)"
 HOST_ARCH="$(uname -m)"
+HOST_PYTHON="$(command -v python3 || command -v python || true)"
 
 run_with_retry() {
   local step_name="$1"
@@ -63,6 +64,15 @@ clear_quarantine_if_possible() {
   xattr -dr com.apple.quarantine "${EMSDK_DIR}" >/dev/null 2>&1 || true
 }
 
+run_emsdk() {
+  if [ -n "${HOST_PYTHON}" ] && [ -f "${EMSDK_DIR}/emsdk.py" ]; then
+    EMSDK_PYTHON="${HOST_PYTHON}" "${HOST_PYTHON}" "${EMSDK_DIR}/emsdk.py" "$@"
+    return $?
+  fi
+
+  "${EMSDK_DIR}/emsdk" "$@"
+}
+
 if [ ! -d "${EMSDK_DIR}" ]; then
   git clone https://github.com/emscripten-core/emsdk.git "${EMSDK_DIR}"
 fi
@@ -72,8 +82,8 @@ cd "${EMSDK_DIR}"
 # Ensure we know about new tags/releases before installing.
 git fetch --tags origin
 
-run_with_retry "install" ./emsdk install "${EMSDK_VERSION}"
-run_with_retry "activate" ./emsdk activate "${EMSDK_VERSION}"
+run_with_retry "install" run_emsdk install "${EMSDK_VERSION}"
+run_with_retry "activate" run_emsdk activate "${EMSDK_VERSION}"
 
 cat <<'EOF'
 Emscripten installed and activated.

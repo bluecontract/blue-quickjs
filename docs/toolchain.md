@@ -30,6 +30,10 @@ Notes:
   softwareupdate --install-rosetta --agree-to-license
   ```
 
+- The setup script now prefers the host `python3`/`python` to run `emsdk.py`
+  directly, which avoids macOS repeatedly re-entering a partially installed
+  bundled Python during retries.
+
 ## CI caching
 
 - Cache the `tools/emsdk` directory keyed by the contents of `tools/scripts/emsdk-version.txt`.
