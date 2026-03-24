@@ -62,42 +62,156 @@ const cases = [
   {
     name: 'loop-oog',
     fixture: 'loop-counter.js',
-    gasLimit: 600n,
+    gasLimit: 146n,
   },
   {
     name: 'constant',
     fixture: 'constant.js',
-    gasLimit: 147n,
+    gasLimit: 37n,
   },
   {
     name: 'addition',
     fixture: 'addition.js',
-    gasLimit: 154n,
+    gasLimit: 39n,
   },
   {
     name: 'string-repeat',
     fixture: 'string-repeat.js',
-    gasLimit: 5000n,
+    gasLimit: 84n,
   },
   {
     name: 'json-parse',
     fixture: 'json-parse-small.js',
-    gasLimit: 217n,
+    gasLimit: 77n,
   },
   {
     name: 'json-parse-oog',
     fixture: 'json-parse-oog.js',
-    gasLimit: 216n,
+    gasLimit: 76n,
   },
   {
     name: 'json-stringify',
     fixture: 'json-stringify-small.js',
-    gasLimit: 241n,
+    gasLimit: 82n,
   },
   {
     name: 'json-stringify-oog',
     fixture: 'json-stringify-oog.js',
-    gasLimit: 240n,
+    gasLimit: 81n,
+  },
+  {
+    name: 'array-map-single',
+    fixture: 'array-map-single.js',
+    gasLimit: 143n,
+  },
+  {
+    name: 'array-map-single-oog',
+    fixture: 'array-map-single.js',
+    gasLimit: 142n,
+  },
+  {
+    name: 'array-map-multi',
+    fixture: 'array-map-multi.js',
+    gasLimit: 179n,
+  },
+  {
+    name: 'array-map-multi-oog',
+    fixture: 'array-map-multi.js',
+    gasLimit: 178n,
+  },
+  {
+    name: 'array-filter-multi',
+    fixture: 'array-filter-multi.js',
+    gasLimit: 189n,
+  },
+  {
+    name: 'array-filter-multi-oog',
+    fixture: 'array-filter-multi.js',
+    gasLimit: 188n,
+  },
+  {
+    name: 'array-reduce-multi',
+    fixture: 'array-reduce-multi.js',
+    gasLimit: 189n,
+  },
+  {
+    name: 'array-reduce-multi-oog',
+    fixture: 'array-reduce-multi.js',
+    gasLimit: 188n,
+  },
+  {
+    name: 'gc-pending',
+    fixture: 'gc-pending.js',
+    gasLimit: 89n,
+  },
+  {
+    name: 'gc-pending-oog',
+    fixture: 'gc-pending.js',
+    gasLimit: 88n,
+  },
+];
+
+interface BoundaryFixtureCase {
+  name: string;
+  fixture: string;
+  expectedFirstSuccessGas: bigint;
+}
+
+const boundaryCases: BoundaryFixtureCase[] = [
+  {
+    name: 'opcode-addition',
+    fixture: 'addition.js',
+    expectedFirstSuccessGas: 39n,
+  },
+  {
+    name: 'opcode-constant',
+    fixture: 'constant.js',
+    expectedFirstSuccessGas: 37n,
+  },
+  {
+    name: 'loop-counter',
+    fixture: 'loop-counter.js',
+    expectedFirstSuccessGas: 146n,
+  },
+  {
+    name: 'string-repeat',
+    fixture: 'string-repeat.js',
+    expectedFirstSuccessGas: 84n,
+  },
+  {
+    name: 'json-parse-small',
+    fixture: 'json-parse-small.js',
+    expectedFirstSuccessGas: 77n,
+  },
+  {
+    name: 'json-stringify-small',
+    fixture: 'json-stringify-small.js',
+    expectedFirstSuccessGas: 82n,
+  },
+  {
+    name: 'array-map-single',
+    fixture: 'array-map-single.js',
+    expectedFirstSuccessGas: 143n,
+  },
+  {
+    name: 'array-map-multi',
+    fixture: 'array-map-multi.js',
+    expectedFirstSuccessGas: 179n,
+  },
+  {
+    name: 'array-filter-multi',
+    fixture: 'array-filter-multi.js',
+    expectedFirstSuccessGas: 189n,
+  },
+  {
+    name: 'array-reduce-multi',
+    fixture: 'array-reduce-multi.js',
+    expectedFirstSuccessGas: 189n,
+  },
+  {
+    name: 'gc-pending',
+    fixture: 'gc-pending.js',
+    expectedFirstSuccessGas: 89n,
   },
 ];
 
@@ -136,57 +250,122 @@ const wasm32Expectations: Record<string, ExpectedResult> = {
   },
   'loop-oog': {
     kind: 'RESULT',
-    payload: '02016c',
+    payload: '03',
     value: 3,
-    gasRemaining: 203n,
-    gasUsed: 397n,
+    gasRemaining: 0n,
+    gasUsed: 146n,
   },
   constant: {
     kind: 'RESULT',
-    payload: '02014b',
+    payload: '01',
     value: 1,
-    gasRemaining: 58n,
-    gasUsed: 89n,
+    gasRemaining: 0n,
+    gasUsed: 37n,
   },
   addition: {
     kind: 'RESULT',
-    payload: '02016c',
+    payload: '03',
     value: 3,
-    gasRemaining: 58n,
-    gasUsed: 96n,
+    gasRemaining: 0n,
+    gasUsed: 39n,
   },
   'string-repeat': {
     kind: 'RESULT',
-    payload: '0201e980fa0c',
+    payload: '198000',
     value: 32768,
-    gasRemaining: 2687n,
-    gasUsed: 2313n,
+    gasRemaining: 0n,
+    gasUsed: 84n,
   },
   'json-parse': {
     kind: 'RESULT',
     payload: 'a261620262616101',
     value: { b: 2, aa: 1 },
     gasRemaining: 0n,
-    gasUsed: 217n,
+    gasUsed: 77n,
   },
   'json-parse-oog': {
     kind: 'ERROR',
     payload: 'OutOfGas: out of gas',
     gasRemaining: 0n,
-    gasUsed: 216n,
+    gasUsed: 76n,
   },
   'json-stringify': {
     kind: 'RESULT',
     payload: '6e7b2262223a322c226161223a317d',
     value: '{"b":2,"aa":1}',
     gasRemaining: 0n,
-    gasUsed: 241n,
+    gasUsed: 82n,
   },
   'json-stringify-oog': {
     kind: 'ERROR',
     payload: 'OutOfGas: out of gas',
     gasRemaining: 0n,
-    gasUsed: 240n,
+    gasUsed: 81n,
+  },
+  'array-map-single': {
+    kind: 'RESULT',
+    payload: '01',
+    value: 1,
+    gasRemaining: 0n,
+    gasUsed: 143n,
+  },
+  'array-map-single-oog': {
+    kind: 'ERROR',
+    payload: 'OutOfGas: out of gas',
+    gasRemaining: 0n,
+    gasUsed: 142n,
+  },
+  'array-map-multi': {
+    kind: 'RESULT',
+    payload: '05',
+    value: 5,
+    gasRemaining: 0n,
+    gasUsed: 179n,
+  },
+  'array-map-multi-oog': {
+    kind: 'ERROR',
+    payload: 'OutOfGas: out of gas',
+    gasRemaining: 0n,
+    gasUsed: 178n,
+  },
+  'array-filter-multi': {
+    kind: 'RESULT',
+    payload: '05',
+    value: 5,
+    gasRemaining: 0n,
+    gasUsed: 189n,
+  },
+  'array-filter-multi-oog': {
+    kind: 'ERROR',
+    payload: 'OutOfGas: out of gas',
+    gasRemaining: 0n,
+    gasUsed: 188n,
+  },
+  'array-reduce-multi': {
+    kind: 'RESULT',
+    payload: '0f',
+    value: 15,
+    gasRemaining: 0n,
+    gasUsed: 189n,
+  },
+  'array-reduce-multi-oog': {
+    kind: 'ERROR',
+    payload: 'OutOfGas: out of gas',
+    gasRemaining: 0n,
+    gasUsed: 188n,
+  },
+  'gc-pending': {
+    kind: 'RESULT',
+    payload: '1a00124f80',
+    value: 1200000,
+    gasRemaining: 0n,
+    gasUsed: 89n,
+  },
+  'gc-pending-oog': {
+    kind: 'ERROR',
+    payload: 'OutOfGas: out of gas',
+    gasRemaining: 0n,
+    gasUsed: 88n,
   },
 };
 
@@ -198,6 +377,7 @@ let wasmInit:
       contextPtr: WasmPtr,
       contextLength: number,
       gasLimit: bigint,
+      featureFlags: number,
     ) => WasmPtr)
   | null = null;
 let wasmEval: ((code: string) => WasmPtr) | null = null;
@@ -228,6 +408,7 @@ beforeAll(async () => {
     ptrArgType,
     'number',
     'bigint',
+    'number',
   ]);
   wasmEval = wasmModule.cwrap('qjs_det_eval', ptrReturnType, ['string']);
   wasmFreeRuntime = wasmModule.cwrap('qjs_det_free', null, []);
@@ -285,6 +466,7 @@ function runWasm(code: string, gasLimit: bigint): DeterministicOutput {
       contextPtr,
       CONTEXT_BLOB.length,
       gasLimit,
+      0,
     );
     if (errorPtr !== 0) {
       const message = readCString(wasmModule, errorPtr);
@@ -325,6 +507,39 @@ describe('wasm gas outputs', () => {
   });
 });
 
+describe('exact OOG boundaries', () => {
+  test.each(boundaryCases)(
+    '$name has identical first-success and last-failure boundaries',
+    ({ fixture, expectedFirstSuccessGas }) => {
+      const code = readFileSync(path.join(fixturesRoot, fixture), 'utf8');
+
+      const wasmBoundary = findOutOfGasBoundary(
+        (gasLimit) => runWasm(code, gasLimit),
+        expectedFirstSuccessGas + 64n,
+      );
+      expect(wasmBoundary.firstSuccessGas).toBe(expectedFirstSuccessGas);
+      expect(wasmBoundary.lastFailureGas).toBe(expectedFirstSuccessGas - 1n);
+      expect(wasmBoundary.firstSuccess.gasUsed).toBe(
+        wasmBoundary.firstSuccessGas,
+      );
+      expect(wasmBoundary.firstSuccess.gasRemaining).toBe(0n);
+      expect(isOutOfGasError(wasmBoundary.lastFailure)).toBe(true);
+
+      const nativeBoundary = findOutOfGasBoundary(
+        (gasLimit) => runNative(code, gasLimit),
+        expectedFirstSuccessGas + 64n,
+      );
+      expect(nativeBoundary.firstSuccessGas).toBe(wasmBoundary.firstSuccessGas);
+      expect(nativeBoundary.lastFailureGas).toBe(wasmBoundary.lastFailureGas);
+      expect(nativeBoundary.firstSuccess.gasUsed).toBe(
+        nativeBoundary.firstSuccessGas,
+      );
+      expect(nativeBoundary.firstSuccess.gasRemaining).toBe(0n);
+      expect(isOutOfGasError(nativeBoundary.lastFailure)).toBe(true);
+    },
+  );
+});
+
 function expectHarnessResult(
   actual: DeterministicOutput,
   expected: ExpectedResult,
@@ -343,6 +558,51 @@ function expectHarnessResult(
   } else {
     expect(actual.payload).toEqual(expected.payload);
   }
+}
+
+function isOutOfGasError(output: DeterministicOutput): boolean {
+  return output.kind === 'ERROR' && output.payload.includes('OutOfGas');
+}
+
+function findOutOfGasBoundary(
+  run: (gasLimit: bigint) => DeterministicOutput,
+  initialUpperBound: bigint,
+): {
+  firstSuccessGas: bigint;
+  lastFailureGas: bigint;
+  firstSuccess: DeterministicOutput;
+  lastFailure: DeterministicOutput;
+} {
+  let upperGas = initialUpperBound;
+  let upperOutput = run(upperGas);
+  while (upperOutput.kind !== 'RESULT') {
+    upperGas *= 2n;
+    if (upperGas > 100_000_000n) {
+      throw new Error(`failed to find successful gas bound (last=${upperGas})`);
+    }
+    upperOutput = run(upperGas);
+  }
+
+  let lowerGas = 0n;
+  let lowerOutput = run(lowerGas);
+  while (lowerGas + 1n < upperGas) {
+    const mid = (lowerGas + upperGas) >> 1n;
+    const midOutput = run(mid);
+    if (midOutput.kind === 'RESULT') {
+      upperGas = mid;
+      upperOutput = midOutput;
+    } else {
+      lowerGas = mid;
+      lowerOutput = midOutput;
+    }
+  }
+
+  return {
+    firstSuccessGas: upperGas,
+    lastFailureGas: lowerGas,
+    firstSuccess: upperOutput,
+    lastFailure: lowerOutput,
+  };
 }
 
 function bytesToHex(bytes: Uint8Array): string {

@@ -1,5 +1,19 @@
 # Deterministic QuickJS-in-Wasm Evaluator (Nx Monorepo) — Implementation Plan (Baseline #1 + #2 Compliant)
 
+> Historical design and implementation log.
+>
+> This file records the incremental execution plan that built the current
+> repository. It is still useful for design history, acceptance criteria, and
+> traceability, but it should not be read as the fastest overview of the
+> current product surface.
+>
+> For the current state of the product, start with:
+>
+> - `README.md`
+> - `docs/README.md`
+> - `docs/head-verification-note.md`
+> - `docs/architecture-overview.md`
+
 This file is the “source of truth” execution plan for Codex (Cursor IDE) to implement a deterministic QuickJS-in-Wasm **JS evaluator** with:
 
 - **Canonical gas metering inside QuickJS** (Baseline #1),
@@ -20,7 +34,13 @@ However, Baseline #2 still applies: even read-only `document(path)` is a host ca
 
 - **Nx monorepo** (TypeScript-first) using **pnpm**, with consistent tooling (lint/format/test/build) and CI.
 - **QuickJS fork** lives as a **git submodule** at `vendor/quickjs` (pinned commit). All determinism + gas + host ABI changes live in that fork.
-- **Deterministic execution profile** is enforced in the VM init: time/random/async/network/fs/locale are removed or stubbed; typed arrays / ArrayBuffer / WebAssembly are disabled; dangerous features like `eval`/`Function` are disabled (Baseline #1 §1B–§1C, §3).
+- **Deterministic execution profile** is enforced in VM init with explicit
+  profile contracts: baseline removes/stubs ambient nondeterministic surfaces
+  (time/random/network/fs/locale and dynamic-codegen paths), while
+  compatibility profiles (`compat-general-v1`, `compat-binary-v1`) selectively
+  re-enable deterministic Promise/job-queue and binary capabilities. Dangerous
+  dynamic-codegen surfaces (`eval`/`Function`) remain disabled (Baseline #1
+  §1B–§1C, §3).
 - **Canonical gas** is implemented inside QuickJS: opcode metering, metered C builtins, allocation charges, deterministic GC checkpoints (Baseline #1 §2B).
 - **Single syscall ABI (`host_call`)** for all host capabilities: `fn_id + request_bytes -> response_bytes`, with **manifest mapping**, **manifest hash validation**, and **DV canonical encoding** (Baseline #2 §1.1–§1.4, §2).
 - VM exposes a frozen **`Host.v1`** namespace generated from the manifest, and provides ergonomic globals:
@@ -83,7 +103,7 @@ This repo ensures:
 
 ---
 
-# Current repo snapshot (kickoff)
+# Historical repo snapshot at kickoff
 
 - Nx 22.2 workspace scaffold exists with pnpm (`nx.json`, `tsconfig.base.json`, `package.json`, `pnpm-workspace.yaml`).
 - Publishable libs are scaffolded (`dv`, `abi-manifest`, `quickjs-wasm`, `quickjs-runtime`), with internal libs (`quickjs-wasm-build`, `test-harness`) plus smoke apps (`smoke-node`, `smoke-web`) and placeholder src/tests passing build/test targets.
@@ -843,7 +863,7 @@ Produce a minimal Emscripten-built QuickJS-in-Wasm binary that exposes the canon
 
 - The vitest spec at `libs/test-harness/src/lib/gas-equivalence.spec.ts` covers the full gas fixture set (`zero-precharge`, `gc-checkpoint-budget`, `loop-oog`, `constant`, `addition`, `string-repeat`) against the wasm harness using the wasm32 artifact by default, driving `qjs_det_init`/`qjs_det_eval` with the Host.v1 manifest/context and asserting DV payloads + gas remaining/used. Setting `QJS_WASM_VARIANT=wasm64` switches the test to the memory64 artifact and restores native-vs-wasm comparisons for debugging.
 - The wasm build defaults to wasm32 with `-sWASM_BIGINT=1`; `libs/quickjs-wasm-build/scripts/build-wasm.sh` accepts `WASM_VARIANTS=wasm32,wasm64` to also emit `quickjs-eval-wasm64{,-debug}.{js,wasm}`, and `WASM_BUILD_TYPES=release,debug` to control whether debug builds are emitted. Harnesses use `getQuickjsWasmArtifacts(variant, buildType)` with `QJS_WASM_BUILD_TYPE` defaulting to `release`.
-- **Compatibility note:** wasm32 gas numbers diverge from native because of the 32-bit allocator layout, but Node and browser harnesses now agree on the wasm32 outputs. wasm32 is the chosen canonical variant; wasm64 is not planned/supported (memory64 remains non-portable in mainstream browsers), so native-parity debugging should proceed within wasm32 expectations.
+- **Compatibility note (historical):** Earlier parity investigations observed wasm32/native gas drift from allocator-layout effects. That note is retained here for historical context only. Current strict parity closure work supersedes it for release acceptance: consensus gating is wasm-node vs wasm-browser on pinned wasm32 artifacts, while native remains diagnostic unless explicitly promoted by policy.
 
 **Current state (P2.5 T-029 Subtask C):**
 
@@ -1920,6 +1940,624 @@ Deterministic ABI entrypoints are available; wasm gas consumers have been migrat
 
 ---
 
+## Phase P9 — Execution surface semantics hardening
+
+### T-100: Clarify raw script evaluation semantics and regressions
+
+**Phase:** P9 – Execution surface semantics hardening  
+**Status:** DONE  
+**Depends on:** T-064, T-065, T-066
+
+**Goal:**  
+Make it unambiguous what `blue-quickjs` means by “evaluate code”, and lock the common `return` vs final-expression confusion with deterministic errors and tests.
+
+**Detailed tasks:**
+
+- [x] Update docs to define raw script mode clearly:
+  - [x] `program.code` is evaluated as a global script.
+  - [x] The final expression value is used as the result.
+  - [x] Top-level `return` is invalid in this repo’s execution mode.
+  - [x] `emit(...)` side effects are supported through Host.v1 wrappers.
+- [x] Add runtime error classification for execution-surface mismatches (`EXECUTION_SURFACE_MISMATCH`).
+- [x] Add regression tests for:
+  - [x] final-expression result in raw script mode,
+  - [x] top-level return mismatch classification,
+  - [x] emit side effects with explicit final result.
+
+**Acceptance criteria:**
+
+- [x] A single docs paragraph defines evaluator semantics unambiguously.
+- [x] `return` vs final-expression confusion is covered by automated regression tests.
+- [x] Runtime error surfaces distinguish execution-surface mismatch from generic JS exceptions and invalid-output failures.
+
+**Current state (P9 T-100):**
+
+- `docs/sdk.md` and `docs/implementation-summary.md` now explicitly document raw script semantics, final-expression results, top-level `return` behavior, and `emit` side effects.
+- `libs/quickjs-runtime/src/lib/evaluate-errors.ts` introduces `execution-surface-mismatch` mapping (`code: EXECUTION_SURFACE_MISMATCH`, `tag: vm/execution_surface`) for top-level return syntax errors.
+- `libs/quickjs-runtime/src/lib/evaluate.spec.ts` includes targeted regression coverage for raw script final expressions, top-level return mismatch, and emit side effects.
+
+---
+
+## Phase P10 — Deterministic bundling for library reuse
+
+### T-110: Add deterministic source bundler + compatibility scan
+
+**Phase:** P10 – Deterministic bundling  
+**Status:** DONE  
+**Depends on:** T-064, T-066
+
+**Goal:**  
+Enable practical multi-file JS library reuse by deterministically bundling source graphs into a single `program.code` string before VM execution.
+
+**Detailed tasks:**
+
+- [x] Add new library `libs/deterministic-bundler`.
+- [x] Implement deterministic bundle output (stable code + SHA-256 content hash).
+- [x] Add compatibility scanner with deterministic diagnostics for forbidden surfaces.
+- [x] Keep scanner profile-aware (`baseline-v1` vs `compat-regexp-v1`).
+- [x] Add unit tests for hash stability, rejection diagnostics, and profile-aware regexp handling.
+- [x] Document bundling workflow in SDK/docs.
+
+**Acceptance criteria:**
+
+- [x] Multi-file source graphs bundle into a single deterministic source string.
+- [x] Same inputs yield the same output hash across repeated runs.
+- [x] Compatibility violations are deterministic and test-covered.
+
+**Current state (P10 T-110):**
+
+- `@blue-quickjs/deterministic-bundler` now exposes:
+  - `bundleDeterministicProgram(...)` → `{ code, contentHash, meta }`
+  - `scanCompatibility(...)` → deterministic diagnostics with profile awareness.
+- Bundles are emitted with stable line endings and an explicit default-export expression suffix so they can be evaluated directly as `program.code`.
+- Tests in `libs/deterministic-bundler/src/lib/deterministic-bundler.spec.ts` verify deterministic hash stability, baseline rejection of forbidden surfaces, and compat-regexp acceptance.
+
+---
+
+## Phase P11 — Profile-gated RegExp compatibility
+
+### T-120: Add explicit `compat-regexp-v1` execution profile
+
+**Phase:** P11 – Compatibility profile gating  
+**Status:** DONE  
+**Depends on:** T-100, T-110
+
+**Goal:**  
+Support real-world regex-dependent libraries (for example chess.js) without changing baseline defaults.
+
+**Detailed tasks:**
+
+- [x] Extend program artifact validation with optional `executionProfile`:
+  - [x] `baseline-v1` (default behavior)
+  - [x] `compat-regexp-v1` (opt-in compatibility mode)
+- [x] Propagate profile feature flags through runtime init:
+  - [x] TS runtime -> wasm `qjs_det_init(..., feature_flags)` -> `JS_InitDeterministicContext`.
+- [x] Keep baseline behavior unchanged:
+  - [x] baseline still disables RegExp and regex literals deterministically.
+- [x] Enable regexp only when profile flag is explicitly set.
+- [x] Add tests for baseline-vs-compat profile behavior in runtime and harness layers.
+
+**Acceptance criteria:**
+
+- [x] Baseline profile still rejects regexp usage deterministically.
+- [x] `compat-regexp-v1` runs regexp code successfully.
+- [x] Profile selection is explicit in the program artifact and test-covered.
+
+**Current state (P11 T-120):**
+
+- `libs/quickjs-runtime/src/lib/quickjs-runtime.ts` validates `executionProfile`, and `deterministic-init.ts` maps it to deterministic feature flags passed into wasm init.
+- `libs/quickjs-wasm-build/src/wasm/quickjs_wasm.c` now accepts `feature_flags` in `qjs_det_init` and forwards them to `JS_InitDeterministicContext`.
+- `vendor/quickjs/quickjs.h` defines `JS_DETERMINISTIC_FEATURE_REGEXP`, and `vendor/quickjs/quickjs-host.c` gates RegExp disablement/enablement on this flag.
+- `libs/quickjs-runtime/src/lib/evaluate.spec.ts` and `tools/quickjs-native-harness/scripts/test.sh` verify baseline rejection and compat acceptance for regexp behavior.
+
+---
+
+## Phase P12 — Chess.js deterministic reuse acceptance
+
+### T-130: Bundle chess.js and validate `e2e6` legality check
+
+**Phase:** P12 – Library reuse acceptance  
+**Status:** DONE  
+**Depends on:** T-110, T-120
+
+**Goal:**  
+Prove end-to-end third-party library reuse by bundling chess.js and evaluating whether `e2e6` is legal from the initial board position.
+
+**Detailed tasks:**
+
+- [x] Add chess fixture entry source under `libs/test-harness/fixtures/library-reuse/chess-entry.ts`.
+- [x] Add shared chess fixture constants for program/input/gas/manifest expectations.
+- [x] Add runtime-level test that bundles chess.js and evaluates the bundled code deterministically.
+- [x] Add smoke-node acceptance coverage for chess library reuse.
+- [x] Add smoke-web Playwright parity coverage comparing browser and Node outputs for the bundled chess fixture.
+
+**Acceptance criteria:**
+
+- [x] Chess.js is bundled into deterministic single-source code.
+- [x] Evaluated result for `e2e6` legality is `false`.
+- [x] Node/browser parity test passes for result and gas outputs.
+
+**Current state (P12 T-130):**
+
+- `@blue-quickjs/test-harness` now includes chess fixture assets/constants (`CHESS_LIBRARY_ENTRY_PATH`, expected result, gas/input/manifest defaults).
+- `libs/quickjs-runtime/src/lib/chess-library-reuse.spec.ts` bundles chess.js via `@blue-quickjs/deterministic-bundler`, evaluates with `executionProfile: "compat-regexp-v1"`, and asserts deterministic repeated gas.
+- `apps/smoke-node/src/lib/chess-library-reuse.spec.ts` validates chess bundling/evaluation in the Node smoke project.
+- `apps/smoke-web/chess-library-reuse.html`, `apps/smoke-web/src/chess-library-reuse.ts`, and `apps/smoke-web/tests/chess-library-reuse.spec.ts` provide browser execution and Node/browser parity checks for the chess fixture.
+
+---
+
+## Phase P13 — Design reset for next-generation execution surface
+
+### T-140: Lock post-P12 artifact/profile/value-model architecture
+
+**Phase:** P13 – Design reset  
+**Status:** DONE  
+**Depends on:** T-130
+
+**Goal:**  
+Freeze the architecture for P14+ so implementation work no longer depends on
+chat context or ad-hoc decisions.
+
+**Deliverables:**
+
+- [x] Add `docs/program-artifact-v2.md`.
+- [x] Add `docs/module-pack.md`.
+- [x] Add `docs/execution-profiles.md`.
+- [x] Add `docs/builder.md`.
+- [x] Add `docs/value-model-v2.md`.
+- [x] Add `docs/embedders.md`.
+- [x] Update docs index and cross-references (`docs/README.md`, `docs/sdk.md`, `docs/implementation-summary.md`, `docs/release-policy.md`).
+
+**Decision log (locked in P13):**
+
+1. **ProgramArtifact.v2 is the next canonical artifact.**  
+   It requires explicit `executionProfile`, explicit `sourceKind` (`script` or
+   `module-pack`), and version pinning metadata.
+2. **ModulePack.v1 is the first-class reusable source artifact.**  
+   Runtime executes static modules directly from in-memory pack data.
+3. **Composite profile model is mandatory.**  
+   Public profiles: `baseline-v1`, `compat-general-v1`, `compat-binary-v1`,
+   backed by a single capability registry.
+4. **DV2/bytes track is mandatory for this iteration.**  
+   Binary boundary support is introduced as versioned value-model/ABI evolution,
+   not in-place DV1 mutation.
+5. **Builder naming direction is locked.**  
+   `deterministic-bundler` is treated as transitional; target product surface is
+   deterministic builder semantics.
+6. **`engineBuildHash` is required for builder-produced release artifacts.**
+
+**Open design questions (must stay < 3):**
+
+1. Should top-level await support be included in P17 or deferred to a post-P21
+   phase if scheduler complexity threatens parity guarantees?
+2. Should `ModulePack.v1.graphHash` include canonical source-map payloads by
+   default, or should source maps remain separately hashed metadata?
+
+**Acceptance criteria:**
+
+- [x] P13 docs exist and are cross-linked.
+- [x] Locked decisions are explicit and centralized.
+- [x] Unresolved design question count is `2` (<= 2 target).
+
+**Current state (P13 T-140):**
+
+- The new architecture docs are now present and linked:
+  - `program-artifact-v2`
+  - `module-pack`
+  - `execution-profiles`
+  - `builder`
+  - `value-model-v2`
+  - `embedders`
+- Existing docs that previously implied DV bytes in the current runtime were
+  corrected to reflect current DV1 scope and the DV2 migration track.
+
+---
+
+## Phase P14 — Deterministic builder evolution
+
+### T-150: Introduce module-pack builder API and migration package
+
+**Phase:** P14 – Deterministic builder  
+**Status:** DONE  
+**Depends on:** T-140
+
+**Goal:**  
+Evolve deterministic-bundler from script-only output into deterministic builder
+capabilities centered on `ModulePack.v1`, while preserving script-mode bridging.
+
+**Detailed tasks:**
+
+- [x] Add `buildDeterministicModulePack(...)` API to deterministic-bundler.
+- [x] Emit `ModulePack.v1` fields (`modules`, `entrySpecifier`, `graphHash`,
+      `builderVersion`, `dependencyIntegrity`) with canonical ordering.
+- [x] Emit canonical source maps (path-clean, stable JSON key ordering).
+- [x] Run compatibility scanning on transformed module output.
+- [x] Add builder fixture coverage for:
+  - workspace TS graph,
+  - npm ESM package resolution,
+  - npm CJS package resolution.
+- [x] Add transitional migration package `@blue-quickjs/deterministic-builder`
+      that re-exports deterministic builder APIs.
+- [x] Emit full compatibility report artifact schema (beyond scan diagnostics).
+- [x] Emit `ProgramArtifact.v2` build artifact directly from builder API.
+- [x] Add dedicated graph-hash golden fixtures to lock serialization format.
+
+**Current state (P14 T-150):**
+
+- `libs/deterministic-bundler/src/lib/deterministic-bundler.ts` now exports
+  `buildDeterministicModulePack(...)` and `ModulePack.v1`-aligned types.
+- Builder output includes:
+  - deterministic module ordering by canonical specifier,
+  - canonical graph hashing via stable JSON serialization,
+  - lockfile-derived dependency integrity hash,
+  - optional script artifact emission for transitional workflows.
+- Builder API now emits:
+  - `CompatibilityReport.v1` (profile, module count, rule counts, diagnostics),
+  - optional `ProgramArtifact.v2` embedding emitted `ModulePack.v1`.
+- Source maps are sanitized to remove absolute host paths before serialization.
+- `libs/deterministic-bundler/src/lib/deterministic-bundler.spec.ts` covers:
+  - deterministic repeated module-pack builds,
+  - local npm-style ESM package import,
+  - local npm-style CJS package conversion/import.
+- New package `libs/deterministic-builder` provides migration-friendly re-export
+  surface and independent test coverage.
+- `libs/quickjs-runtime/src/lib/quickjs-runtime.ts` now includes
+  `ProgramArtifactV2` and `ModulePackV1` validation scaffolding ahead of P15.
+- Graph hash serialization is pinned by deterministic-bundler golden test fixture
+  (`keeps graphHash stable for a golden fixture`).
+
+---
+
+## Phase P15 — ProgramArtifact.v2 runtime execution path
+
+### T-160: Wire ProgramArtifact.v2 into evaluate pipeline
+
+**Phase:** P15 – Runtime module-pack execution  
+**Status:** COMPLETE  
+**Depends on:** T-150
+
+**Goal:**  
+Enable `ProgramArtifact.v2` execution entry in the runtime pipeline as the
+bridge toward first-class module-pack execution.
+
+**Detailed tasks:**
+
+- [x] Accept `ProgramArtifact.v2` at `evaluate(...)` API boundary.
+- [x] Execute `sourceKind: "script"` through existing deterministic VM path.
+- [x] Add test coverage for ProgramArtifact.v2 script execution.
+- [x] Implement in-memory deterministic module loader for `ModulePack.v1`.
+- [x] Execute module entry and selected export in runtime (not script bridge).
+- [x] Add module-pack parity fixtures (node/browser/native result+gas+tape).
+
+**Current state (P15 T-160):**
+
+- `libs/quickjs-runtime/src/lib/evaluate.ts` now normalizes v1/v2 program
+  artifacts and executes v2 script sources directly.
+- ProgramArtifact.v2 module-pack path now executes via wasm runtime entrypoint
+  `qjs_det_eval_module_pack(...)` with an in-memory module loader backed only by
+  pack sources.
+- Runtime validates `modulePack.graphHash` before VM execution and maps
+  deterministic module-pack errors:
+  - `MODULE_PACK_HASH_MISMATCH`
+  - `MODULE_SPECIFIER_NOT_FOUND`
+  - `MODULE_EXPORT_MISSING`
+  - `MODULE_RESOLUTION_ERROR`
+  - `MODULE_EVALUATION_ERROR`
+- `libs/quickjs-runtime/src/lib/evaluate.spec.ts` now includes v2 module-pack
+  tests for default export, named export, cyclic imports, missing specifier,
+  missing export, and hash mismatch.
+- Added module-pack parity fixture suites across smoke node/browser surfaces:
+  - `libs/test-harness/src/lib/module-pack-fixtures.ts`
+  - `apps/smoke-node/src/lib/module-pack-parity.spec.ts`
+  - `apps/smoke-web/module-pack-fixtures.html`
+  - `apps/smoke-web/src/module-pack-fixtures.ts`
+  - `apps/smoke-web/tests/module-pack-fixtures.spec.ts`
+- Added native parity assertion suite for module-pack fixtures:
+  - `tools/quickjs-native-harness/scripts/module-pack-parity.mjs`
+  - wired into `tools/quickjs-native-harness/scripts/test.sh`
+  - enforces native fixture baselines for result hash, error code/tag,
+    gas used/remaining, and tape hash/length (including host-call tape case).
+
+---
+
+## Phase P16 — Capability registry and composite profiles
+
+### T-170: Centralize execution-profile capability registry
+
+**Phase:** P16 – Capability registry  
+**Status:** IN PROGRESS  
+**Depends on:** T-150
+
+**Goal:**  
+Replace scattered profile checks with a single capability registry consumed by
+builder/runtime/harness surfaces.
+
+**Detailed tasks:**
+
+- [x] Add shared execution-profile registry package.
+- [x] Define profile capabilities for:
+  - `baseline-v1`
+  - `compat-regexp-v1` (transitional alias)
+  - `compat-general-v1`
+  - `compat-binary-v1`
+- [x] Integrate registry into deterministic-bundler compatibility scanning.
+- [x] Integrate registry validation into quickjs-runtime artifact validation and
+      deterministic init feature-flag mapping.
+- [x] Update quickjs-native-harness profile parsing/help to accept new profile
+      names.
+- [x] Remove transitional `compat-regexp-v1` usage from fixtures/docs where
+      compatibility-mode examples are exercised (legacy alias remains supported
+      for backward compatibility).
+
+**Current state (P16 T-170):**
+
+- New package `libs/execution-profiles` now provides canonical profile/capability
+  definitions and helpers.
+- `libs/deterministic-bundler` now consults capability checks (regexp/console/
+  queueMicrotask/typed-arrays gates) instead of ad-hoc profile string checks.
+- `libs/quickjs-runtime` now validates execution profiles via the shared
+  registry and uses capability checks for QuickJS feature-flag mapping.
+- `tools/quickjs-native-harness` now accepts
+  `compat-general-v1|compat-binary-v1` profile names (currently mapped to
+  regexp feature-flag behavior in C until later capability widening phases).
+
+---
+
+## Phase P17 — Deterministic Promise jobs / async integration
+
+### T-180: Enable deterministic Promise job draining
+
+**Phase:** P17 – Async determinism  
+**Status:** IN PROGRESS  
+**Depends on:** T-170
+
+**Goal:**  
+Enable deterministic Promise/job execution in compatibility profiles while
+preserving baseline restrictions.
+
+**Detailed tasks:**
+
+- [x] Add deterministic feature-flag support for Promise jobs in QuickJS fork
+      (`JS_DETERMINISTIC_FEATURE_PROMISE_JOBS`) and wire profile mapping from
+      runtime/native harness.
+- [x] Drain pending Promise jobs after top-level eval in wasm/native execution
+      paths.
+- [x] Resolve top-level Promise results deterministically (fulfilled -> value,
+      rejected -> VM error, pending -> deterministic error).
+- [x] Add coverage for baseline Promise denial and compat-general Promise /
+      `queueMicrotask` execution in runtime and native harness tests.
+- [x] Extend node/browser/native async parity fixtures (result + gas + tape) for
+      Promise-heavy scenarios.
+
+**Current state (P17 T-180):**
+
+- `qjs_det_eval(...)` and native harness eval now drain pending jobs
+  deterministically and unwrap Promise results.
+- `qjs_det_eval_module_pack(...)` and native module-pack eval paths now drain
+  pending jobs before export extraction and resolve Promise exports.
+- `compat-general-v1` / `compat-binary-v1` now enable Promise jobs via runtime
+  feature flags, while baseline continues to reject Promise usage.
+- Added Promise/`queueMicrotask` determinism fixtures to shared smoke fixture
+  matrix (`libs/test-harness/src/lib/determinism-fixtures.ts`) with node/browser
+  parity validation and native harness gas+tape assertions.
+
+---
+
+## Phase P18 — Compatibility expansion (console shim + stable sort)
+
+### T-190: Expand compat-general behavior without widening baseline
+
+**Phase:** P18 – Compatibility expansion  
+**Status:** IN PROGRESS  
+**Depends on:** T-180
+
+**Goal:**  
+Improve practical compatibility in compatibility profiles while keeping
+baseline strict.
+
+**Detailed tasks:**
+
+- [x] Enable deterministic console shim in `compat-general-v1` /
+      `compat-binary-v1`, routing console methods through `Host.v1.emit`.
+- [x] Implement deterministic stable `Array.prototype.sort` for compatibility
+      profiles.
+- [x] Extend parity fixtures for compatibility expansion behaviors (result + gas
+      + tape where applicable).
+
+**Current state (P18 T-190):**
+
+- Console remains disabled in baseline.
+- Compatibility profiles now expose console methods (`log/info/warn/error/debug`)
+  and route payloads through `Host.v1.emit` deterministically.
+- Compatibility profiles now expose deterministic stable `Array.prototype.sort`,
+  while baseline keeps sort disabled.
+- Runtime, smoke node/browser, and native harness suites now include parity
+  coverage for console/sort compatibility behavior (including gas+tape fixtures).
+
+---
+
+## Phase P19 — DV2 / Host.v2 binary compatibility track
+
+### T-200: Introduce DV2 bytes-capable codec foundation
+
+**Phase:** P19 – DV2 foundation  
+**Status:** DONE  
+**Depends on:** T-190
+
+**Goal:**  
+Introduce a versioned bytes-capable deterministic value codec without mutating
+DV1 behavior in place.
+
+**Detailed tasks:**
+
+- [x] Add DV2 codec APIs with canonical byte-string support:
+      `encodeDv2`, `decodeDv2`, `validateDv2`, `isDv2`.
+- [x] Preserve DV1 behavior (`encodeDv` / `decodeDv`) so byte strings remain
+      rejected outside DV2 mode.
+- [x] Wire DV2 bytes to Host.v2/runtime boundaries under `compat-binary-v1`.
+- [x] Add Host.v2 bytes roundtrip fixtures and parity coverage.
+
+**Current state (P19 T-200):**
+
+- `@blue-quickjs/dv` now includes DV2 APIs with canonical CBOR byte-string
+  support and byte-length limit enforcement.
+- QuickJS fork now exposes versioned C DV2 codec entrypoints:
+  `JS_EncodeDV2(...)` / `JS_DecodeDV2(...)` with byte-string support while
+  preserving DV1 behavior in `JS_EncodeDV(...)` / `JS_DecodeDV(...)`.
+- DV1 paths remain strict and still reject CBOR major type 2 values.
+- Runtime host boundaries now switch codec behavior by ABI version:
+  Host.v1 uses DV1, Host.v2 uses DV2 byte-string envelopes.
+- `compat-binary-v1` now enables typed-array intrinsics in deterministic init;
+  baseline/compat-general behavior is unchanged.
+- Host manifest fixtures now include Host.v2 (`abi_id=Host.v2`, `abi_version=2`)
+  with canonical bytes/hash fixtures and parity checks.
+- Host.v2 bytes roundtrip parity coverage is now present across:
+  - quickjs-runtime host dispatcher + evaluate tests,
+  - shared determinism fixture matrix (`compat-binary-host-v2-bytes-roundtrip`),
+  - smoke-node and smoke-web parity suites,
+  - quickjs-native-harness script assertions.
+- Real binary-library fixture coverage now includes at least two bundled npm
+  packages under `compat-binary-v1`:
+  - `base64-js` roundtrip fixture,
+  - `@noble/hashes` (`sha256`) fixture,
+  with smoke-node/smoke-web checks and native harness baseline assertions.
+
+---
+
+## Phase P20 — Source maps, diagnostics, and CLI
+
+### T-210: Add source-map remapping + operator CLI
+
+**Phase:** P20 – Tooling and diagnostics  
+**Status:** DONE  
+**Depends on:** T-200
+
+**Goal:**  
+Make runtime diagnostics and artifact operations practical for teams by adding
+source-map-aware VM remapping and a first-class CLI workflow.
+
+**Detailed tasks:**
+
+- [x] Add CLI package with command surface:
+      `build`, `run`, `compat`, `inspect`, `explain-error`.
+- [x] Add source-map-aware runtime VM payload remapping for module-pack errors.
+- [x] Add CLI inspection/diagnostic reporting for profile/artifact/module metadata.
+- [x] Add unit coverage for CLI arg parsing and diagnostic location extraction.
+
+**Current state (P20 T-210):**
+
+- Added `tools/blue-quickjs-cli` package with Nx build/lint/test wiring and
+  executable entrypoint.
+- CLI commands now support:
+  - deterministic module-pack builds + compatibility reports,
+  - artifact inspection/summary for v1/v2 artifacts,
+  - evaluation and structured VM error output,
+  - payload error explanation helpers.
+- Runtime now remaps module-pack generated stack locations using source maps
+  before deterministic error classification:
+  - `libs/quickjs-runtime/src/lib/source-map-remap.ts`
+  - integrated in `evaluate(...)` error pipeline.
+- CLI now surfaces extracted mapped locations in `run` and `explain-error`
+  outputs and richer module/provenance/source-map fields in `inspect`.
+
+---
+
+## Phase P21 — Validation and release gate
+
+### T-220: Diagnostic reconciliation workflow (non-release)
+
+**Phase:** P21 – Validation and release gate  
+**Status:** IN PROGRESS  
+**Depends on:** T-210
+
+**Goal:**  
+Maintain a repeatable parity-report workflow for reconciliation and debugging
+while strict gas parity is still being closed.
+
+**Detailed tasks:**
+
+- [x] Add reproducibility runner script that executes determinism/module-pack/
+      binary fixture suites through wasm-node + native harness.
+- [x] Emit structured report with:
+      result hash, error code/tag, gas used/remaining, tape hash/length, and
+      environment metadata.
+- [x] Add report signature digest and cross-run comparison support.
+- [x] Keep optional reconciliation helpers (`--gas-delta-baseline`,
+      `--include-gas-trace`) available for diagnostics.
+
+**Policy boundary (normative):**
+
+- Diagnostic reconciliation tooling is **not** a release gate.
+- `--gas-delta-baseline` exists only to measure/track drift while parity is
+  being closed and must never be used as a release acceptance criterion.
+
+**Current state (P21 T-220):**
+
+- Added `tools/quickjs-native-harness/scripts/parity-report.mjs`.
+- Script supports:
+  - `--out <path>` report emission,
+  - `--assert-match` parity checks,
+  - `--ignore-gas` comparison mode focused on result/error/tape parity while
+    preserving gas diagnostics,
+  - `--compare <report.json>` cross-run diff mode,
+  - `--gas-delta-baseline <path>` and
+    `--write-gas-delta-baseline <path>` for reconciliation-only workflows.
+- Reports include fixture-level node/native snapshots and a SHA-256 signature,
+  allowing deterministic diffing between environments (local/CI/cloud), plus
+  suite-level gas-delta summaries for reconciliation tracking.
+- Optional gas-trace diff diagnostics (`--include-gas-trace`) are available to
+  prioritize reconciliation hotspots.
+
+### T-221: Strict parity release gate (consensus executors)
+
+**Phase:** P21 – Validation and release gate  
+**Status:** IN PROGRESS  
+**Depends on:** T-220
+
+**Goal:**  
+Make exact gas parity and exact OOG boundary parity release-critical for
+supported consensus executors.
+
+**Detailed tasks:**
+
+- [x] Enforce strict zero gas delta (no baseline normalization) for:
+      `wasm-node` vs `wasm-browser`.
+- [x] Enforce exact OOG boundary parity for the same consensus corpus.
+- [x] Surface first-divergent gas event metadata in parity reports once
+      charge-event tracing lands.
+- [x] Keep native parity reporting, but treat it as diagnostic unless native is
+      explicitly certified as a consensus executor.
+
+**Release gate policy (normative):**
+
+- **Consensus executors (mandatory):** `wasm-node`, `wasm-browser`.
+- **Diagnostic executor (default):** native harness.
+- Native can be promoted to consensus only after strict zero-delta parity and
+  OOG boundary parity are demonstrated under the same gate.
+- Release pipelines must fail on any strict parity mismatch across consensus
+  executors and must not depend on `parity-gas-delta-baseline.json`.
+
+**Current state (P21 T-221):**
+
+- Allocation-charge model v8 closes fixture-corpus raw strict parity in the
+  parity harness path (`parity-report --assert-match` now succeeds without
+  `--gas-delta-baseline`).
+- Harness test gate now enforces strict raw parity directly
+  (`tools/quickjs-native-harness/scripts/test.sh` no longer passes a gas-delta
+  baseline file to parity-report).
+- Subsystem boundary fixtures now include explicit first-success/last-failure
+  OOG checks via binary-search boundary tests in
+  `libs/test-harness/src/lib/gas-equivalence.spec.ts`.
+- Browser/Node consensus checks now include binary-search OOG boundary parity
+  for the gas fixture corpus (`return-1`, `loop-1k`, `loop-10k`,
+  `string-concat`, `object-alloc`, `array-ops`) via
+  `apps/smoke-web/tests/gas-boundaries.spec.ts`.
+- Release-candidate reproducibility archival helper added:
+  `tools/quickjs-native-harness/scripts/archive-reproducibility-report.mjs`
+  emits signed strict-parity reports plus `.sha256` checksums.
+
+---
+
 ## Appendix A — Minimal required ABI surface (v1)
 
 The initial manifest should define at least:
@@ -1942,7 +2580,7 @@ Ergonomic aliases:
 
 - **Determinism:** Same `(P, I, G)` ⇒ same outputs + same exact OOG point across Node and browser.
 - **Canonical gas:** opcode + metered C builtins + deterministic alloc/GC; not wasm instruction counts.
-- **Strict capability profile:** no time/random/async/network/fs/locale leaks; no typed arrays/ArrayBuffer/WebAssembly.
+- **Strict baseline capability profile:** no time/random/async/network/fs/locale leaks; no typed arrays/ArrayBuffer/WebAssembly unless explicitly enabled by compatibility profile.
 - **Baseline #2 ABI:** single dispatcher + numeric fn_id + manifest-locked mapping + manifest hash validation.
 - **DV restrictions:** only allowed types; numeric restrictions; canonical key ordering; deterministic encoding.
 - **Two-phase host-call charging:** base+arg bytes before call; out bytes+units after; deterministic OOG boundaries.

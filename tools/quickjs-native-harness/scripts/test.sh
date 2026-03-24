@@ -14,6 +14,9 @@ fi
 HOST_MANIFEST_HEX="$(tr -d '\r\n' < "${REPO_ROOT}/libs/test-harness/fixtures/abi-manifest/host-v1.bytes.hex")"
 HOST_MANIFEST_HASH="$(tr -d '\r\n' < "${REPO_ROOT}/libs/test-harness/fixtures/abi-manifest/host-v1.hash")"
 COMMON_ARGS=(--abi-manifest-hex "${HOST_MANIFEST_HEX}" --abi-manifest-hash "${HOST_MANIFEST_HASH}")
+HOST_V2_MANIFEST_HEX="$(tr -d '\r\n' < "${REPO_ROOT}/libs/test-harness/fixtures/abi-manifest/host-v2.bytes.hex")"
+HOST_V2_MANIFEST_HASH="$(tr -d '\r\n' < "${REPO_ROOT}/libs/test-harness/fixtures/abi-manifest/host-v2.hash")"
+COMMON_ARGS_V2=(--abi-manifest-hex "${HOST_V2_MANIFEST_HEX}" --abi-manifest-hash "${HOST_V2_MANIFEST_HASH}")
 BAD_MANIFEST_HASH="0000000000000000000000000000000000000000000000000000000000000000"
 SHA_EMPTY="e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 SHA_ABC="ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
@@ -55,6 +58,23 @@ assert_host_call() {
 
   if [[ "${output}" != "${expected}" ]]; then
     echo "Harness host_call mismatch for '${name}'" >&2
+    echo " expected: ${expected}" >&2
+    echo "   actual: ${output}" >&2
+    exit 1
+  fi
+}
+
+assert_output_v2() {
+  local name="$1"
+  local code="$2"
+  local expected="$3"
+  shift 3
+
+  local output
+  output="$("${BIN}" "${COMMON_ARGS_V2[@]}" "$@" --eval "${code}" || true)"
+
+  if [[ "${output}" != "${expected}" ]]; then
+    echo "Harness output mismatch for '${name}'" >&2
     echo " expected: ${expected}" >&2
     echo "   actual: ${output}" >&2
     exit 1
@@ -365,6 +385,7 @@ assert_output "Function ctor via arrow constructor" "(() => { const RealFunction
 assert_output "Function ctor via generator constructor" "(() => { const GenFunction = (function* () {}).constructor; return GenFunction('return 5')(); })()" "ERROR TypeError: Function constructor is disabled in deterministic mode"
 assert_output "RegExp constructor disabled" "new RegExp('a')" "ERROR TypeError: RegExp is disabled in deterministic mode"
 assert_output "RegExp literal disabled" "'abc'.match(/a/)" "ERROR TypeError: RegExp is disabled in deterministic mode"
+assert_output "RegExp compat profile enabled" "'abc'.match(/a/) !== null" "RESULT true" --execution-profile compat-general-v1
 assert_output "Proxy disabled" "new Proxy({}, {})" "ERROR TypeError: Proxy is disabled in deterministic mode"
 assert_output "Math.random disabled" "Math.random()" "ERROR TypeError: Math.random is disabled in deterministic mode"
 assert_output "ArrayBuffer disabled" "new ArrayBuffer(4)" "ERROR TypeError: ArrayBuffer is disabled in deterministic mode"
@@ -392,16 +413,24 @@ assert_output "JSON.stringify invalid key" "(() => { const key = '\\ud800'; retu
 assert_output "JSON.stringify unsupported type" "JSON.stringify({ x: undefined })" "ERROR TypeError: JSON.stringify only supports null, booleans, strings, finite numbers, arrays, and plain objects"
 assert_output "JSON.stringify sparse array ignores prototype getters" "(() => { let getterCalls = 0; Object.defineProperty(Array.prototype, 0, { get() { getterCalls += 1; return 1; }, configurable: true }); try { return [JSON.stringify([,]), getterCalls]; } finally { delete Array.prototype[0]; } })()" "RESULT [\"[null]\",0]"
 assert_output "Array.sort disabled" "[3, 1, 2].sort()" "ERROR TypeError: Array.prototype.sort is disabled in deterministic mode"
+assert_output "Array.sort compat-general stable" "(() => { const records = [{ id: 'a', group: 1 }, { id: 'b', group: 1 }, { id: 'c', group: 2 }, { id: 'd', group: 1 }]; records.sort((left, right) => left.group - right.group); return records.map((record) => record.id).join(','); })()" "RESULT \"a,b,d,c\"" --execution-profile compat-general-v1
 assert_output "Date missing" "typeof Date" "RESULT \"undefined\""
 assert_output "Timers missing" "typeof setTimeout" "RESULT \"undefined\""
 assert_output "Promise disabled" "Promise.resolve(1)" "ERROR TypeError: Promise is disabled in deterministic mode"
 assert_output "queueMicrotask missing" "typeof queueMicrotask" "RESULT \"undefined\""
+assert_output "Promise compat-general enabled" "Promise.resolve(1).then((value) => value + 1)" "RESULT 2" --execution-profile compat-general-v1
+assert_output "queueMicrotask compat-general enabled" "(() => { const events = []; queueMicrotask(() => events.push('a')); queueMicrotask(() => events.push('b')); return Promise.resolve().then(() => events.join(',')); })()" "RESULT \"a,b\"" --execution-profile compat-general-v1
+assert_output "console compat-general enabled" "(() => { console.log('hello', 7); return null; })()" "RESULT null" --execution-profile compat-general-v1
+assert_output "Promise compat-general gas+tape" "(() => Promise.resolve(40).then((value) => value + 2))()" "RESULT 42 GAS remaining=49872 used=128 TAPE []" --execution-profile compat-general-v1 --gas-limit 50000 --report-gas --report-tape
+assert_output "queueMicrotask host-call gas+tape" "(() => { queueMicrotask(() => Host.v1.emit({ phase: 'microtask' })); return Promise.resolve({ ok: true }); })()" "RESULT {\"ok\":true} GAS remaining=49832 used=168 TAPE [{\"fnId\":3,\"reqLen\":18,\"respLen\":12,\"units\":0,\"gasPre\":\"23\",\"gasPost\":\"0\",\"isError\":false,\"chargeFailed\":false,\"reqHash\":\"7c833f34b57bfcb9b78c49448e0506baec6e0cc31aecf5af02f6a8f24bb53fec\",\"respHash\":\"d4a80d0e37c72d337ea29cff53628612f13bd4d5269b86f393a02759d60307c0\"}]" --execution-profile compat-general-v1 --gas-limit 50000 --report-gas --report-tape
+assert_output "Promise rejection deterministic error" "(() => Promise.reject(new Error('async-failure')))()" "ERROR Error: async-failure GAS remaining=49913 used=87 TAPE []" --execution-profile compat-general-v1 --gas-limit 50000 --report-gas --report-tape
 assert_output "Host descriptor" "${host_descriptor_js}" "RESULT {\"configurable\":false,\"enumerable\":false,\"writable\":false,\"hostType\":\"object\",\"v1Type\":\"object\",\"v1NullProto\":true}"
 assert_output "capability snapshot" "${capability_snapshot_js}" "RESULT {\"eval\":{\"ok\":false,\"error\":\"TypeError: eval is disabled in deterministic mode\"},\"Function\":{\"ok\":false,\"error\":\"TypeError: Function is disabled in deterministic mode\"},\"RegExp\":{\"ok\":false,\"error\":\"TypeError: RegExp is disabled in deterministic mode\"},\"Proxy\":{\"ok\":false,\"error\":\"TypeError: Proxy is disabled in deterministic mode\"},\"Promise\":{\"ok\":false,\"error\":\"TypeError: Promise is disabled in deterministic mode\"},\"MathRandom\":{\"ok\":false,\"error\":\"TypeError: Math.random is disabled in deterministic mode\"},\"Date\":{\"ok\":true,\"value\":\"undefined\"},\"setTimeout\":{\"ok\":true,\"value\":\"undefined\"},\"ArrayBuffer\":{\"ok\":false,\"error\":\"TypeError: ArrayBuffer is disabled in deterministic mode\"},\"SharedArrayBuffer\":{\"ok\":false,\"error\":\"TypeError: SharedArrayBuffer is disabled in deterministic mode\"},\"DataView\":{\"ok\":false,\"error\":\"TypeError: DataView is disabled in deterministic mode\"},\"Uint8Array\":{\"ok\":false,\"error\":\"TypeError: Typed arrays are disabled in deterministic mode\"},\"Atomics\":{\"ok\":false,\"error\":\"TypeError: Atomics is disabled in deterministic mode\"},\"WebAssembly\":{\"ok\":false,\"error\":\"TypeError: WebAssembly is disabled in deterministic mode\"},\"consoleLog\":{\"ok\":false,\"error\":\"TypeError: console is disabled in deterministic mode\"},\"print\":{\"ok\":false,\"error\":\"TypeError: print is disabled in deterministic mode\"},\"globalOrder\":{\"ok\":true,\"value\":[\"console\",\"print\",\"Host\"]},\"hostImmutable\":{\"ok\":true,\"value\":{\"sameRef\":true,\"hasV1\":true,\"added\":false,\"desc\":{\"value\":{},\"writable\":false,\"enumerable\":false,\"configurable\":false},\"protoNull\":true,\"v1ProtoNull\":true,\"hostIsExtensible\":false,\"hostV1Extensible\":false,\"overwrite\":{\"same\":true,\"threw\":true,\"writable\":false,\"configurable\":false}}}}"
 assert_output "ergonomic globals" "${ergonomic_globals_js}" "RESULT {\"document\":{\"value\":\"foo\",\"canonical\":\"bar\",\"desc\":{\"writable\":false,\"enumerable\":false,\"configurable\":false},\"canonicalDesc\":{\"writable\":false,\"enumerable\":false,\"configurable\":false},\"extensible\":false},\"context\":{\"event\":{\"foo\":1},\"eventCanonical\":{\"bar\":true},\"steps\":[\"s1\",\"s2\"],\"currentContract\":{\"id\":\"contract-1\"},\"currentContractCanonical\":{\"id\":{\"value\":\"contract-1\"}},\"frozen\":{\"event\":true,\"eventCanonical\":true,\"steps\":true,\"currentContract\":true,\"currentContractCanonical\":true}}}" --context-blob-hex "${CONTEXT_BLOB_HEX}"
 assert_output "Host.v1 document.get ok" "Host.v1.document.get('foo')" "RESULT \"foo\""
 assert_output "Host.v1 document.getCanonical ok" "Host.v1.document.getCanonical('bar')" "RESULT \"bar\""
 assert_output "Host.v1 emit" "Host.v1.emit({ a: 1 })" "RESULT null"
+assert_output_v2 "Host.v2 bytes roundtrip" "(() => { const payload = Host.v2.document.get('bytes/payload'); Host.v2.emit(payload); return [payload.byteLength, payload[0], payload[payload.byteLength - 1]]; })()" "RESULT [4,222,239]" --execution-profile compat-binary-v1
 assert_output "Host.v1 document missing" "Host.v1.document.get('missing')" "ERROR HostError: host/not_found"
 assert_output "Host.v1 document arg type" "Host.v1.document.get(123)" "ERROR TypeError: Host.v1.document.get argument 1 must be a string"
 assert_output "Host.v1 document arg utf8 limit" "Host.v1.document.get('x'.repeat(2050))" "ERROR TypeError: Host.v1.document.get argument 1 exceeds utf8 limit (2050 > 2048)"
@@ -427,5 +456,16 @@ echo "Running host gas suite"
 node "${SCRIPT_DIR}/host-gas.mjs"
 echo "Running DV parity suite"
 node "${SCRIPT_DIR}/dv-parity.mjs"
+echo "Running binary library parity suite"
+node "${SCRIPT_DIR}/binary-library-parity.mjs"
+echo "Running module-pack parity suite"
+node "${SCRIPT_DIR}/module-pack-parity.mjs"
+if [[ "${NATIVE_PARITY_STRICT:-0}" == "1" ]]; then
+  echo "Running cross-runtime strict parity report suite"
+  node "${SCRIPT_DIR}/parity-report.mjs" --assert-match
+else
+  echo "Running cross-runtime diagnostic parity report suite"
+  node "${SCRIPT_DIR}/parity-report.mjs"
+fi
 
 echo "quickjs-native-harness test passed"

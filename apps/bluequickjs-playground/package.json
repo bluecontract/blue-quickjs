@@ -1,0 +1,46 @@
+{
+  "name": "@blue-quickjs/bluequickjs-playground",
+  "version": "0.0.1",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "@blue-quickjs/abi-manifest": "workspace:*",
+    "@blue-quickjs/deterministic-builder": "workspace:*",
+    "@blue-quickjs/dv": "workspace:*",
+    "@blue-quickjs/execution-profiles": "workspace:*",
+    "@blue-quickjs/quickjs-runtime": "workspace:*",
+    "@blue-quickjs/quickjs-wasm": "workspace:*",
+    "@blue-quickjs/test-harness": "workspace:*",
+    "monaco-editor": "^0.55.1",
+    "tslib": "^2.3.0"
+  },
+  "nx": {
+    "name": "bluequickjs-playground",
+    "targets": {
+      "e2e": {
+        "dependsOn": [
+          "^build"
+        ],
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "pnpm playwright test apps/bluequickjs-playground/tests --config apps/bluequickjs-playground/playwright.config.cts",
+          "cwd": "."
+        }
+      },
+      "generate-data": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "node apps/bluequickjs-playground/scripts/generate-playground-data.mjs",
+          "cwd": "."
+        }
+      },
+      "check-generated": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "node apps/bluequickjs-playground/scripts/generate-playground-data.mjs --check",
+          "cwd": "."
+        }
+      }
+    }
+  }
+}

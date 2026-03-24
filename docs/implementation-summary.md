@@ -10,6 +10,51 @@ For deep/normative details, this doc always points to the corresponding referenc
 
 ---
 
+## HEAD verification snapshot (2026-03-16)
+
+This snapshot reconciles code/docs/tests at current HEAD:
+
+### A) Implemented now
+
+- Canonical gas spec source (`tools/gas-spec/gas-spec.v3.json`) with generated
+  schedule docs (`gasVersion = 8`, allocation base gas `0`, normalization mode
+  `none`).
+- Runtime support for ProgramArtifact v1 and ProgramArtifact.v2
+  (`sourceKind: "script"` and `sourceKind: "module-pack"`).
+- Deterministic execution profiles (`baseline-v1`, `compat-regexp-v1`,
+  `compat-general-v1`, `compat-binary-v1`) and Host.v2/DV2 byte boundary path.
+- Release-mode pin validation for `engineBuildHash`, `gasVersion`, and
+  `executionProfile`.
+
+### B) Implemented but not yet fully product-proved
+
+- A polished end-user example corpus (script/module-pack/promises/binary/kitchen
+  sink/max-gas policy) with copy-paste commands and expected parity tables.
+- Consensus-focused archival parity reports explicitly centered on
+  wasm-node/wasm-browser release gates.
+
+### C) Strict parity status
+
+- Consensus path (`wasm-node` vs `wasm-browser`) is covered by smoke parity and
+  OOG-boundary suites.
+- Native parity tooling exists and remains diagnostic by default unless policy
+  explicitly promotes native as a consensus executor.
+
+### D) Drift reconciled in this phase
+
+- Historical notes that implied script-only runtime/module-pack future work.
+- Historical notes that implied profile feature toggles were regexp-only.
+- Historical compatibility wording that implied native divergence as the active
+  release contract.
+
+### E) Remaining release-grade work
+
+- Complete consensus reproducibility/report archival flow.
+- Expand and gate the deterministic examples corpus.
+- Keep release gates aligned with consensus executor policy and pinning rules.
+
+---
+
 ## What this repo provides
 
 At a high level, the repo provides a deterministic evaluator:
@@ -131,8 +176,40 @@ Ergonomics and injected globals: [Determinism profile](./determinism-profile.md)
 
 The evaluator runs JS with deterministic gas metering enabled. The final return value must be DV-encodable, otherwise evaluation fails deterministically.
 
+Evaluation semantics in this repo support both:
+
+- **raw script mode** (`ProgramArtifact` v1 or v2 `sourceKind: "script"`):
+  `program.code` is evaluated as a global script, the resulting value comes from
+  the script’s final expression, and top-level `return` is invalid.
+- **module-pack mode** (`ProgramArtifact.v2` `sourceKind: "module-pack"`):
+  runtime validates `modulePack.graphHash`, resolves modules through the
+  deterministic in-memory loader, and returns `mainExport`.
+
+`emit(...)` side effects are allowed through Host wrappers, but
+wrapper-specific conventions (for example function-body wrappers in external
+workflow engines) are out of scope for this evaluator.
+
 Return encoding details: [DV wire format](./dv-wire-format.md).  
 Evaluation API: [TypeScript SDK usage](./sdk.md).
+
+### 6) Deterministic library reuse paths
+
+This repo supports two deterministic reuse flows:
+
+1. **Script bundling flow** (`@blue-quickjs/deterministic-bundler`):
+   - flattens static module graphs into one script string,
+   - emits a stable content hash for bundled code,
+   - runs a compatibility scan before VM execution.
+2. **Module-pack flow** (`ProgramArtifact.v2` + `ModulePack.v1`):
+   - preserves module boundaries in a deterministic pack,
+   - validates graph hash in runtime before execution,
+   - resolves static imports through the deterministic in-memory loader.
+
+Normative references:
+
+- [Program artifact v2](./program-artifact-v2.md)
+- [Module pack v1](./module-pack.md)
+- [Deterministic builder](./builder.md)
 
 ---
 
@@ -145,7 +222,12 @@ DV is the repository’s “universal value model” for **all boundary crossing
 - Context blob injected into the VM
 - Manifest canonical encoding/hashing
 
-DV is a deliberately small subset: `null`, `boolean`, `int/float` (restricted), `string`, `bytes`, `array`, `map`, with **canonical encoding** rules and **size limits**.
+Current DV (v1) is a deliberately small subset: `null`, `boolean`,
+`int/float` (restricted), `string`, `array`, `map`, with **canonical
+encoding** rules and **size limits**.
+
+The versioned bytes-capable model is defined separately in
+[Value model v2](./value-model-v2.md).
 
 Reference spec: [DV wire format](./dv-wire-format.md).
 
@@ -390,4 +472,9 @@ Details: [ABI manifest](./abi-manifest.md), [Host call ABI](./host-call-abi.md),
 - Only **wasm32** is supported by the TypeScript runtime integration (pointer sizes are treated as 32-bit). See runtime notes in the implementation plan and SDK docs.
 - Wasm memory is configured for determinism (fixed sizing; no growth). See [Toolchain](./toolchain.md).
 - The determinism profile is intentionally restrictive; many JS APIs are not available. See [Determinism profile](./determinism-profile.md).
-- “Gas trace” attributes only VM-internal categories; host-call gas is billed but not counted inside trace totals. See [Gas schedule](./gas-schedule.md) and [Observability](./observability.md).
+- “Gas trace” includes VM-internal categories plus dedicated host-call pre/post counters. See [Gas schedule](./gas-schedule.md) and [Observability](./observability.md).
+- Runtime executes both single-source script artifacts and
+  `ProgramArtifact.v2` module-pack artifacts today. See
+  [Program artifact v2](./program-artifact-v2.md) and
+  [Module pack v1](./module-pack.md) for the normative artifact/runtime
+  contract.

@@ -14,13 +14,36 @@ Baseline anchors: see `docs/baseline-1.md` (deterministic execution constraints)
 1. From repo root: `tools/scripts/setup-emsdk.sh`
    - Clones `emsdk` into `tools/emsdk` if missing.
    - Installs + activates the pinned version.
-2. Load env into your shell for the session: `source tools/emsdk/emsdk_env.sh`.
-3. Verify: `emcc --version` should report `3.1.56`.
+2. Ensure the pinned QuickJS submodule is present:
+
+   ```bash
+   git submodule update --init --recursive vendor/quickjs
+   ```
+
+   The repo now auto-runs this check before native-harness and wasm builds, but
+   it is still useful as an explicit recovery step on fresh clones.
+3. Load env into your shell for the session: `source tools/emsdk/emsdk_env.sh`.
+4. Verify: `emcc --version` should report `3.1.56`.
 
 Notes:
 
 - Script is idempotent; rerun after pulling a new pinned version.
 - Keep `emsdk` network access unblocked during install.
+- On macOS, the setup script now retries once automatically, clears quarantine
+  attributes if possible, and on Apple Silicon retries the install with
+  `EMSDK_ARCH=x86_64` as a fallback. If that fallback path succeeds, Rosetta may
+  be required:
+
+  ```bash
+  softwareupdate --install-rosetta --agree-to-license
+  ```
+
+- The setup script now prefers the host `python3`/`python` to run `emsdk.py`
+  directly, which avoids macOS repeatedly re-entering a partially installed
+  bundled Python during retries.
+- On macOS specifically, the script prefers `/usr/bin/python3` over Conda or
+  other shimmed interpreters and clears `PYTHONHOME`, `PYTHONPATH`, and common
+  `CONDA_*` variables before invoking `emsdk.py`.
 
 ## CI caching
 
@@ -47,4 +70,4 @@ Notes:
 
 - Artifacts land in `libs/quickjs-wasm-build/dist/` as `quickjs-eval{,-debug}{,-wasm64}.{js,wasm}` (wasm32 is canonical; wasm64 is optional for debugging). Loader + metadata are resolved via `getQuickjsWasmArtifacts(...)` and `readQuickjsWasmMetadata()`.
 - `quickjs-wasm-build.metadata.json` captures per-variant/per-build-type filenames, hashes, sizes, flags, and `engineBuildHash` (keyed to wasm32 release when present).
-- The wasm harness exports deterministic ABI entrypoints only (`qjs_det_init`/`qjs_det_eval`/`qjs_det_set_gas_limit`/`qjs_det_free` plus tape/trace helpers) and returns DV-hex payloads with `RESULT … GAS …` / `ERROR … GAS …` formatting; strings are freed with the exported `_free` helper.
+- The wasm harness exports deterministic ABI entrypoints only (`qjs_det_init`/`qjs_det_eval`/`qjs_det_set_gas_limit`/`qjs_det_free` plus tape/trace helpers) and returns DV-hex payloads with `RESULT … GAS …` / `ERROR … GAS …` formatting; `qjs_det_init(..., feature_flags)` accepts deterministic feature flags (`0` for baseline), and strings are freed with the exported `_free` helper.

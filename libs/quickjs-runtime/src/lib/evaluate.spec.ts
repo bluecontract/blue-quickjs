@@ -1,8 +1,18 @@
-import { HOST_V1_HASH, HOST_V1_MANIFEST } from '@blue-quickjs/abi-manifest';
+import {
+  HOST_V1_HASH,
+  HOST_V1_MANIFEST,
+  HOST_V2_HASH,
+  HOST_V2_MANIFEST,
+} from '@blue-quickjs/abi-manifest';
+import { createHash } from 'node:crypto';
 import { vi } from 'vitest';
 import { evaluate } from './evaluate.js';
 import type { HostDispatcherHandlers } from './host-dispatcher.js';
-import type { InputEnvelope, ProgramArtifact } from './quickjs-runtime.js';
+import type {
+  InputEnvelope,
+  ProgramArtifact,
+  ProgramArtifactV2,
+} from './quickjs-runtime.js';
 
 const TEST_GAS_LIMIT = 50_000n;
 
@@ -13,6 +23,26 @@ const BASE_PROGRAM: ProgramArtifact = {
   abiManifestHash: HOST_V1_HASH,
 };
 
+const BASE_PROGRAM_V2_SCRIPT: ProgramArtifactV2 = {
+  version: 2,
+  abiId: 'Host.v1',
+  abiVersion: 1,
+  abiManifestHash: HOST_V1_HASH,
+  executionProfile: 'baseline-v1',
+  sourceKind: 'script',
+  source: {
+    code: 'document("path/to/doc")',
+  },
+};
+
+const BASE_PROGRAM_V2_BINARY: ProgramArtifact = {
+  code: 'Host.v2.document.get("bytes/payload").byteLength',
+  abiId: 'Host.v2',
+  abiVersion: 2,
+  abiManifestHash: HOST_V2_HASH,
+  executionProfile: 'compat-binary-v1',
+};
+
 const BASE_INPUT: InputEnvelope = {
   event: { type: 'create', payload: { id: 1 } },
   eventCanonical: { type: 'create', payload: { id: 1 } },
@@ -21,7 +51,511 @@ const BASE_INPUT: InputEnvelope = {
   currentContractCanonical: { id: { value: 'contract-1' } },
 };
 
+function createModulePackProgram(
+  modulePack: ReturnType<typeof createModulePack>,
+): ProgramArtifactV2 {
+  return {
+    ...BASE_PROGRAM_V2_SCRIPT,
+    sourceKind: 'module-pack',
+    source: {
+      modulePack,
+    },
+  };
+}
+
 describe('evaluate', () => {
+  it('evaluates raw script mode using final expression result', async () => {
+    const result = await evaluate({
+      program: { ...BASE_PROGRAM, code: 'const n = 2; n + 3' },
+      input: BASE_INPUT,
+      gasLimit: TEST_GAS_LIMIT,
+      manifest: HOST_V1_MANIFEST,
+      handlers: createHandlers(),
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error(result.message);
+    }
+    expect(result.value).toBe(5);
+  });
+
+  it('evaluates ProgramArtifact.v2 script source', async () => {
+    const result = await evaluate({
+      program: {
+        ...BASE_PROGRAM_V2_SCRIPT,
+        source: {
+          code: 'const n = 10; n + 4;',
+        },
+      },
+      input: BASE_INPUT,
+      gasLimit: TEST_GAS_LIMIT,
+      manifest: HOST_V1_MANIFEST,
+      handlers: createHandlers(),
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error(result.message);
+    }
+    expect(result.value).toBe(14);
+  });
+
+  it('evaluates ProgramArtifact.v2 module-pack default export', async () => {
+    const modulePack = createModulePack({
+      entrySpecifier: './entry.js',
+      modules: [
+        {
+          specifier: './entry.js',
+          source: 'export default 1;\n',
+        },
+      ],
+    });
+
+    const result = await evaluate({
+      program: createModulePackProgram(modulePack),
+      input: BASE_INPUT,
+      gasLimit: TEST_GAS_LIMIT,
+      manifest: HOST_V1_MANIFEST,
+      handlers: createHandlers(),
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error(result.message);
+    }
+    expect(result.value).toBe(1);
+  });
+
+  it('evaluates module-pack entryExport for named exports', async () => {
+    const modulePack = createModulePack({
+      entrySpecifier: './entry.js',
+      entryExport: 'answer',
+      modules: [
+        {
+          specifier: './entry.js',
+          source: 'export const answer = 42;\n',
+        },
+      ],
+    });
+
+    const result = await evaluate({
+      program: createModulePackProgram(modulePack),
+      input: BASE_INPUT,
+      gasLimit: TEST_GAS_LIMIT,
+      manifest: HOST_V1_MANIFEST,
+      handlers: createHandlers(),
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error(result.message);
+    }
+    expect(result.value).toBe(42);
+  });
+
+  it('evaluates cyclic module-pack imports deterministically', async () => {
+    const modulePack = createModulePack({
+      entrySpecifier: './entry.js',
+      modules: [
+        {
+          specifier: './entry.js',
+          source:
+            "import { valueFromA } from './b.js'; export default valueFromA;\n",
+        },
+        {
+          specifier: './a.js',
+          source:
+            "import { getB } from './b.js'; export function getA() { return 40 + getB(); }\n",
+        },
+        {
+          specifier: './b.js',
+          source:
+            "import { getA } from './a.js'; export function getB() { return 2; } export const valueFromA = getA();\n",
+        },
+      ],
+    });
+
+    const result = await evaluate({
+      program: createModulePackProgram(modulePack),
+      input: BASE_INPUT,
+      gasLimit: TEST_GAS_LIMIT,
+      manifest: HOST_V1_MANIFEST,
+      handlers: createHandlers(),
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error(result.message);
+    }
+    expect(result.value).toBe(42);
+  });
+
+  it('maps missing entry module to deterministic module-pack error', async () => {
+    const modulePack = createModulePack({
+      entrySpecifier: './missing.js',
+      modules: [
+        {
+          specifier: './entry.js',
+          source: 'export default 1;\n',
+        },
+      ],
+    });
+
+    const result = await evaluate({
+      program: createModulePackProgram(modulePack),
+      input: BASE_INPUT,
+      gasLimit: TEST_GAS_LIMIT,
+      manifest: HOST_V1_MANIFEST,
+      handlers: createHandlers(),
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      throw new Error('expected module-pack failure');
+    }
+    expect(result.type).toBe('vm-error');
+    expect(result.error.kind).toBe('module-pack');
+    if (result.error.kind !== 'module-pack') {
+      throw new Error('expected module-pack error kind');
+    }
+    expect(result.error.code).toBe('MODULE_SPECIFIER_NOT_FOUND');
+  });
+
+  it('maps missing module export to deterministic module-pack error', async () => {
+    const modulePack = createModulePack({
+      entrySpecifier: './entry.js',
+      entryExport: 'missing',
+      modules: [
+        {
+          specifier: './entry.js',
+          source: 'export const value = 1;\n',
+        },
+      ],
+    });
+
+    const result = await evaluate({
+      program: createModulePackProgram(modulePack),
+      input: BASE_INPUT,
+      gasLimit: TEST_GAS_LIMIT,
+      manifest: HOST_V1_MANIFEST,
+      handlers: createHandlers(),
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      throw new Error('expected module-pack failure');
+    }
+    expect(result.type).toBe('vm-error');
+    expect(result.error.kind).toBe('module-pack');
+    if (result.error.kind !== 'module-pack') {
+      throw new Error('expected module-pack error kind');
+    }
+    expect(result.error.code).toBe('MODULE_EXPORT_MISSING');
+  });
+
+  it('rejects module-pack artifacts with graph hash mismatch', async () => {
+    const modulePack = createModulePack({
+      entrySpecifier: './entry.js',
+      modules: [
+        {
+          specifier: './entry.js',
+          source: 'export default 1;\n',
+        },
+      ],
+    });
+
+    await expect(
+      evaluate({
+        program: {
+          ...createModulePackProgram({
+            ...modulePack,
+            graphHash:
+              'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+          }),
+        },
+        input: BASE_INPUT,
+        gasLimit: TEST_GAS_LIMIT,
+        manifest: HOST_V1_MANIFEST,
+        handlers: createHandlers(),
+      }),
+    ).rejects.toThrow(/MODULE_PACK_HASH_MISMATCH/);
+  });
+
+  it('classifies top-level return as execution surface mismatch', async () => {
+    const result = await evaluate({
+      program: { ...BASE_PROGRAM, code: 'return 1' },
+      input: BASE_INPUT,
+      gasLimit: TEST_GAS_LIMIT,
+      manifest: HOST_V1_MANIFEST,
+      handlers: createHandlers(),
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      throw new Error('expected vm failure');
+    }
+    expect(result.type).toBe('vm-error');
+    expect(result.error.kind).toBe('execution-surface-mismatch');
+    expect(result.error.code).toBe('EXECUTION_SURFACE_MISMATCH');
+    expect('tag' in result.error ? result.error.tag : null).toBe(
+      'vm/execution_surface',
+    );
+    expect(result.error.message).toMatch(/return/i);
+  });
+
+  it('supports emit side effects in raw script mode', async () => {
+    const handlers = createHandlers();
+    const result = await evaluate({
+      program: {
+        ...BASE_PROGRAM,
+        code: 'emit({ marker: "raw-script" }); ({ status: "ok" })',
+      },
+      input: BASE_INPUT,
+      gasLimit: TEST_GAS_LIMIT,
+      manifest: HOST_V1_MANIFEST,
+      handlers,
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error(result.message);
+    }
+    expect(result.value).toEqual({ status: 'ok' });
+    expect(handlers.emit).toHaveBeenCalledTimes(1);
+    expect(handlers.emit).toHaveBeenCalledWith({ marker: 'raw-script' });
+  });
+
+  it('keeps RegExp disabled in baseline profile and allows compat-regexp profile', async () => {
+    const baseline = await evaluate({
+      program: { ...BASE_PROGRAM, code: '/a/.test("a")' },
+      input: BASE_INPUT,
+      gasLimit: TEST_GAS_LIMIT,
+      manifest: HOST_V1_MANIFEST,
+      handlers: createHandlers(),
+    });
+
+    expect(baseline.ok).toBe(false);
+    if (baseline.ok) {
+      throw new Error('expected baseline regexp failure');
+    }
+    expect(baseline.type).toBe('vm-error');
+    expect(baseline.error.kind).toBe('js-exception');
+    expect(baseline.message).toMatch(/regexp is disabled/i);
+
+    const compat = await evaluate({
+      program: {
+        ...BASE_PROGRAM,
+        code: '/a/.test("a")',
+        executionProfile: 'compat-regexp-v1',
+      },
+      input: BASE_INPUT,
+      gasLimit: TEST_GAS_LIMIT,
+      manifest: HOST_V1_MANIFEST,
+      handlers: createHandlers(),
+    });
+
+    if (!compat.ok) {
+      throw new Error(compat.message);
+    }
+    expect(compat.ok).toBe(true);
+    expect(compat.value).toBe(true);
+  });
+
+  it('keeps Promise disabled in baseline profile and drains Promise jobs for compat-general', async () => {
+    const baseline = await evaluate({
+      program: { ...BASE_PROGRAM, code: 'Promise.resolve(1)' },
+      input: BASE_INPUT,
+      gasLimit: TEST_GAS_LIMIT,
+      manifest: HOST_V1_MANIFEST,
+      handlers: createHandlers(),
+    });
+
+    expect(baseline.ok).toBe(false);
+    if (baseline.ok) {
+      throw new Error('expected baseline Promise failure');
+    }
+    expect(baseline.type).toBe('vm-error');
+    expect(baseline.error.kind).toBe('js-exception');
+    expect(baseline.message).toMatch(/promise is disabled/i);
+
+    const compat = await evaluate({
+      program: {
+        ...BASE_PROGRAM,
+        code: 'Promise.resolve(41).then((value) => value + 1)',
+        executionProfile: 'compat-general-v1',
+      },
+      input: BASE_INPUT,
+      gasLimit: TEST_GAS_LIMIT,
+      manifest: HOST_V1_MANIFEST,
+      handlers: createHandlers(),
+    });
+
+    if (!compat.ok) {
+      throw new Error(compat.message);
+    }
+    expect(compat.ok).toBe(true);
+    expect(compat.value).toBe(42);
+  });
+
+  it('runs queueMicrotask deterministically in compat-general profile', async () => {
+    const compat = await evaluate({
+      program: {
+        ...BASE_PROGRAM,
+        code: `
+          (() => {
+            const events = [];
+            queueMicrotask(() => events.push('first'));
+            queueMicrotask(() => events.push('second'));
+            return Promise.resolve().then(() => events.join(','));
+          })()
+        `,
+        executionProfile: 'compat-general-v1',
+      },
+      input: BASE_INPUT,
+      gasLimit: TEST_GAS_LIMIT,
+      manifest: HOST_V1_MANIFEST,
+      handlers: createHandlers(),
+    });
+
+    if (!compat.ok) {
+      throw new Error(
+        `Host.v2 roundtrip failed: ${compat.type} ${compat.message}`,
+      );
+    }
+    expect(compat.ok).toBe(true);
+    expect(compat.value).toBe('first,second');
+  });
+
+  it('routes compat-general console shim calls through Host.v1.emit', async () => {
+    const handlers = createHandlers();
+    const compat = await evaluate({
+      program: {
+        ...BASE_PROGRAM,
+        code: `
+          (() => {
+            console.log('hello', 7);
+            return null;
+          })()
+        `,
+        executionProfile: 'compat-general-v1',
+      },
+      input: BASE_INPUT,
+      gasLimit: TEST_GAS_LIMIT,
+      manifest: HOST_V1_MANIFEST,
+      handlers,
+    });
+
+    expect(compat.ok).toBe(true);
+    if (!compat.ok) {
+      throw new Error(compat.message);
+    }
+    expect(compat.value).toBeNull();
+    expect(handlers.emit).toHaveBeenCalledWith({
+      type: 'console',
+      level: 'log',
+      args: ['hello', 7],
+    });
+  });
+
+  it('supports Host.v2 DV2 byte roundtrips in compat-binary profile', async () => {
+    const handlers = createHandlers({
+      document: {
+        get: vi.fn((path: string) => {
+          if (path !== 'bytes/payload') {
+            return {
+              err: { code: 'NOT_FOUND', tag: 'host/not_found' },
+              units: 1,
+            };
+          }
+          return { ok: Uint8Array.from([222, 173, 190, 239]), units: 2 };
+        }),
+      },
+      emit: vi.fn(() => ({ ok: null, units: 1 })),
+    });
+
+    const compat = await evaluate({
+      program: {
+        ...BASE_PROGRAM_V2_BINARY,
+        code: `
+          (() => {
+            const payload = Host.v2.document.get('bytes/payload');
+            Host.v2.emit(payload);
+            return 1;
+          })()
+        `,
+      },
+      input: BASE_INPUT,
+      gasLimit: TEST_GAS_LIMIT,
+      manifest: HOST_V2_MANIFEST,
+      handlers,
+    });
+
+    if (!compat.ok) {
+      throw new Error(
+        `Host.v2 roundtrip failed: ${compat.type} ${compat.message}`,
+      );
+    }
+    expect(compat.ok).toBe(true);
+    expect(compat.value).toBe(1);
+    expect(handlers.document.get).toHaveBeenCalledWith('bytes/payload');
+    expect(handlers.emit).toHaveBeenCalledTimes(1);
+    if (!handlers.emit) {
+      throw new Error('expected emit handler');
+    }
+    const emitMock = handlers.emit as ReturnType<typeof vi.fn>;
+    const [emitArg] = emitMock.mock.calls[0] ?? [];
+    expect(emitArg).toBeInstanceOf(Uint8Array);
+    expect(Array.from(emitArg as Uint8Array)).toEqual([222, 173, 190, 239]);
+  });
+
+  it('keeps sort disabled in baseline and enables stable sort in compat-general', async () => {
+    const baseline = await evaluate({
+      program: { ...BASE_PROGRAM, code: '[3, 1, 2].sort()' },
+      input: BASE_INPUT,
+      gasLimit: TEST_GAS_LIMIT,
+      manifest: HOST_V1_MANIFEST,
+      handlers: createHandlers(),
+    });
+
+    expect(baseline.ok).toBe(false);
+    if (baseline.ok) {
+      throw new Error('expected baseline sort failure');
+    }
+    expect(baseline.type).toBe('vm-error');
+    expect(baseline.error.kind).toBe('js-exception');
+    expect(baseline.message).toMatch(/sort is disabled/i);
+
+    const compat = await evaluate({
+      program: {
+        ...BASE_PROGRAM,
+        code: `
+          (() => {
+            const records = [
+              { id: 'a', group: 1 },
+              { id: 'b', group: 1 },
+              { id: 'c', group: 2 },
+              { id: 'd', group: 1 },
+            ];
+            records.sort((left, right) => left.group - right.group);
+            return records.map((record) => record.id).join(',');
+          })()
+        `,
+        executionProfile: 'compat-general-v1',
+      },
+      input: BASE_INPUT,
+      gasLimit: TEST_GAS_LIMIT,
+      manifest: HOST_V1_MANIFEST,
+      handlers: createHandlers(),
+    });
+
+    expect(compat.ok).toBe(true);
+    if (!compat.ok) {
+      throw new Error(compat.message);
+    }
+    expect(compat.value).toBe('a,b,d,c');
+  });
+
   it('returns DV results with gas accounting', async () => {
     const handlers = createHandlers();
     const result = await evaluate({
@@ -213,6 +747,92 @@ describe('evaluate', () => {
     ).rejects.toThrow(/enginebuildhash/i);
   });
 
+  it('rejects gasVersion mismatches', async () => {
+    const program: ProgramArtifact = {
+      ...BASE_PROGRAM,
+      gasVersion: 0,
+    };
+
+    await expect(
+      evaluate({
+        program,
+        input: BASE_INPUT,
+        gasLimit: TEST_GAS_LIMIT,
+        manifest: HOST_V1_MANIFEST,
+        handlers: createHandlers(),
+      }),
+    ).rejects.toThrow(/gasversion/i);
+  });
+
+  it('requires engine/gas/profile pins in release mode', async () => {
+    await expect(
+      evaluate({
+        program: BASE_PROGRAM,
+        input: BASE_INPUT,
+        gasLimit: TEST_GAS_LIMIT,
+        manifest: HOST_V1_MANIFEST,
+        handlers: createHandlers(),
+        releaseMode: true,
+      }),
+    ).rejects.toThrow(/release-mode requires/i);
+  });
+
+  it('requires expectedExecutionProfile in release mode', async () => {
+    const program: ProgramArtifact = {
+      ...BASE_PROGRAM,
+      engineBuildHash: '0'.repeat(64),
+      gasVersion: 0,
+      executionProfile: 'baseline-v1',
+    };
+
+    await expect(
+      evaluate({
+        program,
+        input: BASE_INPUT,
+        gasLimit: TEST_GAS_LIMIT,
+        manifest: HOST_V1_MANIFEST,
+        handlers: createHandlers(),
+        releaseMode: true,
+      }),
+    ).rejects.toThrow(/expectedexecutionprofile/i);
+  });
+
+  it('rejects executionProfile pin mismatches when expected profile is provided', async () => {
+    const program: ProgramArtifact = {
+      ...BASE_PROGRAM,
+      executionProfile: 'baseline-v1',
+    };
+
+    await expect(
+      evaluate({
+        program,
+        input: BASE_INPUT,
+        gasLimit: TEST_GAS_LIMIT,
+        manifest: HOST_V1_MANIFEST,
+        handlers: createHandlers(),
+        expectedExecutionProfile: 'compat-general-v1',
+      }),
+    ).rejects.toThrow(/executionprofile mismatch/i);
+  });
+
+  it('accepts matching expected executionProfile pin', async () => {
+    const program: ProgramArtifact = {
+      ...BASE_PROGRAM,
+      executionProfile: 'baseline-v1',
+    };
+
+    const result = await evaluate({
+      program,
+      input: BASE_INPUT,
+      gasLimit: TEST_GAS_LIMIT,
+      manifest: HOST_V1_MANIFEST,
+      handlers: createHandlers(),
+      expectedExecutionProfile: 'baseline-v1',
+    });
+
+    expect(result.ok).toBe(true);
+  });
+
   it('returns host-call tape when requested', async () => {
     const result = await evaluate({
       program: BASE_PROGRAM,
@@ -238,6 +858,29 @@ describe('evaluate', () => {
     expect(record.respHash).toHaveLength(64);
   });
 
+  it('returns gas charge tape when requested', async () => {
+    const result = await evaluate({
+      program: { ...BASE_PROGRAM, code: '1 + 2' },
+      input: BASE_INPUT,
+      gasLimit: TEST_GAS_LIMIT,
+      manifest: HOST_V1_MANIFEST,
+      handlers: createHandlers(),
+      gasChargeTape: { capacity: 128 },
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error(result.message);
+    }
+
+    expect(result.gasChargeTape).toBeDefined();
+    expect((result.gasChargeTape ?? []).length).toBeGreaterThan(0);
+    const [record] = result.gasChargeTape ?? [];
+    expect(typeof record.amount).toBe('bigint');
+    expect(typeof record.gasBefore).toBe('bigint');
+    expect(typeof record.gasAfter).toBe('bigint');
+  });
+
   it('returns gas trace when requested', async () => {
     const result = await evaluate({
       program: { ...BASE_PROGRAM, code: '1 + 2' },
@@ -255,6 +898,7 @@ describe('evaluate', () => {
 
     expect(result.gasTrace).toBeDefined();
     expect((result.gasTrace?.opcodeCount ?? 0n) >= 0n).toBe(true);
+    expect((result.gasTrace?.allocationRequestedBytes ?? 0n) >= 0n).toBe(true);
     expect((result.gasTrace?.allocationBytes ?? 0n) >= 0n).toBe(true);
     expect((result.gasTrace?.jsonParseCount ?? 0n) >= 0n).toBe(true);
     expect((result.gasTrace?.jsonStringifyCount ?? 0n) >= 0n).toBe(true);
@@ -553,4 +1197,78 @@ function getFnId(path: string): number {
     throw new Error(`missing fn_id for ${path}`);
   }
   return fn.fn_id;
+}
+
+function createModulePack(options: {
+  entrySpecifier: string;
+  modules: Array<{ specifier: string; source: string; sourceMap?: string }>;
+  entryExport?: string;
+}) {
+  const base = {
+    version: 1 as const,
+    entrySpecifier: options.entrySpecifier,
+    ...(options.entryExport ? { entryExport: options.entryExport } : {}),
+    modules: options.modules,
+    builderVersion: 'deterministic-builder-v1',
+    dependencyIntegrity:
+      'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+  };
+  const canonical = {
+    version: base.version,
+    entrySpecifier: base.entrySpecifier,
+    entryExport: base.entryExport ?? 'default',
+    modules: [...base.modules]
+      .sort((left, right) =>
+        compareUtf8ByteOrder(left.specifier, right.specifier),
+      )
+      .map((module) => ({
+        specifier: module.specifier,
+        source: module.source,
+        ...(module.sourceMap ? { sourceMap: module.sourceMap } : {}),
+      })),
+    builderVersion: base.builderVersion,
+    dependencyIntegrity: base.dependencyIntegrity,
+  };
+  const graphHash = createHash('sha256')
+    .update(stableStringify(canonical), 'utf8')
+    .digest('hex');
+  return {
+    ...base,
+    graphHash,
+  };
+}
+
+function stableStringify(value: unknown): string {
+  if (value === null || typeof value !== 'object') {
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => stableStringify(item)).join(',')}]`;
+  }
+  const entries = Object.entries(value as Record<string, unknown>)
+    .filter(([, item]) => item !== undefined)
+    .sort(([left], [right]) => compareUtf8ByteOrder(left, right))
+    .map(([key, item]) => `${JSON.stringify(key)}:${stableStringify(item)}`);
+  return `{${entries.join(',')}}`;
+}
+
+const UTF8_ENCODER = new TextEncoder();
+
+function compareUtf8ByteOrder(left: string, right: string): number {
+  if (left === right) {
+    return 0;
+  }
+
+  const leftBytes = UTF8_ENCODER.encode(left);
+  const rightBytes = UTF8_ENCODER.encode(right);
+  const limit = Math.min(leftBytes.length, rightBytes.length);
+
+  for (let index = 0; index < limit; index += 1) {
+    const delta = leftBytes[index] - rightBytes[index];
+    if (delta !== 0) {
+      return delta;
+    }
+  }
+
+  return leftBytes.length - rightBytes.length;
 }

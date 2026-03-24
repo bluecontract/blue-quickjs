@@ -9,6 +9,8 @@ This doc explains how to use the TypeScript runtime SDK (`libs/quickjs-runtime`)
 
 Conceptual overview: [Implementation summary](./implementation-summary.md).  
 ABI and DV specs: [Baseline #2](./baseline-2.md), [ABI manifest](./abi-manifest.md), [Host call ABI](./host-call-abi.md), [DV wire format](./dv-wire-format.md).
+Runnable scenario matrix (module-pack, promises, libraries, binary, OOG
+boundaries): [Examples corpus](../examples/README.md).
 
 ---
 
@@ -72,6 +74,72 @@ console.log('gas used:', result.gasUsed.toString());
 console.log('gas remaining:', result.gasRemaining.toString());
 ```
 
+## Bundling libraries into deterministic source
+
+`evaluate()` expects `program.code` to be a single source string. For reusable
+multi-file libraries, bundle first:
+
+```ts
+import { bundleDeterministicProgram } from '@blue-quickjs/deterministic-bundler';
+
+const bundled = await bundleDeterministicProgram({
+  absWorkingDir: process.cwd(),
+  entryPath: 'src/program-entry.ts',
+  // baseline-v1 rejects RegExp; compat-regexp-v1 allows it explicitly.
+  profile: 'baseline-v1',
+});
+
+const program = {
+  abiId: 'Host.v1',
+  abiVersion: 1,
+  abiManifestHash: '…',
+  executionProfile: 'baseline-v1',
+  code: bundled.code,
+};
+```
+
+Bundling returns a deterministic content hash and compatibility diagnostics. By
+default, compatibility violations fail fast before VM execution.
+
+## Execution semantics (raw script mode)
+
+`blue-quickjs` evaluates `program.code` as a **raw global script**.
+
+- The result is the DV-encodable value of the script’s final expression.
+- Top-level `return` is invalid in this mode and fails deterministically.
+- Side effects can be emitted through `emit(value)` / `Host.v1.emit(value)`.
+
+Raw script with final expression:
+
+```ts
+const program = {
+  abiId: 'Host.v1',
+  abiVersion: 1,
+  abiManifestHash: '…',
+  code: `
+    const base = 40;
+    base + 2
+  `,
+};
+```
+
+Emit side effects plus explicit final result:
+
+```ts
+const program = {
+  abiId: 'Host.v1',
+  abiVersion: 1,
+  abiManifestHash: '…',
+  code: `
+    emit({ type: 'trace', step: 'start' });
+    ({ ok: true })
+  `,
+};
+```
+
+If your surrounding workflow uses function wrappers or custom return conventions,
+that wrapper behavior belongs to the embedder/orchestrator layer, not this evaluator.
+
 ### What you get back
 
 `evaluate()` returns a structured `EvaluateResult`:
@@ -95,12 +163,20 @@ A program artifact is “code + ABI identity/pinning metadata”. The SDK valida
 - `abiVersion` (integer)
 - `abiManifestHash` (lowercase hex)
 - `code` (string)
+- optional `gasVersion` (uint32; required for release-mode artifact pinning)
 
 Some environments also provide `engineBuildHash` pinning; if present, the SDK checks that the wasm runtime build hash matches.
+
+For `releaseMode` execution, pass `expectedExecutionProfile` to `evaluate()`.
+The SDK rejects artifacts whose `program.executionProfile` is missing or does
+not match the runtime's expected profile.
 
 Optional fields:
 
 - `engineBuildHash` (lowercase hex; sha256 of the wasm bytes)
+- `gasVersion` (uint32 gas schedule version)
+- `executionProfile` (`"baseline-v1"` default, or `"compat-general-v1"` for
+  compatibility-mode execution; `"compat-regexp-v1"` remains as a legacy alias)
 
 Program artifact limits (validation defaults used by `evaluate()` and `initializeDeterministicVm()`):
 
@@ -116,6 +192,28 @@ Why these limits exist:
 The hash pinning rules are described in:
 - [ABI manifest](./abi-manifest.md) (canonical encoding + hash)
 - [Release policy](./release-policy.md)
+
+### ProgramArtifact.v2 runtime support
+
+The runtime now accepts both:
+
+- legacy single-source script artifacts (`ProgramArtifact` v1), and
+- `ProgramArtifact.v2` with `sourceKind: "script"`.
+
+`ProgramArtifact.v2` with `sourceKind: "module-pack"` now executes via the
+runtime's in-memory module loader path. The runtime validates
+`modulePack.graphHash` before execution and emits deterministic module-pack
+error codes for hash mismatches, missing specifiers/exports, resolution errors,
+and evaluation failures.
+
+The versioned artifact model is specified in:
+
+- [Program artifact v2](./program-artifact-v2.md)
+- [Module pack v1](./module-pack.md)
+- [Execution profiles](./execution-profiles.md)
+
+This locks the migration target for module-pack execution and explicit
+profile-required build outputs.
 
 ### 2) Input envelope (`I`)
 

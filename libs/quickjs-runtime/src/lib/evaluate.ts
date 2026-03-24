@@ -11,11 +11,15 @@ import type {
   HostDispatcherOptions,
 } from './host-dispatcher.js';
 import {
+  type ExecutionProfile,
   type InputEnvelope,
   type InputValidationOptions,
+  type ModulePackV1,
   type ProgramArtifact,
+  type ProgramArtifactV2,
   validateInputEnvelope,
   validateProgramArtifact,
+  validateProgramArtifactV2,
 } from './quickjs-runtime.js';
 import {
   type RuntimeArtifactSelection,
@@ -29,10 +33,11 @@ import {
   type EvaluateVmErrorDetail,
 } from './evaluate-errors.js';
 import { parseHexToBytes } from './hex-utils.js';
+import { remapModulePackErrorPayload } from './source-map-remap.js';
 
 export interface EvaluateOptions
   extends RuntimeArtifactSelection, HostDispatcherOptions {
-  program: ProgramArtifact;
+  program: ProgramArtifact | ProgramArtifactV2;
   input: InputEnvelope;
   gasLimit: bigint | number;
   manifest: AbiManifest;
@@ -50,6 +55,19 @@ export interface EvaluateOptions
    * Enable gas trace recording for the evaluation.
    */
   gasTrace?: boolean;
+  /**
+   * Enable gas charge event tape recording (capacity defaults to 256; max 8192).
+   */
+  gasChargeTape?: { capacity?: number };
+  /**
+   * Enforce release-mode artifact pin requirements.
+   */
+  releaseMode?: boolean;
+  /**
+   * Optional execution-profile pin asserted by the embedding runtime.
+   * When provided, evaluation rejects artifacts whose executionProfile differs.
+   */
+  expectedExecutionProfile?: ExecutionProfile;
 }
 
 export type EvaluateSuccess = {
@@ -59,6 +77,7 @@ export type EvaluateSuccess = {
   gasRemaining: bigint;
   raw: string;
   tape?: HostTapeRecord[];
+  gasChargeTape?: GasChargeRecord[];
   gasTrace?: GasTrace;
 };
 
@@ -70,6 +89,7 @@ type EvaluateFailureBase = {
   gasRemaining: bigint;
   raw: string;
   tape?: HostTapeRecord[];
+  gasChargeTape?: GasChargeRecord[];
   gasTrace?: GasTrace;
 };
 
@@ -88,12 +108,30 @@ export type EvaluateError = EvaluateVmError | EvaluateInvalidOutputError;
 export type EvaluateResult = EvaluateSuccess | EvaluateError;
 
 const HOST_TAPE_MAX_CAPACITY = 1024;
+const GAS_CHARGE_TAPE_MAX_CAPACITY = 8192;
 
 export async function evaluate(
   options: EvaluateOptions,
 ): Promise<EvaluateResult> {
-  const program = validateProgramArtifact(options.program);
+  const program = normalizeProgramForExecution(options.program);
+  if (program.mode === 'module-pack') {
+    await assertModulePackHash(program.modulePack);
+  }
   const input = validateInputEnvelope(options.input, options.inputValidation);
+  if (options.releaseMode) {
+    assertReleaseArtifactPins(program.legacyArtifact);
+    if (!options.expectedExecutionProfile) {
+      throw new Error(
+        'release-mode requires expectedExecutionProfile to be provided',
+      );
+    }
+  }
+  if (options.expectedExecutionProfile) {
+    assertExecutionProfile(
+      program.legacyArtifact,
+      options.expectedExecutionProfile,
+    );
+  }
 
   const runtime = await createRuntime({
     manifest: options.manifest,
@@ -103,15 +141,16 @@ export async function evaluate(
     metadata: options.metadata,
     wasmBinary: options.wasmBinary,
     dvLimits: options.dvLimits,
-    expectedAbiId: program.abiId,
-    expectedAbiVersion: program.abiVersion,
+    expectedAbiId: program.legacyArtifact.abiId,
+    expectedAbiVersion: program.legacyArtifact.abiVersion,
   });
 
-  assertEngineBuildHash(program, runtime);
+  assertEngineBuildHash(program.legacyArtifact, runtime);
+  assertGasVersion(program.legacyArtifact, runtime);
 
   const vm = initializeDeterministicVm(
     runtime,
-    program,
+    program.legacyArtifact,
     input,
     options.gasLimit,
   );
@@ -129,20 +168,50 @@ export async function evaluate(
     vm.enableTape(capacity);
   }
 
+  if (options.gasChargeTape) {
+    const capacity = options.gasChargeTape.capacity ?? 256;
+    if (!Number.isInteger(capacity) || capacity < 0) {
+      throw new Error(
+        'gas charge tape capacity must be a non-negative integer',
+      );
+    }
+    if (capacity > GAS_CHARGE_TAPE_MAX_CAPACITY) {
+      throw new Error(
+        `gas charge tape capacity exceeds max (${GAS_CHARGE_TAPE_MAX_CAPACITY}); received ${capacity}`,
+      );
+    }
+    vm.enableGasChargeTape(capacity);
+  }
+
   if (options.gasTrace) {
     vm.enableGasTrace(true);
   }
 
   try {
-    const raw = vm.eval(program.code);
+    const raw =
+      program.mode === 'script'
+        ? vm.eval(program.legacyArtifact.code)
+        : vm.evalModulePack(
+            serializeModulePackModules(program.modulePack),
+            program.modulePack.entrySpecifier,
+            program.entryExport,
+          );
     const parsed = parseEvalOutput(raw);
-    const tape = options.tape ? parseTape(vm.readTape()) : undefined;
     const trace = options.gasTrace
       ? parseGasTrace(vm.readGasTrace())
       : undefined;
+    const tape = options.tape ? parseTape(vm.readTape()) : undefined;
+    const gasChargeTape = options.gasChargeTape
+      ? parseGasChargeTape(vm.readGasChargeTape())
+      : undefined;
 
     if (parsed.kind === 'error') {
-      const error = mapVmError(parsed.payload, runtime.manifest);
+      const payload =
+        program.mode === 'module-pack'
+          ? remapModulePackErrorPayload(parsed.payload, program.modulePack)
+              .payload
+          : parsed.payload;
+      const error = mapVmError(payload, runtime.manifest);
       return {
         ok: false,
         type: 'vm-error',
@@ -152,6 +221,7 @@ export async function evaluate(
         gasRemaining: parsed.gasRemaining,
         raw,
         tape,
+        gasChargeTape,
         gasTrace: trace,
       };
     }
@@ -168,6 +238,7 @@ export async function evaluate(
         gasRemaining: parsed.gasRemaining,
         raw,
         tape,
+        gasChargeTape,
         gasTrace: trace,
       };
     }
@@ -179,6 +250,7 @@ export async function evaluate(
       gasRemaining: parsed.gasRemaining,
       raw,
       tape,
+      gasChargeTape,
       gasTrace: trace,
     };
   } finally {
@@ -277,6 +349,16 @@ export interface HostTapeRecord {
   respHash: string;
 }
 
+export interface GasChargeRecord {
+  siteId: number;
+  kind: number;
+  flags: number;
+  amount: bigint;
+  logicalUnits: bigint;
+  gasBefore: bigint;
+  gasAfter: bigint;
+}
+
 function parseTape(raw: string): HostTapeRecord[] {
   const parsed = parseJson(raw, 'tape');
   if (!Array.isArray(parsed)) {
@@ -314,6 +396,49 @@ function parseTape(raw: string): HostTapeRecord[] {
   });
 }
 
+function parseGasChargeTape(raw: string): GasChargeRecord[] {
+  const parsed = parseJson(raw, 'gasChargeTape');
+  if (!Array.isArray(parsed)) {
+    throw new Error('gasChargeTape payload is not an array');
+  }
+
+  return parsed.map((record, idx) => {
+    if (record === null || typeof record !== 'object') {
+      throw new Error(`gasChargeTape record ${idx} is not an object`);
+    }
+
+    const siteId = expectUint32(record.siteId, `gasChargeTape[${idx}].siteId`);
+    const kind = expectUint32(record.kind, `gasChargeTape[${idx}].kind`);
+    const flags = expectUint32(record.flags, `gasChargeTape[${idx}].flags`);
+    const amount = expectBigIntString(
+      record.amount,
+      `gasChargeTape[${idx}].amount`,
+    );
+    const logicalUnits = expectBigIntString(
+      record.logicalUnits,
+      `gasChargeTape[${idx}].logicalUnits`,
+    );
+    const gasBefore = expectBigIntString(
+      record.gasBefore,
+      `gasChargeTape[${idx}].gasBefore`,
+    );
+    const gasAfter = expectBigIntString(
+      record.gasAfter,
+      `gasChargeTape[${idx}].gasAfter`,
+    );
+
+    return {
+      siteId,
+      kind,
+      flags,
+      amount,
+      logicalUnits,
+      gasBefore,
+      gasAfter,
+    };
+  });
+}
+
 export interface GasTrace {
   opcodeCount: bigint;
   opcodeGas: bigint;
@@ -322,6 +447,7 @@ export interface GasTrace {
   arrayCbPerElCount: bigint;
   arrayCbPerElGas: bigint;
   allocationCount: bigint;
+  allocationRequestedBytes: bigint;
   allocationBytes: bigint;
   allocationGas: bigint;
   jsonParseCount: bigint;
@@ -337,6 +463,10 @@ export interface GasTrace {
   jsonStringifyObjectEntries: bigint;
   jsonStringifyArrayElements: bigint;
   jsonStringifySortComparisons: bigint;
+  hostCallPreCount: bigint;
+  hostCallPreGas: bigint;
+  hostCallPostCount: bigint;
+  hostCallPostGas: bigint;
 }
 
 function parseGasTrace(raw: string): GasTrace {
@@ -364,6 +494,10 @@ function parseGasTrace(raw: string): GasTrace {
     allocationCount: expectBigIntString(
       obj.allocationCount,
       'gasTrace.allocationCount',
+    ),
+    allocationRequestedBytes: expectBigIntString(
+      obj.allocationRequestedBytes ?? obj.allocationBytes,
+      'gasTrace.allocationRequestedBytes',
     ),
     allocationBytes: expectBigIntString(
       obj.allocationBytes,
@@ -421,6 +555,22 @@ function parseGasTrace(raw: string): GasTrace {
     jsonStringifySortComparisons: expectBigIntString(
       obj.jsonStringifySortComparisons,
       'gasTrace.jsonStringifySortComparisons',
+    ),
+    hostCallPreCount: expectBigIntString(
+      obj.hostCallPreCount,
+      'gasTrace.hostCallPreCount',
+    ),
+    hostCallPreGas: expectBigIntString(
+      obj.hostCallPreGas,
+      'gasTrace.hostCallPreGas',
+    ),
+    hostCallPostCount: expectBigIntString(
+      obj.hostCallPostCount,
+      'gasTrace.hostCallPostCount',
+    ),
+    hostCallPostGas: expectBigIntString(
+      obj.hostCallPostGas,
+      'gasTrace.hostCallPostGas',
     ),
   };
 }
@@ -495,6 +645,8 @@ function normalizeDvLimits(overrides?: Partial<DvLimits>): DvLimits {
       overrides?.maxEncodedBytes ?? DV_LIMIT_DEFAULTS.maxEncodedBytes,
     maxStringBytes:
       overrides?.maxStringBytes ?? DV_LIMIT_DEFAULTS.maxStringBytes,
+    maxByteStringBytes:
+      overrides?.maxByteStringBytes ?? DV_LIMIT_DEFAULTS.maxByteStringBytes,
     maxArrayLength:
       overrides?.maxArrayLength ?? DV_LIMIT_DEFAULTS.maxArrayLength,
     maxMapLength: overrides?.maxMapLength ?? DV_LIMIT_DEFAULTS.maxMapLength,
@@ -516,7 +668,7 @@ function parseUint64(text: string, label: string): bigint {
 }
 
 function assertEngineBuildHash(
-  program: ProgramArtifact,
+  program: { engineBuildHash?: string },
   runtime: RuntimeInstance,
 ): void {
   if (!program.engineBuildHash) {
@@ -539,6 +691,246 @@ function assertEngineBuildHash(
       `engineBuildHash mismatch: program=${program.engineBuildHash} runtime=${runtimeHash}`,
     );
   }
+}
+
+function assertGasVersion(
+  program: { gasVersion?: number },
+  runtime: RuntimeInstance,
+): void {
+  if (program.gasVersion === undefined) {
+    return;
+  }
+
+  const runtimeGasVersion = runtime.metadata.gasVersion;
+  if (runtimeGasVersion === null || runtimeGasVersion === undefined) {
+    throw new Error(
+      'Runtime gasVersion is unavailable; cannot verify program.gasVersion',
+    );
+  }
+
+  if (runtimeGasVersion !== program.gasVersion) {
+    throw new Error(
+      `gasVersion mismatch: program=${program.gasVersion} runtime=${runtimeGasVersion}`,
+    );
+  }
+}
+
+function assertReleaseArtifactPins(program: {
+  engineBuildHash?: string;
+  gasVersion?: number;
+  executionProfile?: string;
+}): void {
+  if (!program.engineBuildHash) {
+    throw new Error(
+      'release-mode requires program.engineBuildHash to be provided',
+    );
+  }
+  if (program.gasVersion === undefined) {
+    throw new Error('release-mode requires program.gasVersion to be provided');
+  }
+  if (!program.executionProfile) {
+    throw new Error(
+      'release-mode requires program.executionProfile to be provided',
+    );
+  }
+}
+
+function assertExecutionProfile(
+  program: { executionProfile?: string },
+  expectedExecutionProfile: string,
+): void {
+  if (!program.executionProfile) {
+    throw new Error(
+      'executionProfile pin cannot be validated because program.executionProfile is missing',
+    );
+  }
+  if (program.executionProfile !== expectedExecutionProfile) {
+    throw new Error(
+      `executionProfile mismatch: program=${program.executionProfile} runtime=${expectedExecutionProfile}`,
+    );
+  }
+}
+
+type NormalizedProgramForExecution =
+  | {
+      mode: 'script';
+      legacyArtifact: ProgramArtifact;
+    }
+  | {
+      mode: 'module-pack';
+      legacyArtifact: ProgramArtifact;
+      modulePack: ModulePackV1;
+      entryExport: string;
+    };
+
+function normalizeProgramForExecution(
+  program: unknown,
+): NormalizedProgramForExecution {
+  if (isProgramArtifactV2(program)) {
+    const validated = validateProgramArtifactV2(program);
+    if (validated.sourceKind === 'script') {
+      if (!('code' in validated.source)) {
+        throw new Error(
+          'INVALID_PROGRAM: script source is missing code payload',
+        );
+      }
+
+      return {
+        mode: 'script',
+        legacyArtifact: {
+          code: validated.source.code,
+          abiId: validated.abiId,
+          abiVersion: validated.abiVersion,
+          abiManifestHash: validated.abiManifestHash,
+          ...(validated.engineBuildHash
+            ? { engineBuildHash: validated.engineBuildHash }
+            : {}),
+          ...(validated.gasVersion !== undefined
+            ? { gasVersion: validated.gasVersion }
+            : {}),
+          executionProfile: validated.executionProfile,
+        },
+      };
+    }
+
+    if (!('modulePack' in validated.source)) {
+      throw new Error(
+        'INVALID_PROGRAM: module-pack source is missing modulePack payload',
+      );
+    }
+
+    return {
+      mode: 'module-pack',
+      legacyArtifact: {
+        code: '',
+        abiId: validated.abiId,
+        abiVersion: validated.abiVersion,
+        abiManifestHash: validated.abiManifestHash,
+        ...(validated.engineBuildHash
+          ? { engineBuildHash: validated.engineBuildHash }
+          : {}),
+        ...(validated.gasVersion !== undefined
+          ? { gasVersion: validated.gasVersion }
+          : {}),
+        executionProfile: validated.executionProfile,
+      },
+      modulePack: validated.source.modulePack,
+      entryExport: validated.source.modulePack.entryExport ?? 'default',
+    };
+  }
+
+  return {
+    mode: 'script',
+    legacyArtifact: validateProgramArtifact(program),
+  };
+}
+
+async function assertModulePackHash(modulePack: ModulePackV1): Promise<void> {
+  const computed = await computeModulePackGraphHash(modulePack);
+  if (computed !== modulePack.graphHash) {
+    throw new Error(
+      `MODULE_PACK_HASH_MISMATCH: expected=${modulePack.graphHash} computed=${computed}`,
+    );
+  }
+}
+
+async function computeModulePackGraphHash(
+  modulePack: ModulePackV1,
+): Promise<string> {
+  const canonical = {
+    version: modulePack.version,
+    entrySpecifier: modulePack.entrySpecifier,
+    entryExport: modulePack.entryExport ?? 'default',
+    modules: [...modulePack.modules]
+      .sort((left, right) =>
+        compareUtf8ByteOrder(left.specifier, right.specifier),
+      )
+      .map((module) => ({
+        specifier: module.specifier,
+        source: module.source,
+        ...(module.sourceMap ? { sourceMap: module.sourceMap } : {}),
+      })),
+    builderVersion: modulePack.builderVersion,
+    dependencyIntegrity: modulePack.dependencyIntegrity,
+  };
+  const payload = new TextEncoder().encode(stableStringify(canonical));
+  const subtle = getSubtleCrypto();
+  const digest = await subtle.digest('SHA-256', payload);
+  return [...new Uint8Array(digest)]
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+function serializeModulePackModules(modulePack: ModulePackV1): string {
+  return JSON.stringify(
+    modulePack.modules.map((module) => ({
+      specifier: module.specifier,
+      source: module.source,
+    })),
+  );
+}
+
+function stableStringify(value: unknown): string {
+  if (value === null || typeof value !== 'object') {
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => stableStringify(item)).join(',')}]`;
+  }
+
+  const entries = Object.entries(value as Record<string, unknown>)
+    .filter(([, item]) => item !== undefined)
+    .sort(([left], [right]) => compareUtf8ByteOrder(left, right))
+    .map(([key, item]) => `${JSON.stringify(key)}:${stableStringify(item)}`);
+  return `{${entries.join(',')}}`;
+}
+
+const UTF8_ENCODER = new TextEncoder();
+
+function compareUtf8ByteOrder(left: string, right: string): number {
+  if (left === right) {
+    return 0;
+  }
+
+  const leftBytes = UTF8_ENCODER.encode(left);
+  const rightBytes = UTF8_ENCODER.encode(right);
+  const limit = Math.min(leftBytes.length, rightBytes.length);
+
+  for (let index = 0; index < limit; index += 1) {
+    const delta = leftBytes[index] - rightBytes[index];
+    if (delta !== 0) {
+      return delta;
+    }
+  }
+
+  return leftBytes.length - rightBytes.length;
+}
+
+type SubtleDigestApi = {
+  digest(
+    algorithm: string,
+    data: ArrayBuffer | ArrayBufferView,
+  ): Promise<ArrayBuffer>;
+};
+
+function getSubtleCrypto(): SubtleDigestApi {
+  const subtle =
+    globalThis.crypto && 'subtle' in globalThis.crypto
+      ? globalThis.crypto.subtle
+      : null;
+  if (!subtle) {
+    throw new Error(
+      'MODULE_PACK_HASH_MISMATCH: crypto.subtle is unavailable for graph hash verification',
+    );
+  }
+  return subtle;
+}
+
+function isProgramArtifactV2(value: unknown): value is ProgramArtifactV2 {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    return false;
+  }
+  return (value as { version?: unknown }).version === 2;
 }
 
 export type {

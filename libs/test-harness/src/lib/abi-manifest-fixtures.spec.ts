@@ -8,6 +8,10 @@ import {
   HOST_V1_BYTES_HEX,
   HOST_V1_HASH,
   HOST_V1_MANIFEST,
+  HOST_V2_BYTES,
+  HOST_V2_BYTES_HEX,
+  HOST_V2_HASH,
+  HOST_V2_MANIFEST,
 } from './abi-manifest-fixtures.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -31,5 +35,21 @@ describe('abi-manifest fixture parity', () => {
       fileHex.match(/.{1,2}/g)?.map((byte) => parseInt(byte, 16)) ?? [],
     );
     expect(HOST_V1_BYTES).toEqual(fileBytes);
+  });
+
+  it('matches the checked-in host-v2 files', () => {
+    const fileManifest = JSON.parse(readText('host-v2.json'));
+    expect(HOST_V2_MANIFEST).toEqual(fileManifest);
+
+    const fileHex = readText('host-v2.bytes.hex');
+    expect(HOST_V2_BYTES_HEX).toEqual(fileHex);
+
+    const fileHash = readText('host-v2.hash');
+    expect(HOST_V2_HASH).toEqual(fileHash);
+
+    const fileBytes = Uint8Array.from(
+      fileHex.match(/.{1,2}/g)?.map((byte) => parseInt(byte, 16)) ?? [],
+    );
+    expect(HOST_V2_BYTES).toEqual(fileBytes);
   });
 });

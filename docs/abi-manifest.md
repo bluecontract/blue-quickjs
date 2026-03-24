@@ -2,7 +2,7 @@
 
 Baseline anchor: see `docs/baseline-2.md`.
 
-The ABI manifest maps **numeric function IDs** to host capabilities and is the single source of truth for generating `Host.v1` and validating host responses. The manifest is canonicalized and hashed; both the VM and host dispatcher must consume identical bytes (Baseline #2 §1.1–§1.4, §6.1–§6.3).
+The ABI manifest maps **numeric function IDs** to host capabilities and is the single source of truth for generating `Host.v*` namespaces (`Host.v1`, `Host.v2`) and validating host responses. The manifest is canonicalized and hashed; both the VM and host dispatcher must consume identical bytes (Baseline #2 §1.1–§1.4, §6.1–§6.3).
 
 ## Canonical structure
 
@@ -13,8 +13,8 @@ The ABI manifest maps **numeric function IDs** to host capabilities and is the s
 
 ### Top-level fields
 
-- `abi_id` (string): Must be `"Host.v1"` in the current implementation (validation rejects other values). This is the string baked into `P`.
-- `abi_version` (uint32): Must be `1` in the current implementation (validation rejects other values).
+- `abi_id` (string): Must be a supported ABI namespace id (currently `"Host.v1"` or `"Host.v2"`). This is the string baked into `P`.
+- `abi_version` (uint32): Must match the selected `abi_id` (currently `1` for `Host.v1`, `2` for `Host.v2`).
 - `functions` (array): Ordered by ascending `fn_id` and must contain at least one entry. Each entry is a map described below. `fn_id` values MUST be unique.
 
 No other top-level keys are permitted; unknown keys make the manifest invalid.
@@ -24,7 +24,7 @@ No other top-level keys are permitted; unknown keys make the manifest invalid.
 Each function is a DV map with the following fields (no extras):
 
 - `fn_id` (uint32): Numeric ID used by the VM when calling `host_call`. Range: `1`–`2^32 - 1`.
-- `js_path` (array<string>): Property path relative to `Host.v1` used to install the JS wrapper (e.g., `["document", "get"]`). Segments MUST be non-empty, match `[A-Za-z0-9_-]+`, and the array MUST contain at least one segment. The following segment values are forbidden: `__proto__`, `prototype`, `constructor`.
+- `js_path` (array<string>): Property path relative to the selected host namespace (`Host.v1` / `Host.v2`) used to install the JS wrapper (e.g., `["document", "get"]`). Segments MUST be non-empty, match `[A-Za-z0-9_-]+`, and the array MUST contain at least one segment. The following segment values are forbidden: `__proto__`, `prototype`, `constructor`.
 - `effect` (string enum): `"READ" | "EMIT" | "MUTATE"`. Determines host-side semantics and auditing. For P3, only `READ`/`EMIT` are used.
 - `arity` (uint32): Exact number of positional arguments accepted by the host function.
 - `arg_schema` (array): Length MUST equal `arity`. Each item is a schema map (see **Schema language** below).

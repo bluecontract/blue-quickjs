@@ -1,6 +1,6 @@
 # QuickJS submodule
 
-This repo pins the QuickJS fork as a git submodule at `vendor/quickjs` with origin `git@blue.github.com:mjwebblue/quickjs.git`.
+This repo pins the QuickJS fork as a git submodule at `vendor/quickjs` with origin `git@github.com:bluecontract/quickjs.git`.
 
 ## Clone / init
 - From a fresh clone run: `git submodule update --init --recursive` to populate `vendor/quickjs`.

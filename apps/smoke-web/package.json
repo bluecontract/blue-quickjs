@@ -4,9 +4,10 @@
   "type": "module",
   "private": true,
   "dependencies": {
+    "@blue-quickjs/deterministic-bundler": "workspace:*",
     "@blue-quickjs/dv": "workspace:*",
-    "@blue-quickjs/quickjs-wasm": "workspace:*",
     "@blue-quickjs/quickjs-runtime": "workspace:*",
+    "@blue-quickjs/quickjs-wasm": "workspace:*",
     "@blue-quickjs/test-harness": "workspace:*"
   },
   "nx": {

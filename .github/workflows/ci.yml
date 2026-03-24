@@ -45,8 +45,23 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - name: Validate docs links
+        run: pnpm docs:check-links
+
+      - name: Validate learning-path docs structure
+        run: pnpm docs:verify-learning-path
+
+      - name: Run release evidence unit tests
+        run: pnpm release-evidence:test
+
+      - name: Validate README quickstart script wiring
+        run: node tools/release-evidence/verify-readme-quickstart.mjs --skip-install --skip-emsdk-setup --skip-smoke-tests --skip-browser-tasks --skip-evidence
+
       - name: Install emsdk (pinned 3.1.56)
         run: bash tools/scripts/setup-emsdk.sh
+
+      - name: Verify generated gas schedule docs are in sync
+        run: node tools/gas-spec/render-gas-artifacts.mjs --check
 
       - name: Reset Nx state (just in case)
         run: pnpm exec nx reset
@@ -57,8 +72,24 @@ jobs:
       # - run: pnpm exec nx-cloud record -- echo Hello World
       - run: pnpm exec nx affected -t lint test build typecheck
 
-      - name: Install Playwright browsers (Chromium)
-        run: pnpm exec playwright install --with-deps chromium
+      - name: Verify generated playground data is fresh
+        run: pnpm playground:check-generated
+
+      - name: Install Playwright browsers (Chromium + Firefox)
+        run: pnpm exec playwright install --with-deps chromium firefox
 
       - name: Run smoke-web e2e
         run: pnpm nx run smoke-web:e2e
+
+      - name: Run ecosystem certifier e2e
+        run: pnpm nx run ecosystem-certifier:e2e
+
+      - name: Run BlueQuickjs playground e2e
+        run: pnpm nx run bluequickjs-playground:e2e
+
+      - name: Generate workload certification sanity artifacts
+        run: |
+          node apps/ecosystem-certifier/scripts/check-builder-determinism.mjs --out-dir artifacts/workload-certification-ci
+          node apps/ecosystem-certifier/scripts/archive-workload-certification-report.mjs --out-dir artifacts/workload-certification-ci
+          node apps/ecosystem-certifier/scripts/run-oog-boundary-certification.mjs --out-dir artifacts/workload-certification-ci --fixtures green-semver,green-markdown-it
+          node apps/ecosystem-certifier/scripts/run-seeded-property-corpus.mjs --out-dir artifacts/workload-certification-ci --seed-count 12

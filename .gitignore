@@ -49,3 +49,13 @@ vite.config.*.timestamp*
 vitest.config.*.timestamp*
 
 .repomix
+
+# Playwright outputs
+test-results
+playwright-report
+
+# Downstream consumer proof outputs
+e2e/consumer-proof-app/node_modules/
+e2e/consumer-proof-app/reports/
+e2e/consumer-proof-app/package-lock.json
+artifacts/

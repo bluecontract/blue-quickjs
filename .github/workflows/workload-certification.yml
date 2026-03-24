@@ -1,0 +1,295 @@
+name: Workload Certification
+
+on:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 5 * * *'
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  certifier-browser-matrix:
+    name: Certifier (Linux parity, ${{ matrix.browser }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        browser:
+          - chromium
+          - firefox
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.8.0
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - name: Cache emsdk
+        uses: actions/cache@v4
+        with:
+          path: tools/emsdk
+          key: emsdk-${{ runner.os }}-${{ hashFiles('tools/scripts/emsdk-version.txt') }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install emsdk
+        run: bash tools/scripts/setup-emsdk.sh
+
+      - name: Install Playwright browser
+        run: pnpm exec playwright install --with-deps ${{ matrix.browser }}
+
+      - name: Run ecosystem certifier tests
+        run: |
+          pnpm nx test ecosystem-certifier
+          pnpm nx run ecosystem-certifier:e2e
+
+      - name: Generate workload certification artifacts
+        run: |
+          ITERATIONS=50
+          FLAGSHIP_ITERATIONS=20
+          SEED_COUNT=40
+          if [ "${{ github.event_name }}" = "schedule" ] && [ "${{ matrix.browser }}" = "chromium" ]; then
+            ITERATIONS=100
+            FLAGSHIP_ITERATIONS=40
+            SEED_COUNT=120
+          fi
+          node apps/ecosystem-certifier/scripts/check-builder-determinism.mjs --out-dir artifacts/workload-certification
+          node apps/ecosystem-certifier/scripts/archive-workload-certification-report.mjs --out-dir artifacts/workload-certification --browser ${{ matrix.browser }}
+          node apps/ecosystem-certifier/scripts/generate-compatibility-delta-report.mjs --current-dir artifacts/workload-certification --out-dir artifacts/workload-certification
+          node apps/ecosystem-certifier/scripts/run-oog-boundary-certification.mjs --out-dir artifacts/workload-certification --browser ${{ matrix.browser }}
+          node apps/ecosystem-certifier/scripts/run-seeded-property-corpus.mjs --out-dir artifacts/workload-certification --seed-count "${SEED_COUNT}" --browser ${{ matrix.browser }}
+          node apps/ecosystem-certifier/scripts/run-repeatability-certification.mjs --out-dir artifacts/workload-certification --iterations "${ITERATIONS}" --flagship-iterations "${FLAGSHIP_ITERATIONS}" --browser ${{ matrix.browser }}
+
+      - name: Upload workload certification artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: workload-certification-${{ matrix.browser }}-artifacts
+          path: artifacts/workload-certification/*
+          if-no-files-found: error
+
+  certifier-webkit-diagnostic:
+    name: Certifier (Linux diagnostic, webkit)
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.8.0
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - name: Cache emsdk
+        uses: actions/cache@v4
+        with:
+          path: tools/emsdk
+          key: emsdk-${{ runner.os }}-${{ hashFiles('tools/scripts/emsdk-version.txt') }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install emsdk
+        run: bash tools/scripts/setup-emsdk.sh
+
+      - name: Install Playwright browser (WebKit)
+        run: pnpm exec playwright install --with-deps webkit
+
+      - name: Run webkit diagnostic workload report
+        run: node apps/ecosystem-certifier/scripts/archive-workload-certification-report.mjs --out-dir artifacts/workload-certification-webkit --browser webkit
+
+      - name: Upload webkit diagnostic artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: workload-certification-webkit-diagnostic-artifacts
+          path: artifacts/workload-certification-webkit/*
+          if-no-files-found: warn
+
+  consumer-proof-matrix:
+    name: Consumer proof (${{ matrix.os }}, node${{ matrix.node }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+        node:
+          - 20
+          - 22
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.8.0
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Pack public tarballs
+        run: node tools/workload-certification/pack-public-tarballs.mjs --out-dir artifacts/consumer-proof/tarballs
+
+      - name: Validate public package version alignment
+        run: pnpm workload:check-public-package-versions
+
+      - name: Validate npm pack manifests
+        run: pnpm workload:check-pack-manifests -- --out-dir artifacts/consumer-proof/pack-manifests
+
+      - name: Install tarballs in consumer app
+        run: pnpm --dir e2e/consumer-proof-app run install:tarballs -- --tarball-dir ../../artifacts/consumer-proof/tarballs
+
+      - name: Install Playwright browser (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: pnpm --dir e2e/consumer-proof-app exec playwright install --with-deps chromium
+
+      - name: Install Playwright browser (non-Linux)
+        if: matrix.os != 'ubuntu-latest'
+        run: pnpm --dir e2e/consumer-proof-app exec playwright install chromium
+
+      - name: Run consumer reproducibility proof
+        run: pnpm --dir e2e/consumer-proof-app run repro
+
+      - name: Upload consumer-proof matrix artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: consumer-proof-${{ matrix.os }}-node${{ matrix.node }}-artifacts
+          path: |
+            artifacts/consumer-proof/tarballs/tarball-manifest.json
+            artifacts/consumer-proof/pack-manifests/pack-manifest.json
+            e2e/consumer-proof-app/reports/*.json*
+          if-no-files-found: error
+
+  publish-rehearsal-verdaccio:
+    name: Publish rehearsal (Verdaccio)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.8.0
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run Verdaccio publish/install rehearsal
+        run: pnpm publish-rehearsal:verdaccio -- --out-dir artifacts/consumer-proof/verdaccio
+
+      - name: Upload Verdaccio rehearsal artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: consumer-proof-verdaccio-rehearsal-artifacts
+          path: |
+            artifacts/consumer-proof/verdaccio/*.json
+            artifacts/consumer-proof/verdaccio/*.log
+            e2e/consumer-proof-app/reports/*.json*
+          if-no-files-found: error
+
+  builder-determinism-matrix:
+    name: Builder determinism (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.8.0
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run builder path determinism check
+        run: node apps/ecosystem-certifier/scripts/check-builder-determinism.mjs --out-dir artifacts/workload-certification-matrix
+
+      - name: Upload builder determinism artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: builder-determinism-${{ matrix.os }}-artifacts
+          path: artifacts/workload-certification-matrix/*
+          if-no-files-found: error
+
+  builder-determinism-compare:
+    name: Compare builder determinism matrix
+    runs-on: ubuntu-latest
+    needs:
+      - builder-determinism-matrix
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: builder-determinism-*
+          path: artifacts/workload-certification-matrix
+          merge-multiple: false
+
+      - name: Compare matrix reports
+        run: node tools/workload-certification/compare-builder-determinism-matrix.mjs --input-dir artifacts/workload-certification-matrix > artifacts/workload-certification-matrix-comparison.json
+
+      - name: Upload matrix comparison artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: builder-determinism-matrix-comparison
+          path: artifacts/workload-certification-matrix-comparison.json
+          if-no-files-found: error

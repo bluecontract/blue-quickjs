@@ -53,6 +53,10 @@ Determinism depends on a strict JS surface:
 
 The exact list and the required deterministic error messages are specified in `docs/determinism-profile.md`.
 
+Compatibility profiles may opt in to narrowly scoped additional surfaces (for
+example regexp support), but baseline behavior remains the default contract and
+must stay unchanged unless explicitly selected by the program artifact.
+
 ## 4. Canonical gas (normative)
 
 ### 4.1 Canonical gas is **inside QuickJS**

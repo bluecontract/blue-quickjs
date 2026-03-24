@@ -3,9 +3,11 @@ import {
   InputEnvelope,
   PROGRAM_LIMIT_DEFAULTS,
   ProgramArtifact,
+  ProgramArtifactV2,
   RuntimeValidationError,
   validateInputEnvelope,
   validateProgramArtifact,
+  validateProgramArtifactV2,
 } from './quickjs-runtime.js';
 
 const SAMPLE_HASH =
@@ -55,6 +57,143 @@ describe('validateProgramArtifact', () => {
       validateProgramArtifact({
         ...baseProgram,
         engineBuildHash: '',
+      }),
+    ).toThrow(RuntimeValidationError);
+  });
+
+  it('accepts supported execution profiles', () => {
+    expect(
+      validateProgramArtifact({
+        ...baseProgram,
+        executionProfile: 'baseline-v1',
+      }),
+    ).toMatchObject({ executionProfile: 'baseline-v1' });
+
+    expect(
+      validateProgramArtifact({
+        ...baseProgram,
+        executionProfile: 'compat-regexp-v1',
+      }),
+    ).toMatchObject({ executionProfile: 'compat-regexp-v1' });
+
+    expect(
+      validateProgramArtifact({
+        ...baseProgram,
+        executionProfile: 'compat-general-v1',
+      }),
+    ).toMatchObject({ executionProfile: 'compat-general-v1' });
+
+    expect(
+      validateProgramArtifact({
+        ...baseProgram,
+        executionProfile: 'compat-binary-v1',
+      }),
+    ).toMatchObject({ executionProfile: 'compat-binary-v1' });
+  });
+
+  it('rejects unsupported execution profiles', () => {
+    expect(() =>
+      validateProgramArtifact({
+        ...baseProgram,
+        executionProfile:
+          'compat-unknown' as unknown as ProgramArtifact['executionProfile'],
+      }),
+    ).toThrow(RuntimeValidationError);
+  });
+
+  it('accepts uint32 gasVersion values', () => {
+    expect(
+      validateProgramArtifact({
+        ...baseProgram,
+        gasVersion: 3,
+      }),
+    ).toMatchObject({ gasVersion: 3 });
+  });
+
+  it('rejects invalid gasVersion values', () => {
+    expect(() =>
+      validateProgramArtifact({
+        ...baseProgram,
+        gasVersion: -1,
+      }),
+    ).toThrow(RuntimeValidationError);
+
+    expect(() =>
+      validateProgramArtifact({
+        ...baseProgram,
+        gasVersion: 1.5,
+      }),
+    ).toThrow(RuntimeValidationError);
+  });
+});
+
+describe('validateProgramArtifactV2', () => {
+  const baseProgramV2: ProgramArtifactV2 = {
+    version: 2,
+    abiId: 'Host.v1',
+    abiVersion: 1,
+    abiManifestHash: SAMPLE_HASH,
+    executionProfile: 'baseline-v1',
+    sourceKind: 'script',
+    source: {
+      code: '42',
+    },
+  };
+
+  it('accepts script source artifacts', () => {
+    expect(validateProgramArtifactV2(baseProgramV2)).toEqual(baseProgramV2);
+  });
+
+  it('accepts module-pack source artifacts', () => {
+    const modulePack = validateProgramArtifactV2({
+      ...baseProgramV2,
+      sourceKind: 'module-pack',
+      source: {
+        modulePack: {
+          version: 1,
+          entrySpecifier: './entry.js',
+          modules: [
+            {
+              specifier: './entry.js',
+              source: 'export default 42;\n',
+            },
+          ],
+          graphHash: SAMPLE_HASH,
+          builderVersion: 'deterministic-builder-v1',
+          dependencyIntegrity: SAMPLE_HASH,
+        },
+      },
+    });
+
+    expect(modulePack.sourceKind).toBe('module-pack');
+  });
+
+  it('rejects source kind/source shape mismatch', () => {
+    expect(() =>
+      validateProgramArtifactV2({
+        ...baseProgramV2,
+        sourceKind: 'script',
+        source: {
+          modulePack: {},
+        },
+      }),
+    ).toThrow(RuntimeValidationError);
+  });
+
+  it('accepts uint32 gasVersion values', () => {
+    expect(
+      validateProgramArtifactV2({
+        ...baseProgramV2,
+        gasVersion: 3,
+      }),
+    ).toMatchObject({ gasVersion: 3 });
+  });
+
+  it('rejects invalid gasVersion values', () => {
+    expect(() =>
+      validateProgramArtifactV2({
+        ...baseProgramV2,
+        gasVersion: -1,
       }),
     ).toThrow(RuntimeValidationError);
   });

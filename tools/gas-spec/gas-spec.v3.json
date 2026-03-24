@@ -1,0 +1,84 @@
+{
+  "gasVersion": 8,
+  "allocation": {
+    "base": 0,
+    "perByteShift": 4,
+    "normalization": {
+      "mode": "none",
+      "notes": "Canonical allocation charging no longer uses pointer-width normalization heuristics."
+    },
+    "canonicalClasses": {
+      "objectHeaderBytes": 64,
+      "propertySlotBytes": 16,
+      "shapeHeaderBytes": 48,
+      "shapePropertyBytes": 12,
+      "stringHeaderBytes": 0,
+      "arraySlotBytes": 8,
+      "moduleRecordBytes": 128,
+      "moduleEntryBytes": 24,
+      "promiseJobBaseBytes": 48,
+      "promiseJobArgBytes": 8,
+      "arrayBufferHeaderBytes": 48,
+      "typedArrayBackingUnitBytes": 1,
+      "typedArrayRecordBytes": 40,
+      "compilerFunctionDefBytes": 512,
+      "closureVarEntryBytes": 16,
+      "varRefPointerBytes": 8,
+      "varRefRecordBytes": 32,
+      "genericArrayUnitBytes": 16,
+      "unknownSmallFloorBytes": 64,
+      "unknownSmallFloorMaxBytes": 4096,
+      "unknownClassCharged": false,
+      "objectHeaderCharged": false,
+      "propertySlotCharged": false,
+      "shapeCharged": false,
+      "arrayBufferHeaderCharged": false,
+      "typedArrayBackingCharged": false,
+      "typedArrayRecordCharged": false
+    }
+  },
+  "opcode": {
+    "defaultDispatchCost": 1
+  },
+  "arrayCallback": {
+    "base": 5,
+    "perElement": 2,
+    "methods": [
+      "every",
+      "some",
+      "forEach",
+      "map",
+      "filter",
+      "reduce",
+      "reduceRight"
+    ],
+    "includesTypedArrays": true
+  },
+  "jsonParse": {
+    "base": 8,
+    "inputByte": 1,
+    "value": 3,
+    "objectEntry": 2,
+    "arrayElement": 2
+  },
+  "jsonStringify": {
+    "base": 8,
+    "value": 3,
+    "objectEntry": 2,
+    "arrayElement": 2,
+    "outputByte": 1,
+    "sortComparison": 1
+  },
+  "gc": {
+    "deterministicThresholdBytes": 524288,
+    "chargeModel": "allocation-amortized",
+    "notes": "Automatic heuristics disabled in deterministic mode; checkpoints run at deterministic boundaries."
+  },
+  "hostCall": {
+    "formula": {
+      "pre": "base + (k_arg_bytes * request_bytes)",
+      "post": "(k_ret_bytes * response_bytes) + (k_units * units)"
+    },
+    "overflowError": "TypeError: host_call gas overflow"
+  }
+}

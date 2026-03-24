@@ -7,6 +7,8 @@ PROJECT_ROOT="${REPO_ROOT}/libs/quickjs-wasm-build"
 QJS_DIR="${REPO_ROOT}/vendor/quickjs"
 OUT_DIR="${PROJECT_ROOT}/dist"
 METADATA_BASENAME="quickjs-wasm-build.metadata.json"
+
+bash "${REPO_ROOT}/tools/scripts/ensure-quickjs-submodule.sh"
 VARIANTS_RAW="${WASM_VARIANTS:-wasm32}"
 BUILD_TYPES_RAW="${WASM_BUILD_TYPES:-release,debug}"
 WASM_INITIAL_MEMORY_BYTES=$((32 * 1024 * 1024))
@@ -89,7 +91,7 @@ BASE_EMCC_FLAGS=(
   -sERROR_ON_UNDEFINED_SYMBOLS=0
   -sEXPORT_NAME=QuickJSGasWasm
   -sWASM_BIGINT=1
-  "-sEXPORTED_FUNCTIONS=['_qjs_det_init','_qjs_det_eval','_qjs_det_set_gas_limit','_qjs_det_free','_qjs_det_enable_tape','_qjs_det_read_tape','_qjs_det_enable_trace','_qjs_det_read_trace','_malloc','_free']"
+  "-sEXPORTED_FUNCTIONS=['_qjs_det_init','_qjs_det_eval','_qjs_det_eval_module_pack','_qjs_det_set_gas_limit','_qjs_det_free','_qjs_det_enable_tape','_qjs_det_read_tape','_qjs_det_enable_charge_tape','_qjs_det_read_charge_tape','_qjs_det_enable_trace','_qjs_det_read_trace','_malloc','_free']"
 "-sEXPORTED_RUNTIME_METHODS=['cwrap','ccall','UTF8ToString','lengthBytesUTF8']"
 )
 
@@ -213,13 +215,13 @@ if [[ ${#BUILT_VARIANTS[@]} -eq 0 ]]; then
   exit 1
 fi
 
-node - "${OUT_DIR}" "${QJS_DIR}" "${REPO_ROOT}/tools/scripts/emsdk-version.txt" "${METADATA_BASENAME}" "${BUILT_VARIANTS[@]}" <<'NODE'
+node - "${OUT_DIR}" "${QJS_DIR}" "${REPO_ROOT}/tools/scripts/emsdk-version.txt" "${REPO_ROOT}/tools/gas-spec/gas-spec.v3.json" "${METADATA_BASENAME}" "${BUILT_VARIANTS[@]}" <<'NODE'
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
 
-const [outDir, qjsDir, emsdkVersionFile, metadataBasename, ...variantArgs] = process.argv.slice(2);
+const [outDir, qjsDir, emsdkVersionFile, gasSpecPath, metadataBasename, ...variantArgs] = process.argv.slice(2);
 if (variantArgs.length === 0) {
   throw new Error('No variant arguments passed to metadata writer.');
 }
@@ -243,6 +245,11 @@ const sha256File = (filePath) =>
 
 const statSize = (filePath) => fs.statSync(filePath).size;
 const quickjsVersion = readTrim(path.join(qjsDir, 'VERSION'));
+const gasSpec = JSON.parse(fs.readFileSync(gasSpecPath, 'utf8'));
+const gasVersion =
+  Number.isInteger(gasSpec?.gasVersion) && gasSpec.gasVersion >= 0
+    ? gasSpec.gasVersion
+    : null;
 let quickjsCommit = null;
 try {
   quickjsCommit = execFileSync('git', ['-C', qjsDir, 'rev-parse', 'HEAD'], {
@@ -337,6 +344,7 @@ const metadata = {
   quickjsCommit,
   emscriptenVersion: readTrim(emsdkVersionFile),
   engineBuildHash,
+  gasVersion,
   build: {
     memory: buildMemory,
     determinism,

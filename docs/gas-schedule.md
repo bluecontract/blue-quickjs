@@ -1,12 +1,15 @@
 # Gas Schedule (Baseline #1)
 
+> This file is generated from `tools/gas-spec/gas-spec.v3.json`.
+> Update the gas spec source and rerun `node tools/gas-spec/render-gas-artifacts.mjs`.
+
 Baseline anchor: see `docs/baseline-1.md` (determinism + canonical gas) and `docs/baseline-2.md` (host-call ABI/gas parameters).
 
 Scope: define canonical gas units for QuickJS execution and host calls per Baseline #1. This document is normative and must match harness assertions.
 
 ## Gas version and limits
 
-- `JS_GAS_VERSION_LATEST = 2`
+- `JS_GAS_VERSION_LATEST = 8`
 - Gas amounts are uint64.
 - `JS_GAS_UNLIMITED` disables charging and reports gas used as 0.
 - `JS_UseGas` subtracts from `gas_remaining`; if `amount > gas_remaining`, it sets `gas_remaining = 0` and throws an uncatchable `OutOfGas: out of gas` error.
@@ -31,12 +34,48 @@ The per-element charge is applied for each iteration step, even when a hole is s
 
 Each allocation charges:
 
-- Base: `JS_GAS_ALLOC_BASE = 3`
+- Base: `JS_GAS_ALLOC_BASE = 0`
 - Byte charge: `1` gas per `16` requested bytes (`JS_GAS_ALLOC_PER_BYTE_SHIFT = 4`)
 
 Formula:
 
 - `JS_GAS_ALLOC_BASE + ceil(size / 16)` where `size` is the requested allocation size.
+
+Current deterministic normalization model:
+
+- Mode: `none`
+- Note: Canonical allocation charging no longer uses pointer-width normalization heuristics.
+- No pointer-width normalization is applied.
+
+Canonical allocation classes (width-independent charged-byte formulas):
+
+- Object header: `64`
+- Property slot: `16`
+- Shape header: `48`
+- Shape property entry: `12`
+- String header: `0`
+- Array slot: `8`
+- Module record: `128`
+- Module entry: `24`
+- Promise/job base: `48`
+- Promise/job arg unit: `8`
+- ArrayBuffer header: `48`
+- TypedArray backing unit: `1`
+- TypedArray record: `40`
+- Compiler function-def record: `512`
+- Closure-var entry: `16`
+- Var-ref pointer entry: `8`
+- Var-ref record: `32`
+- Generic dynamic-array unit: `16`
+- Unknown-class small-allocation floor: `64`
+- Unknown-class small-allocation max size: `4096`
+- Unknown-class charges enabled: `false`
+- Object-header charges enabled: `false`
+- Property-slot charges enabled: `false`
+- Shape charges enabled: `false`
+- ArrayBuffer-header charges enabled: `false`
+- TypedArray-backing charges enabled: `false`
+- TypedArray-record charges enabled: `false`
 
 ## Deterministic JSON builtin gas
 
@@ -90,7 +129,7 @@ Interpretation:
 ## Garbage collection (GC) checkpoints
 
 - Automatic GC heuristics are disabled in deterministic mode (`js_trigger_gc` is a no-op and GC threshold is set to `-1`).
-- A deterministic counter tracks requested allocation bytes. When it reaches `JS_DET_GC_THRESHOLD_BYTES = 512 * 1024`, `det_gc_pending` is set.
+- A deterministic counter tracks charged allocation bytes. When it reaches `JS_DET_GC_THRESHOLD_BYTES = 524288`, `det_gc_pending` is set.
 - `JS_RunGCCheckpoint(ctx)` runs GC only when `det_gc_pending` is set; it then clears the flag and counter.
 - GC costs `0` gas; allocation gas amortizes it.
 - Checkpoints are invoked at deterministic points (pre/post eval and around host calls).
@@ -100,9 +139,9 @@ Interpretation:
 Host-call gas uses parameters from the ABI manifest `gas` fields (see `docs/abi-manifest.md`).
 
 - Pre-charge before the host call:
-  - `gas_pre = base + (k_arg_bytes * request_bytes)`
+  - `base + (k_arg_bytes * request_bytes)`
 - Post-charge after response parse:
-  - `gas_post = (k_ret_bytes * response_bytes) + (k_units * units)`
+  - `(k_ret_bytes * response_bytes) + (k_units * units)`
 
 Where:
 
@@ -119,5 +158,5 @@ Overflow during charge throws `TypeError: host_call gas overflow`. OOG on pre-ch
   - allocation gas,
   - deterministic `JSON.parse` gas,
   - deterministic `JSON.stringify` gas.
-- Host-call gas is billed but not included in the trace totals; tests compute host gas as:
-  - `gasUsed - (opcode + array + allocation + jsonParse + jsonStringify)`
+- Host-call gas is billed and tracked in dedicated host pre/post counters.
+

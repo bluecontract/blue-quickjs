@@ -1,0 +1,287 @@
+{
+  "generatedAt": "current-worktree",
+  "metadata": {
+    "engineBuildHash": "f91091cb7feb788df340305a877a9cadb0c6f4d13aea8a7da4040b6367d178ea",
+    "gasVersion": 8
+  },
+  "evidence": {
+    "example-basic-script": {
+      "stage": "success",
+      "resultHash": "4bf5122f344554c53bde2ebb8cd2b7e3d1600ad631c385a5d7cce23c7785459a",
+      "errorCode": null,
+      "errorTag": null,
+      "gasUsed": "74",
+      "gasRemaining": "999926",
+      "tapeHash": null,
+      "tapeLength": 0,
+      "certified": true,
+      "reportSource": "examples/01-basic-script",
+      "fixtureCoverage": [
+        {
+          "suite": "gas-sample",
+          "fixtureName": "return-1"
+        }
+      ]
+    },
+    "example-module-pack": {
+      "stage": "success",
+      "resultHash": "ca358758f6d27e6cf45272937977a748fd88391db679ceda7dc7bf1f005ee879",
+      "errorCode": null,
+      "errorTag": null,
+      "gasUsed": "147",
+      "gasRemaining": "49853",
+      "tapeHash": null,
+      "tapeLength": 0,
+      "certified": true,
+      "reportSource": "examples/02-module-pack",
+      "fixtureCoverage": [
+        {
+          "suite": "module-pack",
+          "fixtureName": "module-pack-default-export"
+        }
+      ]
+    },
+    "example-library-reuse": {
+      "stage": "success",
+      "resultHash": "2017ff3461395672aa0aa4f64894fd2f95a4b120e2690e8951656d79adc2eed2",
+      "errorCode": null,
+      "errorTag": null,
+      "gasUsed": "2070505",
+      "gasRemaining": "2929495",
+      "tapeHash": null,
+      "tapeLength": 0,
+      "certified": true,
+      "reportSource": "examples/03-library-reuse",
+      "fixtureCoverage": [
+        {
+          "suite": "chess-library",
+          "fixtureName": "chess-e2e6"
+        },
+        {
+          "suite": "binary-library",
+          "fixtureName": "base64-js-roundtrip"
+        },
+        {
+          "suite": "binary-library",
+          "fixtureName": "noble-sha256-hex"
+        }
+      ]
+    },
+    "example-promises-async": {
+      "stage": "success",
+      "resultHash": "7f83f7bda2d63959d34767689f06d47576683d378d9eb8d09386c9a020395c53",
+      "errorCode": null,
+      "errorTag": null,
+      "gasUsed": "128",
+      "gasRemaining": "49872",
+      "tapeHash": null,
+      "tapeLength": 0,
+      "certified": true,
+      "reportSource": "examples/04-promises-async",
+      "fixtureCoverage": [
+        {
+          "suite": "determinism",
+          "fixtureName": "async-promise-chain"
+        }
+      ]
+    },
+    "example-promises-library-host": {
+      "stage": "success",
+      "resultHash": "7f83f7bda2d63959d34767689f06d47576683d378d9eb8d09386c9a020395c53",
+      "errorCode": null,
+      "errorTag": null,
+      "gasUsed": "290",
+      "gasRemaining": "99710",
+      "tapeHash": "a60c7561730c64206ffefbef8a581959560436b8e06f481d25131684ce529790",
+      "tapeLength": 1,
+      "certified": true,
+      "reportSource": "examples/05-promises-library-host",
+      "fixtureCoverage": [
+        {
+          "suite": "module-pack",
+          "fixtureName": "module-pack-async-import-host-call"
+        }
+      ]
+    },
+    "example-binary-host-v2": {
+      "stage": "success",
+      "resultHash": "a538717d219fa0484c601ef7b5b63704c90cb9ae0406495b9f0083989a9fb2f8",
+      "errorCode": null,
+      "errorTag": null,
+      "gasUsed": "253",
+      "gasRemaining": "49747",
+      "tapeHash": "b2d3a3b07a1be6b39cd854077910a2bc839c281281275c2c137f6a704723a734",
+      "tapeLength": 2,
+      "certified": true,
+      "reportSource": "examples/06-binary-host-v2",
+      "fixtureCoverage": [
+        {
+          "suite": "determinism",
+          "fixtureName": "compat-binary-host-v2-bytes-roundtrip"
+        }
+      ]
+    },
+    "example-console-shim": {
+      "stage": "success",
+      "resultHash": "20a934991093b3d9bfcb5f3c05871eb1db002d19469c29ea3ae1ff7e4a29cd02",
+      "errorCode": null,
+      "errorTag": null,
+      "gasUsed": "139",
+      "gasRemaining": "49861",
+      "tapeHash": "c481a1396ab5097cc8aa68fd11c1bb6e96d63259dba00b560bf49489fe5b2e3f",
+      "tapeLength": 1,
+      "certified": true,
+      "reportSource": "examples/07-console-shim",
+      "fixtureCoverage": [
+        {
+          "suite": "determinism",
+          "fixtureName": "compat-console-shim"
+        }
+      ]
+    },
+    "example-stable-sort": {
+      "stage": "success",
+      "resultHash": "950f57b0bb4280b09b5a63004acc9c50811ca16cea7c932494f47cb3cfb23c04",
+      "errorCode": null,
+      "errorTag": null,
+      "gasUsed": "1020",
+      "gasRemaining": "98980",
+      "tapeHash": null,
+      "tapeLength": 0,
+      "certified": true,
+      "reportSource": "examples/08-stable-sort",
+      "fixtureCoverage": [
+        {
+          "suite": "determinism",
+          "fixtureName": "compat-stable-sort"
+        }
+      ]
+    },
+    "example-kitchen-sink": {
+      "stage": "success",
+      "resultHash": "81c484749a779eed55f5556d116e42d167df403c6800f9a543228d459d2cee75",
+      "errorCode": null,
+      "errorTag": null,
+      "gasUsed": "1390",
+      "gasRemaining": "198610",
+      "tapeHash": "39a88fa80e264d1836759dd547e397ea79508e761caea5b4e393f9aeeb5cdee3",
+      "tapeLength": 3,
+      "certified": true,
+      "reportSource": "examples/09-kitchen-sink",
+      "fixtureCoverage": [
+        {
+          "suite": "module-pack",
+          "fixtureName": "module-pack-kitchen-sink"
+        }
+      ]
+    },
+    "example-max-gas-policy": {
+      "stage": "success",
+      "resultHash": "a3fa3495623f19996818ce7b196fc524e687ef2cc4910a6ff628a76460c4e557",
+      "errorCode": null,
+      "errorTag": null,
+      "gasUsed": "170099",
+      "gasRemaining": "829901",
+      "tapeHash": null,
+      "tapeLength": 0,
+      "certified": true,
+      "reportSource": "examples/10-max-gas-policy",
+      "fixtureCoverage": [
+        {
+          "suite": "gas-boundary",
+          "fixtureName": "loop-10k"
+        }
+      ]
+    },
+    "green-semver": {
+      "stage": "success",
+      "resultHash": "0f772d5874a1d5da187a42d18a36eef020a8a20be43e106cccd6b35bd7589913",
+      "errorCode": null,
+      "errorTag": null,
+      "gasUsed": "36886",
+      "gasRemaining": "963114",
+      "tapeHash": "cb2a385dddf91f104061c25073236d1518b4d87ff10a4c8a40deda856410deb0",
+      "tapeLength": 1,
+      "certified": true,
+      "reportSource": "ecosystem-certifier:green-semver",
+      "fixtureCoverage": [
+        {
+          "suite": "ecosystem-certifier",
+          "fixtureName": "green-semver"
+        }
+      ]
+    },
+    "green-base64": {
+      "stage": "success",
+      "resultHash": "87dbcca4f5403c38f1d4259ba4d152240ab993b6d54d2bc5be615294634398d2",
+      "errorCode": null,
+      "errorTag": null,
+      "gasUsed": "3378",
+      "gasRemaining": "4996622",
+      "tapeHash": null,
+      "tapeLength": 0,
+      "certified": true,
+      "reportSource": "ecosystem-certifier:green-base64",
+      "fixtureCoverage": [
+        {
+          "suite": "ecosystem-certifier",
+          "fixtureName": "green-base64"
+        }
+      ]
+    },
+    "green-markdown-it": {
+      "stage": "success",
+      "resultHash": "e066b59858afb2601fec42a0a29527508545e9e21b84770d5dfb092d70da85d0",
+      "errorCode": null,
+      "errorTag": null,
+      "gasUsed": "212292",
+      "gasRemaining": "787708",
+      "tapeHash": "c8bebb3029ad855bc4972ad0a6de535daf1b7f13e1ca3ddbd458038afb4f2904",
+      "tapeLength": 1,
+      "certified": true,
+      "reportSource": "ecosystem-certifier:green-markdown-it",
+      "fixtureCoverage": [
+        {
+          "suite": "ecosystem-certifier",
+          "fixtureName": "green-markdown-it"
+        }
+      ]
+    },
+    "green-noble-sha": {
+      "stage": "success",
+      "resultHash": "137c77da6a39cb7439836094805726f43751c3d4df281f9268ba4bf03b523afd",
+      "errorCode": null,
+      "errorTag": null,
+      "gasUsed": "25631",
+      "gasRemaining": "4974369",
+      "tapeHash": null,
+      "tapeLength": 0,
+      "certified": true,
+      "reportSource": "ecosystem-certifier:green-noble-sha",
+      "fixtureCoverage": [
+        {
+          "suite": "ecosystem-certifier",
+          "fixtureName": "green-noble-sha"
+        }
+      ]
+    },
+    "flagship-knowledge-pack": {
+      "stage": "success",
+      "resultHash": "098e33e655dc8d5539e5628bcb03649cc952103b12ebd942a99e5dba0e2417b8",
+      "errorCode": null,
+      "errorTag": null,
+      "gasUsed": "3280236",
+      "gasRemaining": "4719764",
+      "tapeHash": "1f5a6804fd52594adfbab5c3292076aeeaec340c2232eb7cdbe5d90dfd1560b7",
+      "tapeLength": 12,
+      "certified": true,
+      "reportSource": "ecosystem-certifier:flagship-knowledge-pack",
+      "fixtureCoverage": [
+        {
+          "suite": "ecosystem-certifier",
+          "fixtureName": "flagship-knowledge-pack"
+        }
+      ]
+    }
+  }
+}
