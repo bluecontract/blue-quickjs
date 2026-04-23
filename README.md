@@ -1,27 +1,27 @@
 # BlueQuickjs
 
-BlueQuickjs is a deterministic JavaScript execution stack built on a hardened
-QuickJS engine compiled to Wasm. It is designed for **consensus-critical
-execution** where independent runtimes must agree on:
+BlueQuickjs is a deterministic JavaScript execution stack for consensus-critical workloads.
+It runs a hardened QuickJS engine compiled to Wasm and is designed so independent runtimes
+produce the same observable result for the same input:
 
-- value or error,
+- the returned value or error,
 - gas used and gas remaining,
-- host-call tape,
-- exact out-of-gas boundaries.
+- the host-call tape,
+- the exact out-of-gas boundaries.
 
 ## Consensus-safe scope
 
-Current consensus-safe release scope is intentionally explicit:
+The current release makes a narrow, explicit consensus guarantee:
 
-- **consensus executors:** `wasm-node` vs `wasm-browser`
-- **canonical engine:** `wasm32` release artifact only
-- **release-critical parity:** exact
-  - value/error parity,
-  - gas used parity,
-  - gas remaining parity,
-  - host-call tape parity,
-  - OOG boundary parity
-- **native status:** diagnostic-only unless separately promoted by policy
+- **Executors:** `wasm-node` and `wasm-browser` must agree.
+- **Engine artifact:** only the canonical `wasm32` release build is consensus-safe.
+- **Required parity:** both executors must match exactly on:
+  - returned value or error,
+  - gas used,
+  - gas remaining,
+  - host-call tape,
+  - out-of-gas boundary.
+- **Native builds:** diagnostic-only unless a release policy explicitly promotes them.
 
 Use these docs for the current release contract:
 
@@ -31,24 +31,24 @@ Use these docs for the current release contract:
 
 ## What “deterministic” means here
 
-For a fixed program artifact `P`, input envelope `I`, and gas limit `G`,
-BlueQuickjs expects the same consensus executors to produce the same:
+For the same program, input, and gas limit, BlueQuickjs expects every consensus-safe executor to produce the same observable result:
 
 - result bytes or deterministic error,
-- gas accounting,
+- gas used and gas remaining,
 - host-call tape,
-- OOG transition point.
+- Oexact out-of-gas transition point.
 
-That is why the product centers on pinned artifacts, profiles, manifests, and
-generated evidence instead of ad hoc runtime behavior.
+To make that repeatable, BlueQuickjs relies on pinned artifacts, explicit execution profiles, manifests, and generated verification evidence instead of environment-dependent runtime behavior.
 
 ## Execution profiles
 
-| Profile | Purpose | Deterministic capability scope |
+Execution profiles define which JavaScript capabilities are available while preserving deterministic behavior.
+
+| Profile | Best for | Scope |
 | --- | --- | --- |
-| `baseline-v1` | Minimal consensus baseline | No Promise jobs/microtasks, no typed arrays/ArrayBuffer/DataView, no dynamic import/time/random/fs/network |
-| `compat-general-v1` | Real-world JS compatibility | `baseline-v1` + deterministic RegExp + Promise jobs + `queueMicrotask` + deterministic console shim + stable sort |
-| `compat-binary-v1` | Binary-heavy deterministic workloads | `compat-general-v1` + typed arrays/ArrayBuffer/DataView + DV2 bytes boundary |
+| `baseline-v1` | Minimal consensus execution | No async jobs, typed arrays, dynamic import, time, random, filesystem, or network access |
+| `compat-general-v1` | General deterministic JavaScript | `baseline-v1` plus deterministic RegExp, Promise jobs, queueMicrotask, deterministic console output, and stable sort |
+| `compat-binary-v1` | Binary-heavy workloads | `compat-general-v1` plus typed arrays, ArrayBuffer, DataView, and DV2 byte boundaries |
 
 Profile details:
 
@@ -57,43 +57,34 @@ Profile details:
 
 ## 5-step first-success path
 
-1. **Install dependencies + the pinned Wasm toolchain**
+1. **Install Vdependencies + the pinned Wasm toolchain**
 
    ```bash
-   pnpm install
-   git submodule update --init --recursive vendor/quickjs
-   bash tools/scripts/setup-emsdk.sh
-   source tools/emsdk/emsdk_env.sh
+   pnpm run setup
    ```
 
 2. **Run the current consensus smoke checks**
 
    ```bash
-   pnpm exec playwright install --with-deps chromium
-   source tools/emsdk/emsdk_env.sh
-   pnpm nx test smoke-node
-   pnpm nx run smoke-web:e2e
+   pnpm verify
    ```
 
 3. **Generate parity and certification evidence**
 
    ```bash
-   source tools/emsdk/emsdk_env.sh
-   node tools/consensus-parity/scripts/archive-consensus-reproducibility-report.mjs --out-dir artifacts/reproducibility-consensus
-   node apps/ecosystem-certifier/scripts/archive-workload-certification-report.mjs --out-dir artifacts/workload-certification
+   pnpm evidence
    ```
 
 4. **Verify the release evidence bundle**
 
    ```bash
-   pnpm release-evidence:synthesize -- --out-dir artifacts/release-evidence
-   pnpm release-evidence:verify -- --evidence-dir artifacts/release-evidence
+   pnpm evidence:verify
    ```
 
 5. **Open the in-repo browser playground**
 
    ```bash
-   bash apps/bluequickjs-playground/scripts/dev.sh
+   pnpm run playground
    ```
 
 ## Start here
@@ -152,9 +143,16 @@ See:
 
 ## Toolchain
 
-- Emscripten is pinned to `3.1.56`; install via `tools/scripts/setup-emsdk.sh`,
-  then `source tools/emsdk/emsdk_env.sh`. See `docs/toolchain.md` for details
-  and CI cache notes.
+Emscripten is pinned to `3.1.56`. For normal local setup, run `pnpm setup`;
+it installs the pinned SDK and loads it for the setup flow. For manual shell
+usage, source `tools/emsdk/emsdk_env.sh` before running Wasm build commands, or
+wrap a one-off command with `tools/scripts/with-emsdk.sh`, for example:
+
+```bash
+tools/scripts/with-emsdk.sh pnpm nx build quickjs-wasm-build
+```
+
+See `docs/toolchain.md` for details and CI cache notes.
 
 ## Determinism checklist
 

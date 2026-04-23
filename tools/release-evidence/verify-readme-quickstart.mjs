@@ -12,14 +12,11 @@ const readmePath = path.join(repoRoot, 'README.md');
 const readme = await readFile(readmePath, 'utf8');
 
 const quickstartCommands = [
-  'pnpm install',
-  'bash tools/scripts/setup-emsdk.sh',
-  'source tools/emsdk/emsdk_env.sh',
-  'pnpm exec playwright install --with-deps chromium',
-  'pnpm nx test smoke-node',
-  'pnpm nx run smoke-web:e2e',
-  'node tools/consensus-parity/scripts/archive-consensus-reproducibility-report.mjs --out-dir artifacts/reproducibility-consensus',
-  'node apps/ecosystem-certifier/scripts/archive-workload-certification-report.mjs --out-dir artifacts/workload-certification',
+  'pnpm run setup',
+  'pnpm verify',
+  'pnpm evidence',
+  'pnpm evidence:verify',
+  'pnpm run playground',
 ];
 
 const missingCommands = quickstartCommands.filter(
@@ -39,44 +36,21 @@ const clonePath = path.join(tempRoot, 'repo');
 try {
   run(
     'git',
-    ['clone', '--depth', '1', '--recurse-submodules', repoRoot, clonePath],
+    ['clone', '--depth', '1', repoRoot, clonePath],
     repoRoot,
   );
 
-  if (!args.skipInstall) {
-    run('pnpm', ['install'], clonePath);
-  }
-  if (!args.skipEmsdkSetup) {
-    run('bash', ['tools/scripts/setup-emsdk.sh'], clonePath);
+  if (!args.skipSetup) {
+    run('pnpm', ['run', 'setup'], clonePath);
   }
 
-  if (!args.skipBrowserTasks) {
-    run('pnpm', ['exec', 'playwright', 'install', '--with-deps', 'chromium'], clonePath);
-  }
-
-  if (!args.skipSmokeTests) {
-    runBash(
-      'source tools/emsdk/emsdk_env.sh && pnpm nx test smoke-node',
-      clonePath,
-    );
-
-    if (!args.skipBrowserTasks) {
-      runBash(
-        'source tools/emsdk/emsdk_env.sh && pnpm nx run smoke-web:e2e',
-        clonePath,
-      );
-    }
+  if (!args.skipVerify) {
+    run('pnpm', ['verify'], clonePath);
   }
 
   if (!args.skipEvidence) {
-    runBash(
-      'source tools/emsdk/emsdk_env.sh && node tools/consensus-parity/scripts/archive-consensus-reproducibility-report.mjs --out-dir artifacts/reproducibility-consensus',
-      clonePath,
-    );
-    runBash(
-      'source tools/emsdk/emsdk_env.sh && node apps/ecosystem-certifier/scripts/archive-workload-certification-report.mjs --out-dir artifacts/workload-certification',
-      clonePath,
-    );
+    run('pnpm', ['evidence'], clonePath);
+    run('pnpm', ['evidence:verify'], clonePath);
   }
 
   process.stdout.write(
@@ -85,10 +59,8 @@ try {
         status: 'ok',
         clonePath,
         skipped: {
-          emsdkSetup: args.skipEmsdkSetup,
-          install: args.skipInstall,
-          browserTasks: args.skipBrowserTasks,
-          smokeTests: args.skipSmokeTests,
+          setup: args.skipSetup,
+          verify: args.skipVerify,
           evidence: args.skipEvidence,
         },
       },
@@ -103,10 +75,8 @@ try {
 }
 
 function parseArgs(argv) {
-  let skipEmsdkSetup = false;
-  let skipInstall = false;
-  let skipBrowserTasks = false;
-  let skipSmokeTests = false;
+  let skipSetup = false;
+  let skipVerify = false;
   let skipEvidence = false;
   let keepTemp = false;
   let tempRoot;
@@ -116,20 +86,12 @@ function parseArgs(argv) {
     if (arg === '--') {
       continue;
     }
-    if (arg === '--skip-install') {
-      skipInstall = true;
+    if (arg === '--skip-setup') {
+      skipSetup = true;
       continue;
     }
-    if (arg === '--skip-emsdk-setup') {
-      skipEmsdkSetup = true;
-      continue;
-    }
-    if (arg === '--skip-smoke-tests') {
-      skipSmokeTests = true;
-      continue;
-    }
-    if (arg === '--skip-browser-tasks') {
-      skipBrowserTasks = true;
+    if (arg === '--skip-verify') {
+      skipVerify = true;
       continue;
     }
     if (arg === '--skip-evidence') {
@@ -149,10 +111,8 @@ function parseArgs(argv) {
   }
 
   return {
-    skipInstall,
-    skipEmsdkSetup,
-    skipBrowserTasks,
-    skipSmokeTests,
+    skipSetup,
+    skipVerify,
     skipEvidence,
     keepTemp,
     tempRoot,
@@ -168,8 +128,4 @@ function run(command, args, cwd) {
   if (result.status !== 0) {
     throw new Error(`command failed: ${command} ${args.join(' ')}`);
   }
-}
-
-function runBash(command, cwd) {
-  run('bash', ['-lc', command], cwd);
 }

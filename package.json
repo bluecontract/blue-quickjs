@@ -27,7 +27,13 @@
     "workload:check-public-package-versions": "node tools/workload-certification/check-public-package-versions.mjs",
     "workload:check-pack-manifests": "node tools/workload-certification/check-pack-manifests.mjs",
     "workload:compat-delta": "node apps/ecosystem-certifier/scripts/generate-compatibility-delta-report.mjs",
-    "publish-rehearsal:verdaccio": "node tools/workload-certification/run-verdaccio-publish-rehearsal.mjs"
+    "publish-rehearsal:verdaccio": "node tools/workload-certification/run-verdaccio-publish-rehearsal.mjs",
+    "setup": "bash tools/scripts/setup-dev.sh",
+    "verify": "bash tools/scripts/verify-dev.sh",
+    "playground": "bash tools/scripts/playground.sh",
+    "evidence": "bash tools/scripts/evidence.sh",
+    "evidence:verify": "bash tools/scripts/evidence-verify.sh",
+    "doctor": "bash tools/scripts/doctor.sh"
   },
   "private": true,
   "devDependencies": {
