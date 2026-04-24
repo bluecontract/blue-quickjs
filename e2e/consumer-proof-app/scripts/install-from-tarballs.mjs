@@ -1,13 +1,15 @@
 #!/usr/bin/env node
 
-import { readdir } from 'node:fs/promises';
+import { mkdir, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 import { spawn } from 'node:child_process';
 
 const appRoot = path.resolve(import.meta.dirname, '..');
+const npmCacheDir = path.join(appRoot, '.npm-cache');
 const args = parseArgs(process.argv.slice(2));
 const tarballDir = path.resolve(appRoot, args.tarballDir);
+await mkdir(npmCacheDir, { recursive: true });
 const entries = await readdir(tarballDir);
 const tarballs = entries
   .filter((entry) => entry.endsWith('.tgz'))
@@ -49,7 +51,11 @@ function parseArgs(argv) {
 
 async function run(command, args, cwd) {
   await new Promise((resolve, reject) => {
-    const child = spawn(command, args, { cwd, stdio: 'inherit' });
+    const child = spawn(command, args, {
+      cwd,
+      stdio: 'inherit',
+      env: createCleanNpmEnv(),
+    });
     child.on('exit', (code) => {
       if (code === 0) {
         resolve(undefined);
@@ -58,4 +64,16 @@ async function run(command, args, cwd) {
       reject(new Error(`command failed (${command} ${args.join(' ')})`));
     });
   });
+}
+
+function createCleanNpmEnv() {
+  const env = { ...process.env };
+  for (const key of Object.keys(env)) {
+    if (key.startsWith('npm_config_')) {
+      delete env[key];
+    }
+  }
+  env.npm_config_cache = npmCacheDir;
+  env.npm_config_package_lock = 'false';
+  return env;
 }
