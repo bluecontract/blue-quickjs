@@ -42,9 +42,15 @@ HEAD_COMMIT="${MANIFEST_FIELDS[1]}"
 PATCH_DIR="${REPO_ROOT}/${MANIFEST_FIELDS[2]}"
 PATCH_COUNT="${MANIFEST_FIELDS[3]}"
 UPSTREAM_URL="${MANIFEST_FIELDS[4]}"
+PATCH_COUNT="${PATCH_COUNT//[[:space:]]/}"
 
 if [[ ! -d "${PATCH_DIR}" ]]; then
   echo "QuickJS patch directory not found at ${PATCH_DIR}" >&2
+  exit 1
+fi
+
+if [[ ! "${PATCH_COUNT}" =~ ^[0-9]+$ ]]; then
+  echo "Invalid patchCount in ${MANIFEST_PATH}: ${PATCH_COUNT}" >&2
   exit 1
 fi
 
@@ -54,7 +60,7 @@ if [[ ! -e "${PATCH_FILES[0]}" ]]; then
   exit 1
 fi
 
-if [[ "${#PATCH_FILES[@]}" -ne "${PATCH_COUNT}" ]]; then
+if (( ${#PATCH_FILES[@]} != PATCH_COUNT )); then
   echo "Patch count mismatch: manifest says ${PATCH_COUNT}, found ${#PATCH_FILES[@]}" >&2
   exit 1
 fi
@@ -121,7 +127,10 @@ trap 'rm -rf "${TMP_DIR}"' EXIT
 git clone --quiet --no-checkout "${CACHE_REPO}" "${TMP_DIR}"
 git -C "${TMP_DIR}" checkout --quiet "${BASE_COMMIT}"
 git -C "${TMP_DIR}" remote set-url origin "${UPSTREAM_URL}" || true
-git -C "${TMP_DIR}" am --quiet --committer-date-is-author-date "${PATCH_FILES[@]}"
+git -C "${TMP_DIR}" \
+  -c user.name='blue-quickjs automation' \
+  -c user.email='automation@blue-quickjs.local' \
+  am --quiet --committer-date-is-author-date "${PATCH_FILES[@]}"
 
 node -e '
   const fs = require("fs");
