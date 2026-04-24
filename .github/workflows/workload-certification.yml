@@ -156,8 +156,19 @@ jobs:
           node-version: ${{ matrix.node }}
           cache: 'pnpm'
 
+      - name: Cache emsdk
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/cache@v4
+        with:
+          path: tools/emsdk
+          key: emsdk-${{ runner.os }}-${{ hashFiles('tools/scripts/emsdk-version.txt') }}
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Install emsdk
+        if: matrix.os == 'ubuntu-latest'
+        run: bash tools/scripts/setup-emsdk.sh
 
       - name: Build public packages for consumer proof
         run: pnpm nx run-many -t build --projects abi-manifest,dv,execution-profiles,quickjs-wasm-constants,quickjs-wasm,quickjs-runtime,deterministic-bundler
