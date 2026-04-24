@@ -105,8 +105,8 @@ jobs:
         run: |
           node tools/workload-certification/pack-public-tarballs.mjs --out-dir artifacts/consumer-proof/tarballs
           pnpm --dir e2e/consumer-proof-app run install:tarballs -- --tarball-dir ../../artifacts/consumer-proof/tarballs
-          npm --prefix e2e/consumer-proof-app exec playwright install --with-deps chromium
-          npm --prefix e2e/consumer-proof-app run repro
+          node e2e/consumer-proof-app/node_modules/playwright/cli.js install --with-deps chromium
+          node e2e/consumer-proof-app/scripts/reproducibility-report.mjs
 
       - name: Run native diagnostics (non-blocking)
         continue-on-error: true
