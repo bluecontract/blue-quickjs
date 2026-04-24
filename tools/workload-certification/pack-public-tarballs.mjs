@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { mkdir, readdir, unlink, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 import { spawn } from 'node:child_process';
@@ -17,12 +17,17 @@ for (const entry of await readdir(outDir)) {
 }
 
 const packages = PUBLIC_PACKAGES;
+const packageDirs = await loadWorkspacePackageDirs(repoRoot);
 
 for (const pkg of packages) {
+  const packageDir = packageDirs.get(pkg);
+  if (!packageDir) {
+    throw new Error(`workspace package not found: ${pkg}`);
+  }
   await run(
     'pnpm',
-    ['--filter', pkg, 'pack', '--pack-destination', outDir],
-    repoRoot,
+    ['pack', '--pack-destination', outDir],
+    packageDir,
   );
 }
 
@@ -58,6 +63,29 @@ async function run(command, argsList, cwd) {
       reject(new Error(`command failed (${command} ${argsList.join(' ')}): ${code}`));
     });
   });
+}
+
+async function loadWorkspacePackageDirs(rootDir) {
+  const packageDirs = new Map();
+  for (const scope of ['apps', 'libs', 'tools']) {
+    const scopeDir = path.join(rootDir, scope);
+    const entries = await readdir(scopeDir, { withFileTypes: true });
+    for (const entry of entries) {
+      if (!entry.isDirectory()) {
+        continue;
+      }
+      const packageJsonPath = path.join(scopeDir, entry.name, 'package.json');
+      try {
+        const packageJson = JSON.parse(await readFile(packageJsonPath, 'utf8'));
+        if (typeof packageJson.name === 'string') {
+          packageDirs.set(packageJson.name, path.dirname(packageJsonPath));
+        }
+      } catch {
+        // Ignore entries that are not workspace packages.
+      }
+    }
+  }
+  return packageDirs;
 }
 
 function parseArgs(argv) {
