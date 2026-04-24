@@ -52,6 +52,8 @@ jobs:
         run: pnpm exec playwright install --with-deps ${{ matrix.browser }}
 
       - name: Run ecosystem certifier tests
+        env:
+          PLAYWRIGHT_BROWSER: ${{ matrix.browser }}
         run: |
           pnpm nx test ecosystem-certifier
           pnpm nx run ecosystem-certifier:e2e

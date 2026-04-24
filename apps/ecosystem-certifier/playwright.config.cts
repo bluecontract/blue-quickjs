@@ -1,6 +1,10 @@
 import { defineConfig } from '@playwright/test';
 
 const projectRoot = __dirname;
+type SupportedBrowserName = 'chromium' | 'firefox' | 'webkit';
+
+const browserName = (process.env.PLAYWRIGHT_BROWSER ??
+  'chromium') as SupportedBrowserName;
 
 export default defineConfig({
   testDir: './tests',
@@ -9,6 +13,7 @@ export default defineConfig({
   use: {
     headless: true,
     baseURL: 'http://localhost:4310',
+    browserName,
   },
   webServer: {
     command: 'pnpm vite --host --port 4310 --config vite.config.mts',
