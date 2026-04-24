@@ -29,10 +29,16 @@ readarray -t MANIFEST_FIELDS < <(
   node -e '
     const fs = require("fs");
     const manifest = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+    if (!Number.isInteger(manifest.patchCount) || manifest.patchCount < 0) {
+      console.error(
+        `Invalid patchCount in ${process.argv[1]}: ${String(manifest.patchCount)}`,
+      );
+      process.exit(1);
+    }
     console.log(manifest.baseCommit);
     console.log(manifest.headCommit);
     console.log(manifest.patchDirectory);
-    console.log(manifest.patchCount);
+    console.log(String(manifest.patchCount));
     console.log(manifest.upstreamUrl ?? "https://github.com/bellard/quickjs.git");
   ' "${MANIFEST_PATH}"
 )
@@ -42,15 +48,9 @@ HEAD_COMMIT="${MANIFEST_FIELDS[1]}"
 PATCH_DIR="${REPO_ROOT}/${MANIFEST_FIELDS[2]}"
 PATCH_COUNT="${MANIFEST_FIELDS[3]}"
 UPSTREAM_URL="${MANIFEST_FIELDS[4]}"
-PATCH_COUNT="${PATCH_COUNT//[[:space:]]/}"
 
 if [[ ! -d "${PATCH_DIR}" ]]; then
   echo "QuickJS patch directory not found at ${PATCH_DIR}" >&2
-  exit 1
-fi
-
-if [[ ! "${PATCH_COUNT}" =~ ^[0-9]+$ ]]; then
-  echo "Invalid patchCount in ${MANIFEST_PATH}: ${PATCH_COUNT}" >&2
   exit 1
 fi
 
