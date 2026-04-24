@@ -1,37 +1,42 @@
 #!/usr/bin/env node
 
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
-import { spawnSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { PUBLIC_PACKAGES } from './public-packages.mjs';
 
 const args = parseArgs(process.argv.slice(2));
 const repoRoot = process.cwd();
 const outDir = path.resolve(repoRoot, args.outDir);
 await mkdir(outDir, { recursive: true });
+for (const entry of await readdir(outDir)) {
+  if (entry.endsWith('.tgz')) {
+    await unlink(path.join(outDir, entry));
+  }
+}
+const packageDirs = await loadWorkspacePackageDirs(repoRoot);
 
 const records = [];
 for (const pkg of PUBLIC_PACKAGES) {
-  const run = spawnSync(
-    'pnpm',
-    ['--filter', pkg, 'pack', '--json', '--pack-destination', outDir],
-    {
-      cwd: repoRoot,
-      encoding: 'utf8',
-      env: process.env,
-    },
-  );
-  if (run.status !== 0) {
-    throw new Error(`pack --json failed for ${pkg}: ${run.stderr ?? run.stdout}`);
+  const packageDir = packageDirs.get(pkg);
+  if (!packageDir) {
+    throw new Error(`workspace package not found: ${pkg}`);
   }
-
-  const raw = run.stdout.trim();
-  const parsed = JSON.parse(raw);
-  const entries = Array.isArray(parsed) ? parsed : [parsed];
+  const packageJson = JSON.parse(
+    await readFile(path.join(packageDir, 'package.json'), 'utf8'),
+  );
+  await run('pnpm', ['pack', '--pack-destination', outDir], packageDir);
+  const filename = `${pkg.replace('@', '').replaceAll('/', '-')}-${packageJson.version}.tgz`;
   records.push({
     package: pkg,
-    entries,
+    entries: [
+      {
+        name: packageJson.name,
+        version: packageJson.version,
+        filename: path.join(outDir, filename),
+      },
+    ],
   });
 }
 
@@ -70,4 +75,44 @@ function parseArgs(argv) {
     throw new Error(`unknown argument: ${arg}`);
   }
   return { outDir };
+}
+
+async function run(command, args, cwd) {
+  await new Promise((resolve, reject) => {
+    const child = spawn(command, args, {
+      cwd,
+      stdio: 'inherit',
+      shell: false,
+    });
+    child.on('exit', (code) => {
+      if (code === 0) {
+        resolve(undefined);
+        return;
+      }
+      reject(new Error(`command failed (${command} ${args.join(' ')})`));
+    });
+  });
+}
+
+async function loadWorkspacePackageDirs(rootDir) {
+  const packageDirs = new Map();
+  for (const scope of ['apps', 'libs', 'tools']) {
+    const scopeDir = path.join(rootDir, scope);
+    const entries = await readdir(scopeDir, { withFileTypes: true });
+    for (const entry of entries) {
+      if (!entry.isDirectory()) {
+        continue;
+      }
+      const packageJsonPath = path.join(scopeDir, entry.name, 'package.json');
+      try {
+        const packageJson = JSON.parse(await readFile(packageJsonPath, 'utf8'));
+        if (typeof packageJson.name === 'string') {
+          packageDirs.set(packageJson.name, path.dirname(packageJsonPath));
+        }
+      } catch {
+        // Ignore entries that are not workspace packages.
+      }
+    }
+  }
+  return packageDirs;
 }
