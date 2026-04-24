@@ -93,6 +93,9 @@ jobs:
           node apps/ecosystem-certifier/scripts/run-seeded-property-corpus.mjs --out-dir artifacts/workload-certification --seed-count 80
           node apps/ecosystem-certifier/scripts/run-repeatability-certification.mjs --out-dir artifacts/workload-certification --iterations 100 --flagship-iterations 40
 
+      - name: Build public packages for packaging checks
+        run: pnpm nx run-many -t build --projects abi-manifest,dv,execution-profiles,quickjs-wasm-constants,quickjs-wasm,quickjs-runtime,deterministic-bundler
+
       - name: Validate public package release alignment
         run: |
           pnpm workload:check-public-package-versions

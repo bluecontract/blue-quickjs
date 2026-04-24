@@ -18,7 +18,12 @@ SOURCE_DATE_EPOCH_DEFAULT=1704067200
 
 ENV_SCRIPT="${REPO_ROOT}/tools/emsdk/emsdk_env.sh"
 if [[ ! -f "${ENV_SCRIPT}" ]]; then
-  echo "Emscripten env not found at ${ENV_SCRIPT}. Run tools/scripts/setup-emsdk.sh first." >&2
+  echo "Emscripten env not found at ${ENV_SCRIPT}; bootstrapping pinned emsdk." >&2
+  bash "${REPO_ROOT}/tools/scripts/setup-emsdk.sh"
+fi
+
+if [[ ! -f "${ENV_SCRIPT}" ]]; then
+  echo "Emscripten env not found at ${ENV_SCRIPT} after setup." >&2
   exit 1
 fi
 

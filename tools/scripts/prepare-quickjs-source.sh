@@ -9,6 +9,7 @@ TARGET_DIR="${REPO_ROOT}/vendor/quickjs"
 CACHE_DIR="${REPO_ROOT}/vendor/.quickjs-cache"
 CACHE_REPO="${CACHE_DIR}/upstream.git"
 STAMP_FILE="${TARGET_DIR}/.blue-quickjs-source.json"
+LOCK_DIR="${REPO_ROOT}/vendor/.quickjs-lock"
 
 if [[ ! -f "${MANIFEST_PATH}" ]]; then
   echo "QuickJS patch manifest not found at ${MANIFEST_PATH}" >&2
@@ -24,6 +25,26 @@ if ! command -v node >/dev/null 2>&1; then
   echo "node is required to read ${MANIFEST_PATH}" >&2
   exit 1
 fi
+
+cleanup_lock() {
+  if [[ -d "${LOCK_DIR}" ]]; then
+    rmdir "${LOCK_DIR}" 2>/dev/null || true
+  fi
+}
+
+acquire_lock() {
+  local attempt=0
+  until mkdir "${LOCK_DIR}" 2>/dev/null; do
+    attempt=$((attempt + 1))
+    if (( attempt == 1 )); then
+      echo "Waiting for QuickJS source preparation lock at ${LOCK_DIR}" >&2
+    fi
+    sleep 1
+  done
+}
+
+acquire_lock
+trap cleanup_lock EXIT
 
 readarray -t MANIFEST_FIELDS < <(
   node -e '
@@ -94,7 +115,7 @@ seed_cache_from_existing_checkout() {
     return 1
   fi
 
-  git clone --quiet --mirror "${checkout_dir}" "${CACHE_REPO}"
+  git clone --quiet --mirror --no-local "${checkout_dir}" "${CACHE_REPO}"
 }
 
 if [[ ! -d "${CACHE_REPO}" ]]; then
@@ -122,9 +143,9 @@ if [[ -f "${STAMP_FILE}" ]]; then
 fi
 
 TMP_DIR="$(mktemp -d "${REPO_ROOT}/vendor/.quickjs-tmp.XXXXXX")"
-trap 'rm -rf "${TMP_DIR}"' EXIT
+trap 'rm -rf "${TMP_DIR}"; cleanup_lock' EXIT
 
-git clone --quiet --no-checkout "${CACHE_REPO}" "${TMP_DIR}"
+git clone --quiet --no-checkout --no-local "${CACHE_REPO}" "${TMP_DIR}"
 git -C "${TMP_DIR}" checkout --quiet "${BASE_COMMIT}"
 git -C "${TMP_DIR}" remote set-url origin "${UPSTREAM_URL}" || true
 git -C "${TMP_DIR}" \
@@ -153,5 +174,6 @@ node -e '
 rm -rf "${TARGET_DIR}"
 mv "${TMP_DIR}" "${TARGET_DIR}"
 trap - EXIT
+cleanup_lock
 
 echo "Prepared QuickJS source at ${TARGET_DIR}" >&2
