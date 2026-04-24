@@ -173,14 +173,14 @@ jobs:
 
       - name: Install Playwright browser (Linux)
         if: matrix.os == 'ubuntu-latest'
-        run: pnpm --dir e2e/consumer-proof-app exec playwright install --with-deps chromium
+        run: npm --prefix e2e/consumer-proof-app exec playwright install --with-deps chromium
 
       - name: Install Playwright browser (non-Linux)
         if: matrix.os != 'ubuntu-latest'
-        run: pnpm --dir e2e/consumer-proof-app exec playwright install chromium
+        run: npm --prefix e2e/consumer-proof-app exec playwright install chromium
 
       - name: Run consumer reproducibility proof
-        run: pnpm --dir e2e/consumer-proof-app run repro
+        run: npm --prefix e2e/consumer-proof-app run repro
 
       - name: Upload consumer-proof matrix artifacts
         uses: actions/upload-artifact@v4
