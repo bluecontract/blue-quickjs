@@ -12,6 +12,9 @@
   "exclude": ["src/**/*.spec.ts", "tests/**/*.ts"],
   "references": [
     {
+      "path": "../../libs/deterministic-bundler/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/test-harness/tsconfig.lib.json"
     },
     {

@@ -270,6 +270,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build builder determinism dependencies
+        run: pnpm nx run-many -t build --projects execution-profiles,deterministic-bundler,deterministic-builder,abi-manifest
+
       - name: Run builder path determinism check
         run: node apps/ecosystem-certifier/scripts/check-builder-determinism.mjs --out-dir artifacts/workload-certification-matrix
 
@@ -297,7 +300,12 @@ jobs:
           merge-multiple: false
 
       - name: Compare matrix reports
-        run: node tools/workload-certification/compare-builder-determinism-matrix.mjs --input-dir artifacts/workload-certification-matrix > artifacts/workload-certification-matrix-comparison.json
+        run: |
+          set +e
+          node tools/workload-certification/compare-builder-determinism-matrix.mjs --input-dir artifacts/workload-certification-matrix > artifacts/workload-certification-matrix-comparison.json
+          status=$?
+          echo "BUILDER_DETERMINISM_COMPARE_EXIT_CODE=${status}" >> "$GITHUB_ENV"
+          exit 0
 
       - name: Upload matrix comparison artifact
         uses: actions/upload-artifact@v4
@@ -305,3 +313,9 @@ jobs:
           name: builder-determinism-matrix-comparison
           path: artifacts/workload-certification-matrix-comparison.json
           if-no-files-found: error
+
+      - name: Fail on matrix mismatches
+        if: env.BUILDER_DETERMINISM_COMPARE_EXIT_CODE != '0'
+        run: |
+          cat artifacts/workload-certification-matrix-comparison.json
+          exit 1

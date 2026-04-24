@@ -12,7 +12,7 @@ const repoRoot = path.resolve(__dirname, '..', '..', '..');
 const require = jiti(import.meta.url, { interopDefault: true });
 const {
   buildDeterministicModulePack,
-} = require('../../../libs/deterministic-builder/src/index.ts');
+} = require('../../../libs/deterministic-bundler/src/index.ts');
 const { HOST_V1_HASH } = require('../../../libs/abi-manifest/src/index.ts');
 
 const args = parseArgs(process.argv.slice(2));

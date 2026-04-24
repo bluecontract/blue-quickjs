@@ -107,7 +107,9 @@ export async function createRuntime(
     return hostCall(...args);
   };
 
-  const moduleFactory = (await import(artifact.loaderUrl.href))
+  const moduleFactory = (await import(
+    /* @vite-ignore */ artifact.loaderUrl.href
+  ))
     .default as QuickjsWasmModuleFactory;
 
   const module = await moduleFactory({

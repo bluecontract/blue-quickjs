@@ -16,8 +16,8 @@ const require = jiti(import.meta.url, { interopDefault: true });
 
 const {
   buildDeterministicModulePack,
-  DeterministicBuilderError,
-} = require('../../../libs/deterministic-builder/src/index.ts');
+  DeterministicBundlerError: DeterministicBuilderError,
+} = require('../../../libs/deterministic-bundler/src/index.ts');
 const { evaluate } = require('../../../libs/quickjs-runtime/src/index.ts');
 const { encodeDv } = require('../../../libs/dv/src/index.ts');
 const {
