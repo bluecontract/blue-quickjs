@@ -3,7 +3,13 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { expect } from 'vitest';
 
-export const repoRoot = path.resolve(import.meta.dirname, '..', '..', '..', '..');
+export const repoRoot = path.resolve(
+  import.meta.dirname,
+  '..',
+  '..',
+  '..',
+  '..',
+);
 const fixturesRoot = path.join(
   repoRoot,
   'tools',
@@ -18,8 +24,12 @@ const harnessBin = path.join(
   'quickjs-native-harness',
 );
 
-const hostManifestHex = readFixture('libs/test-harness/fixtures/abi-manifest/host-v1.bytes.hex');
-const hostManifestHash = readFixture('libs/test-harness/fixtures/abi-manifest/host-v1.hash');
+const hostManifestHex = readFixture(
+  'libs/test-harness/fixtures/abi-manifest/host-v1.bytes.hex',
+);
+const hostManifestHash = readFixture(
+  'libs/test-harness/fixtures/abi-manifest/host-v1.hash',
+);
 const commonArgs = [
   '--abi-manifest-hex',
   hostManifestHex,
@@ -28,7 +38,10 @@ const commonArgs = [
 ];
 
 function readFixture(relativePath) {
-  return readFileSync(path.join(repoRoot, relativePath), 'utf8').replace(/\s+/g, '');
+  return readFileSync(path.join(repoRoot, relativePath), 'utf8').replace(
+    /\s+/g,
+    '',
+  );
 }
 
 export function runHarness(args) {

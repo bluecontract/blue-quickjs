@@ -10,7 +10,7 @@ import {
   evaluate,
   getFnId,
   vi,
-} from '../../lib/evaluate-test-helpers.js';
+} from '../evaluate-test-helpers.js';
 import type { HostDispatcherHandlers } from '../../lib/host-dispatcher.js';
 
 describe('evaluate common-v1', () => {
@@ -64,7 +64,9 @@ describe('evaluate common-v1', () => {
     const modulePack = createModulePack({
       entrySpecifier: './entry.js',
       entryExport: 'answer',
-      modules: [{ specifier: './entry.js', source: 'export const answer = 42;\n' }],
+      modules: [
+        { specifier: './entry.js', source: 'export const answer = 42;\n' },
+      ],
     });
     const result = await evaluate({
       program: createModulePackProgram(modulePack),
@@ -84,7 +86,8 @@ describe('evaluate common-v1', () => {
       modules: [
         {
           specifier: './entry.js',
-          source: "import { valueFromA } from './b.js'; export default valueFromA;\n",
+          source:
+            "import { valueFromA } from './b.js'; export default valueFromA;\n",
         },
         {
           specifier: './a.js',
@@ -126,7 +129,8 @@ describe('evaluate common-v1', () => {
     if (result.ok) throw new Error('expected module-pack failure');
     expect(result.type).toBe('vm-error');
     expect(result.error.kind).toBe('module-pack');
-    if (result.error.kind !== 'module-pack') throw new Error('expected module-pack error kind');
+    if (result.error.kind !== 'module-pack')
+      throw new Error('expected module-pack error kind');
     expect(result.error.code).toBe('MODULE_SPECIFIER_NOT_FOUND');
   });
 
@@ -134,7 +138,9 @@ describe('evaluate common-v1', () => {
     const modulePack = createModulePack({
       entrySpecifier: './entry.js',
       entryExport: 'missing',
-      modules: [{ specifier: './entry.js', source: 'export const value = 1;\n' }],
+      modules: [
+        { specifier: './entry.js', source: 'export const value = 1;\n' },
+      ],
     });
     const result = await evaluate({
       program: createModulePackProgram(modulePack),
@@ -147,7 +153,8 @@ describe('evaluate common-v1', () => {
     if (result.ok) throw new Error('expected module-pack failure');
     expect(result.type).toBe('vm-error');
     expect(result.error.kind).toBe('module-pack');
-    if (result.error.kind !== 'module-pack') throw new Error('expected module-pack error kind');
+    if (result.error.kind !== 'module-pack')
+      throw new Error('expected module-pack error kind');
     expect(result.error.code).toBe('MODULE_EXPORT_MISSING');
   });
 
@@ -488,7 +495,8 @@ describe('evaluate common-v1', () => {
     if (result.ok) throw new Error('expected host error');
     expect(result.type).toBe('vm-error');
     expect(result.error.kind).toBe('host-error');
-    if (result.error.kind !== 'host-error') throw new Error('expected host-error');
+    if (result.error.kind !== 'host-error')
+      throw new Error('expected host-error');
     expect(result.error.code).toBe('NOT_FOUND');
   });
 
@@ -499,7 +507,9 @@ describe('evaluate common-v1', () => {
           () =>
             ({
               ok: { path: 'path/to/doc' },
-            }) as unknown as ReturnType<HostDispatcherHandlers['document']['get']>,
+            }) as unknown as ReturnType<
+              HostDispatcherHandlers['document']['get']
+            >,
         ),
       },
     });
@@ -514,7 +524,8 @@ describe('evaluate common-v1', () => {
     if (result.ok) throw new Error('expected host transport error');
     expect(result.type).toBe('vm-error');
     expect(result.error.kind).toBe('host-error');
-    if (result.error.kind !== 'host-error') throw new Error('expected host-error');
+    if (result.error.kind !== 'host-error')
+      throw new Error('expected host-error');
     expect(result.error.code).toBe('HOST_TRANSPORT');
   });
 
@@ -652,7 +663,9 @@ describe('evaluate common-v1', () => {
     });
     expect(hostResult.ok).toBe(true);
     if (!hostResult.ok) throw new Error(hostResult.message);
-    const hostSiteIds = new Set((hostResult.gasChargeTape ?? []).map((r) => r.siteId));
+    const hostSiteIds = new Set(
+      (hostResult.gasChargeTape ?? []).map((r) => r.siteId),
+    );
     expect(hostSiteIds.has(2001)).toBe(true);
     expect(hostSiteIds.has(2002)).toBe(true);
   });
@@ -688,7 +701,10 @@ describe('evaluate common-v1', () => {
 
   it('supports deterministic JSON parse and canonical stringify', async () => {
     const result = await evaluate({
-      program: { ...BASE_PROGRAM, code: `JSON.stringify(JSON.parse('{"aa":1,"b":2}'))` },
+      program: {
+        ...BASE_PROGRAM,
+        code: `JSON.stringify(JSON.parse('{"aa":1,"b":2}'))`,
+      },
       input: BASE_INPUT,
       gasLimit: TEST_GAS_LIMIT,
       manifest: HOST_V1_MANIFEST,
@@ -702,9 +718,18 @@ describe('evaluate common-v1', () => {
 
   it('rejects unsupported deterministic JSON options', async () => {
     const cases = [
-      { code: `JSON.parse('[]', () => 1)`, message: /reviver is not supported/i },
-      { code: `JSON.stringify({ aa: 1, b: 2 }, [])`, message: /replacer is not supported/i },
-      { code: `JSON.stringify({ aa: 1, b: 2 }, null, 2)`, message: /space is not supported/i },
+      {
+        code: `JSON.parse('[]', () => 1)`,
+        message: /reviver is not supported/i,
+      },
+      {
+        code: `JSON.stringify({ aa: 1, b: 2 }, [])`,
+        message: /replacer is not supported/i,
+      },
+      {
+        code: `JSON.stringify({ aa: 1, b: 2 }, null, 2)`,
+        message: /space is not supported/i,
+      },
     ];
     for (const testCase of cases) {
       const result = await evaluate({
@@ -715,16 +740,26 @@ describe('evaluate common-v1', () => {
         handlers: createHandlers(),
       });
       expect(result.ok).toBe(false);
-      if (result.ok) throw new Error('expected deterministic JSON option failure');
+      if (result.ok)
+        throw new Error('expected deterministic JSON option failure');
       expect(result.message).toMatch(testCase.message);
     }
   });
 
   it('rejects malformed deterministic JSON strings and keys', async () => {
     const cases = [
-      { code: `JSON.parse('"\\ud800"')`, message: /string contains lone surrogate code points/i },
-      { code: `JSON.parse('{"\\ud800":1}')`, message: /key contains lone surrogate code points/i },
-      { code: `JSON.stringify('\\ud800')`, message: /string contains lone surrogate code points/i },
+      {
+        code: `JSON.parse('"\\ud800"')`,
+        message: /string contains lone surrogate code points/i,
+      },
+      {
+        code: `JSON.parse('{"\\ud800":1}')`,
+        message: /key contains lone surrogate code points/i,
+      },
+      {
+        code: `JSON.stringify('\\ud800')`,
+        message: /string contains lone surrogate code points/i,
+      },
       {
         code: `(() => { const key = '\\ud800'; return JSON.stringify({ [key]: 1 }); })()`,
         message: /key contains lone surrogate code points/i,
@@ -739,7 +774,8 @@ describe('evaluate common-v1', () => {
         handlers: createHandlers(),
       });
       expect(result.ok).toBe(false);
-      if (result.ok) throw new Error('expected malformed deterministic JSON failure');
+      if (result.ok)
+        throw new Error('expected malformed deterministic JSON failure');
       expect(result.message).toMatch(testCase.message);
     }
   });
@@ -771,14 +807,21 @@ describe('evaluate common-v1', () => {
       gasTrace: true,
     });
     expect(result.ok).toBe(false);
-    if (result.ok) throw new Error('expected deterministic JSON array length failure');
+    if (result.ok)
+      throw new Error('expected deterministic JSON array length failure');
     expect(result.message).toMatch(/array length exceeds maxArrayLength/i);
   });
 
   it('rejects oversized deterministic JSON strings before materializing full tokens', async () => {
     const cases = [
-      { code: `JSON.parse('"' + 'a'.repeat(262_145) + '"')`, message: /string exceeds maxStringBytes/i },
-      { code: `JSON.parse('{"' + 'a'.repeat(262_145) + '":1}')`, message: /key exceeds maxStringBytes/i },
+      {
+        code: `JSON.parse('"' + 'a'.repeat(262_145) + '"')`,
+        message: /string exceeds maxStringBytes/i,
+      },
+      {
+        code: `JSON.parse('{"' + 'a'.repeat(262_145) + '":1}')`,
+        message: /key exceeds maxStringBytes/i,
+      },
     ];
     for (const testCase of cases) {
       const result = await evaluate({
@@ -790,14 +833,18 @@ describe('evaluate common-v1', () => {
         gasTrace: true,
       });
       expect(result.ok).toBe(false);
-      if (result.ok) throw new Error('expected deterministic JSON string length failure');
+      if (result.ok)
+        throw new Error('expected deterministic JSON string length failure');
       expect(result.message).toMatch(testCase.message);
     }
   });
 
   it('rejects accessor properties during deterministic JSON stringify', async () => {
     const cases = [
-      { code: `JSON.stringify({ get a() { return 1; } })`, message: /accessor properties/i },
+      {
+        code: `JSON.stringify({ get a() { return 1; } })`,
+        message: /accessor properties/i,
+      },
       {
         code: `(() => { const arr = [1]; Object.defineProperty(arr, 0, { get() { return 1; }, enumerable: true }); return JSON.stringify(arr); })()`,
         message: /accessor properties/i,
@@ -812,7 +859,8 @@ describe('evaluate common-v1', () => {
         handlers: createHandlers(),
       });
       expect(result.ok).toBe(false);
-      if (result.ok) throw new Error('expected deterministic JSON accessor failure');
+      if (result.ok)
+        throw new Error('expected deterministic JSON accessor failure');
       expect(result.message).toMatch(testCase.message);
     }
   });

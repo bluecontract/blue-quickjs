@@ -6,7 +6,7 @@ import {
   createHandlers,
   evaluate,
   vi,
-} from '../../lib/evaluate-test-helpers.js';
+} from '../evaluate-test-helpers.js';
 
 describe('evaluate compat-binary-v1', () => {
   it('supports Host.v2 DV2 byte roundtrips', async () => {

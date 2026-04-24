@@ -201,7 +201,10 @@ describe('initializeDeterministicVm', () => {
     });
 
     try {
-      const ptr = callEval(runtime, '(() => ({ event, eventCanonical, steps, currentContract, currentContractCanonical }))()');
+      const ptr = callEval(
+        runtime,
+        '(() => ({ event, eventCanonical, steps, currentContract, currentContractCanonical }))()',
+      );
       const parsed = parseEvalOutput(readAndFreeCString(runtime.module, ptr));
       expect(parsed.kind).toBe('RESULT');
       expect(parsed.value).toEqual({
@@ -331,14 +334,24 @@ function runDeterministicInit(
   ) => number;
 
   const manifestPtr = Number(
-    writeBytes(runtime.module, runtime.module._malloc.bind(runtime.module), options.manifestBytes),
+    writeBytes(
+      runtime.module,
+      runtime.module._malloc.bind(runtime.module),
+      options.manifestBytes,
+    ),
   );
   const hashPtr = Number(
-    writeCString(runtime.module, runtime.module._malloc.bind(runtime.module), options.manifestHash),
+    writeCString(
+      runtime.module,
+      runtime.module._malloc.bind(runtime.module),
+      options.manifestHash,
+    ),
   );
   const contextBytes =
     options.contextBlobBytes ??
-    (options.contextBlob === null ? new Uint8Array() : encodeDv(options.contextBlob));
+    (options.contextBlob === null
+      ? new Uint8Array()
+      : encodeDv(options.contextBlob));
   const contextPtr =
     contextBytes.length > 0
       ? Number(
@@ -377,9 +390,9 @@ function callEval(
   runtime: Awaited<ReturnType<typeof createRuntime>>,
   code: string,
 ): number {
-  const evalFn = runtime.module.cwrap('qjs_det_eval', 'number', [
-    'string',
-  ]) as (source: string) => number;
+  const evalFn = runtime.module.cwrap('qjs_det_eval', 'number', ['string']) as (
+    source: string,
+  ) => number;
   return evalFn(code);
 }
 

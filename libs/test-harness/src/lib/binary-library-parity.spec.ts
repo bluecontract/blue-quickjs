@@ -63,19 +63,22 @@ describe('binary library parity', () => {
         profile: 'compat-binary-v1',
       });
 
-      const result = runNativeHarness([
-        ...hostV2ManifestArgs,
-        '--execution-profile',
-        'compat-binary-v1',
-        '--gas-limit',
-        BINARY_LIBRARY_GAS_LIMIT.toString(),
-        '--report-gas',
-        '--report-tape',
-        '--eval',
-        bundled.code,
-      ], {
-        includeManifest: false,
-      });
+      const result = runNativeHarness(
+        [
+          ...hostV2ManifestArgs,
+          '--execution-profile',
+          'compat-binary-v1',
+          '--gas-limit',
+          BINARY_LIBRARY_GAS_LIMIT.toString(),
+          '--report-gas',
+          '--report-tape',
+          '--eval',
+          bundled.code,
+        ],
+        {
+          includeManifest: false,
+        },
+      );
 
       expect(result.status).toBe(0);
       expect(result.stderr).toBe('');

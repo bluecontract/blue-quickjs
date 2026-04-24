@@ -6,7 +6,7 @@ import {
   createHandlers,
   evaluate,
   vi,
-} from '../../lib/evaluate-test-helpers.js';
+} from '../evaluate-test-helpers.js';
 
 describe('evaluate compat-general-v1', () => {
   it('enables RegExp', async () => {
@@ -73,7 +73,8 @@ describe('evaluate compat-general-v1', () => {
       handlers: createHandlers(),
     });
     expect(compat.ok).toBe(false);
-    if (compat.ok) throw new Error('expected queueMicrotask validation failure');
+    if (compat.ok)
+      throw new Error('expected queueMicrotask validation failure');
     expect(compat.message).toMatch(/queueMicrotask callback must be callable/i);
   });
 

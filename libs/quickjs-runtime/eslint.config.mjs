@@ -33,7 +33,9 @@ export default [
           ignoredFiles: [
             '{projectRoot}/eslint.config.{js,cjs,mjs,ts,cts,mts}',
             '{projectRoot}/vite.config.{js,ts,mjs,mts}',
+            '{projectRoot}/src/test/**/*',
           ],
+          ignoredDependencies: ['vitest'],
         },
       ],
     },

@@ -5,23 +5,59 @@ import {
   TEST_GAS_LIMIT,
   createHandlers,
   evaluate,
-} from '../../lib/evaluate-test-helpers.js';
+} from '../evaluate-test-helpers.js';
 
 describe('evaluate baseline-v1', () => {
   it('keeps baseline deterministic globals disabled', async () => {
     const cases = [
-      { code: `eval('1 + 1')`, message: /eval is disabled in deterministic mode/i },
-      { code: `(new Function('return 7'))()`, message: /Function is disabled in deterministic mode/i },
-      { code: `Math.random()`, message: /Math\.random is disabled in deterministic mode/i },
-      { code: `console.log('x')`, message: /console is disabled in deterministic mode/i },
-      { code: `print('x')`, message: /print is disabled in deterministic mode/i },
-      { code: `new ArrayBuffer(4)`, message: /ArrayBuffer is disabled in deterministic mode/i },
-      { code: `new SharedArrayBuffer(4)`, message: /SharedArrayBuffer is disabled in deterministic mode/i },
-      { code: `new DataView()`, message: /DataView is disabled in deterministic mode/i },
-      { code: `new Uint8Array(4)`, message: /Typed arrays are disabled in deterministic mode/i },
-      { code: `Atomics()`, message: /Atomics is disabled in deterministic mode/i },
-      { code: `WebAssembly()`, message: /WebAssembly is disabled in deterministic mode/i },
-      { code: `new Proxy({}, {})`, message: /Proxy is disabled in deterministic mode/i },
+      {
+        code: `eval('1 + 1')`,
+        message: /eval is disabled in deterministic mode/i,
+      },
+      {
+        code: `(new Function('return 7'))()`,
+        message: /Function is disabled in deterministic mode/i,
+      },
+      {
+        code: `Math.random()`,
+        message: /Math\.random is disabled in deterministic mode/i,
+      },
+      {
+        code: `console.log('x')`,
+        message: /console is disabled in deterministic mode/i,
+      },
+      {
+        code: `print('x')`,
+        message: /print is disabled in deterministic mode/i,
+      },
+      {
+        code: `new ArrayBuffer(4)`,
+        message: /ArrayBuffer is disabled in deterministic mode/i,
+      },
+      {
+        code: `new SharedArrayBuffer(4)`,
+        message: /SharedArrayBuffer is disabled in deterministic mode/i,
+      },
+      {
+        code: `new DataView()`,
+        message: /DataView is disabled in deterministic mode/i,
+      },
+      {
+        code: `new Uint8Array(4)`,
+        message: /Typed arrays are disabled in deterministic mode/i,
+      },
+      {
+        code: `Atomics()`,
+        message: /Atomics is disabled in deterministic mode/i,
+      },
+      {
+        code: `WebAssembly()`,
+        message: /WebAssembly is disabled in deterministic mode/i,
+      },
+      {
+        code: `new Proxy({}, {})`,
+        message: /Proxy is disabled in deterministic mode/i,
+      },
     ];
     for (const testCase of cases) {
       const result = await evaluate({

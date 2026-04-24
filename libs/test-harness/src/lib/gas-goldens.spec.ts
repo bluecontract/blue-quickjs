@@ -57,9 +57,7 @@ interface ParsedHarnessOutput {
   trace?: unknown;
 }
 
-const cases = JSON.parse(
-  readFileSync(goldensPath, 'utf8'),
-) as GasGoldenCase[];
+const cases = JSON.parse(readFileSync(goldensPath, 'utf8')) as GasGoldenCase[];
 
 describe('gas goldens', () => {
   it('has a built native harness available', () => {

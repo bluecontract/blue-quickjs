@@ -72,10 +72,7 @@ export function runNativeHarness(
 ): NativeHarnessRunResult {
   const result = spawnSync(
     nativeHarnessPath,
-    [
-      ...(options?.includeManifest === false ? [] : hostManifestArgs),
-      ...args,
-    ],
+    [...(options?.includeManifest === false ? [] : hostManifestArgs), ...args],
     {
       encoding: 'utf8',
     },

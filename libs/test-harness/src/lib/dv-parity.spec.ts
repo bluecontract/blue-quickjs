@@ -105,42 +105,41 @@ describe('dv parity', () => {
     expect(hasBuiltNativeHarness()).toBe(true);
   });
 
-  test.each(encodeFixtures)('$name encodes identically to the TS reference', ({
-    expr,
-    value,
-  }) => {
-    const expectedHex = bytesToHex(encodeDv(value));
-    const result = runNativeHarness(['--dv-encode', '--eval', expr]);
+  test.each(encodeFixtures)(
+    '$name encodes identically to the TS reference',
+    ({ expr, value }) => {
+      const expectedHex = bytesToHex(encodeDv(value));
+      const result = runNativeHarness(['--dv-encode', '--eval', expr]);
 
-    expect(result.status).toBe(0);
-    expect(result.stderr).toBe('');
-    expect(result.stdout.startsWith('DV ')).toBe(true);
-    expect(result.stdout.slice('DV '.length)).toBe(expectedHex);
-  });
+      expect(result.status).toBe(0);
+      expect(result.stderr).toBe('');
+      expect(result.stdout.startsWith('DV ')).toBe(true);
+      expect(result.stdout.slice('DV '.length)).toBe(expectedHex);
+    },
+  );
 
-  test.each(encodeFixtures)('$name decodes identically to the TS reference', ({
-    value,
-  }) => {
-    const encoded = encodeDv(value);
-    const result = runNativeHarness([
-      '--dv-decode',
-      bytesToHex(encoded),
-    ]);
+  test.each(encodeFixtures)(
+    '$name decodes identically to the TS reference',
+    ({ value }) => {
+      const encoded = encodeDv(value);
+      const result = runNativeHarness(['--dv-decode', bytesToHex(encoded)]);
 
-    expect(result.status).toBe(0);
-    expect(result.stderr).toBe('');
-    expect(result.stdout.startsWith('DVRESULT ')).toBe(true);
-    expect(result.stdout.slice('DVRESULT '.length)).toBe(
-      JSON.stringify(decodeDv(encoded)),
-    );
-  });
+      expect(result.status).toBe(0);
+      expect(result.stderr).toBe('');
+      expect(result.stdout.startsWith('DVRESULT ')).toBe(true);
+      expect(result.stdout.slice('DVRESULT '.length)).toBe(
+        JSON.stringify(decodeDv(encoded)),
+      );
+    },
+  );
 
   test.each(encodeErrorFixtures)(
     '$name rejects invalid values during encode',
     ({ expr, value, errorContains }) => {
       expect(() => encodeDv(value)).toThrowError(new RegExp(errorContains));
+      expect(expr).toBeDefined();
 
-      const result = runNativeHarness(['--dv-encode', '--eval', expr!]);
+      const result = runNativeHarness(['--dv-encode', '--eval', String(expr)]);
       expect(result.status).not.toBe(0);
       expect(result.stdout.startsWith('ERROR ')).toBe(true);
       expect(result.stdout).toContain(errorContains);
@@ -150,11 +149,13 @@ describe('dv parity', () => {
   test.each(decodeErrorFixtures)(
     '$name rejects invalid bytes during decode',
     ({ hex, errorContains }) => {
-      expect(() => decodeDv(Buffer.from(hex!, 'hex'))).toThrowError(
+      expect(hex).toBeDefined();
+
+      expect(() => decodeDv(Buffer.from(String(hex), 'hex'))).toThrowError(
         new RegExp(errorContains),
       );
 
-      const result = runNativeHarness(['--dv-decode', hex!]);
+      const result = runNativeHarness(['--dv-decode', String(hex)]);
       expect(result.status).not.toBe(0);
       expect(result.stdout.startsWith('ERROR ')).toBe(true);
       expect(result.stdout).toContain(errorContains);

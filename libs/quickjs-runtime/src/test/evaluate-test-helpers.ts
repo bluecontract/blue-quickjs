@@ -6,13 +6,13 @@ import {
 } from '@blue-quickjs/abi-manifest';
 import { createHash } from 'node:crypto';
 import { vi } from 'vitest';
-import { evaluate } from './evaluate.js';
-import type { HostDispatcherHandlers } from './host-dispatcher.js';
+import { evaluate } from '../lib/evaluate.js';
+import type { HostDispatcherHandlers } from '../lib/host-dispatcher.js';
 import type {
   InputEnvelope,
   ProgramArtifact,
   ProgramArtifactV2,
-} from './quickjs-runtime.js';
+} from '../lib/quickjs-runtime.js';
 
 export { evaluate, vi, HOST_V1_MANIFEST, HOST_V2_MANIFEST };
 

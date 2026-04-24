@@ -889,12 +889,8 @@ function parseWasmTrace(raw: string): ExpectedTrace {
     jsonStringifyGas: BigInt(trace.jsonStringifyGas ?? '0'),
     jsonStringifyOutputBytes: BigInt(trace.jsonStringifyOutputBytes ?? '0'),
     jsonStringifyValues: BigInt(trace.jsonStringifyValues ?? '0'),
-    jsonStringifyObjectEntries: BigInt(
-      trace.jsonStringifyObjectEntries ?? '0',
-    ),
-    jsonStringifyArrayElements: BigInt(
-      trace.jsonStringifyArrayElements ?? '0',
-    ),
+    jsonStringifyObjectEntries: BigInt(trace.jsonStringifyObjectEntries ?? '0'),
+    jsonStringifyArrayElements: BigInt(trace.jsonStringifyArrayElements ?? '0'),
     jsonStringifySortComparisons: BigInt(
       trace.jsonStringifySortComparisons ?? '0',
     ),
@@ -957,12 +953,8 @@ function parseNativeTrace(raw: string): ExpectedTrace {
     jsonStringifyGas: BigInt(trace.jsonStringify?.gas ?? 0),
     jsonStringifyOutputBytes: BigInt(trace.jsonStringify?.outputBytes ?? 0),
     jsonStringifyValues: BigInt(trace.jsonStringify?.values ?? 0),
-    jsonStringifyObjectEntries: BigInt(
-      trace.jsonStringify?.objectEntries ?? 0,
-    ),
-    jsonStringifyArrayElements: BigInt(
-      trace.jsonStringify?.arrayElements ?? 0,
-    ),
+    jsonStringifyObjectEntries: BigInt(trace.jsonStringify?.objectEntries ?? 0),
+    jsonStringifyArrayElements: BigInt(trace.jsonStringify?.arrayElements ?? 0),
     jsonStringifySortComparisons: BigInt(
       trace.jsonStringify?.sortComparisons ?? 0,
     ),

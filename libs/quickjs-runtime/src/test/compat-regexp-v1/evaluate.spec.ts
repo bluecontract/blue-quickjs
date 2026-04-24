@@ -5,7 +5,7 @@ import {
   TEST_GAS_LIMIT,
   createHandlers,
   evaluate,
-} from '../../lib/evaluate-test-helpers.js';
+} from '../evaluate-test-helpers.js';
 
 describe('evaluate compat-regexp-v1', () => {
   it('enables RegExp literals and constructors', async () => {
@@ -65,7 +65,10 @@ describe('evaluate compat-regexp-v1', () => {
 
   it('keeps console and stable sort disabled', async () => {
     const cases = [
-      { code: `console.log('x')`, message: /console is disabled in deterministic mode/i },
+      {
+        code: `console.log('x')`,
+        message: /console is disabled in deterministic mode/i,
+      },
       { code: `[3, 1, 2].sort()`, message: /sort is disabled/i },
     ];
     for (const testCase of cases) {
@@ -88,12 +91,19 @@ describe('evaluate compat-regexp-v1', () => {
 
   it('keeps binary intrinsics disabled', async () => {
     const cases = [
-      { code: `new ArrayBuffer(4)`, message: /ArrayBuffer is disabled in deterministic mode/i },
+      {
+        code: `new ArrayBuffer(4)`,
+        message: /ArrayBuffer is disabled in deterministic mode/i,
+      },
       {
         code: `new DataView(new ArrayBuffer(8))`,
-        message: /ArrayBuffer is disabled in deterministic mode|DataView is disabled in deterministic mode/i,
+        message:
+          /ArrayBuffer is disabled in deterministic mode|DataView is disabled in deterministic mode/i,
       },
-      { code: `new Uint8Array(4)`, message: /Typed arrays are disabled in deterministic mode/i },
+      {
+        code: `new Uint8Array(4)`,
+        message: /Typed arrays are disabled in deterministic mode/i,
+      },
     ];
     for (const testCase of cases) {
       const result = await evaluate({

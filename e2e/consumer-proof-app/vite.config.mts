@@ -23,12 +23,9 @@ export default defineConfig({
         // This app lives outside the pnpm workspace, so local Nx/Vite builds
         // need an explicit path back into repo source packages.
         find: /^@blue-quickjs\/(.+)$/,
-        replacement: path.resolve(
-          import.meta.dirname,
-          '..',
-          '..',
-          'libs',
-        ) + '/$1/src/index.ts',
+        replacement:
+          path.resolve(import.meta.dirname, '..', '..', 'libs') +
+          '/$1/src/index.ts',
       },
     ],
   },
