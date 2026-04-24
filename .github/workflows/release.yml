@@ -116,6 +116,7 @@ jobs:
         run: |
           pnpm nx build quickjs-native-harness
           pnpm nx test quickjs-native-harness
+          pnpm nx run quickjs-native-harness:test-legacy
 
       - name: Generate native diagnostic reproducibility report artifact (non-blocking)
         continue-on-error: true

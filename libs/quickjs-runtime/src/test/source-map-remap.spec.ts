@@ -1,5 +1,5 @@
-import { remapModulePackErrorPayload } from './source-map-remap.js';
-import type { ModulePackV1 } from './quickjs-runtime.js';
+import { remapModulePackErrorPayload } from '../lib/source-map-remap.js';
+import type { ModulePackV1 } from '../lib/quickjs-runtime.js';
 
 function createModulePack(sourceMap?: string): ModulePackV1 {
   return {

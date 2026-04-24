@@ -5,9 +5,9 @@ import {
   hexToBytes,
   parseDeterministicOutput,
 } from '@blue-quickjs/test-harness';
-import { type HostDispatcherHandlers } from './host-dispatcher.js';
-import { initializeDeterministicVm } from './deterministic-init.js';
-import { createRuntime } from './runtime.js';
+import { type HostDispatcherHandlers } from '../lib/host-dispatcher.js';
+import { initializeDeterministicVm } from '../lib/deterministic-init.js';
+import { createRuntime } from '../lib/runtime.js';
 
 describe('createRuntime', () => {
   it('instantiates the wasm module and evaluates code', async () => {

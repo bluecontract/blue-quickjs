@@ -71,6 +71,11 @@ jobs:
       # - run: pnpm exec nx-cloud record -- echo Hello World
       - run: pnpm exec nx affected -t lint test build typecheck
 
+      - name: Run native harness suites
+        run: |
+          pnpm nx test quickjs-native-harness
+          pnpm nx run quickjs-native-harness:test-legacy
+
       - name: Verify generated playground data is fresh
         run: pnpm playground:check-generated
 

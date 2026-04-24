@@ -9,7 +9,7 @@ import {
   CHESS_LIBRARY_PROGRAM_BASE,
   createDeterminismHost,
 } from '@blue-quickjs/test-harness';
-import { evaluate } from './evaluate.js';
+import { evaluate } from '../lib/evaluate.js';
 
 describe('library reuse: chess.js', () => {
   it('bundles chess fixture deterministically and evaluates legality for e2e6', async () => {

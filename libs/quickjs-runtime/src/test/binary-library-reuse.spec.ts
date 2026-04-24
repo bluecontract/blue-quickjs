@@ -8,7 +8,7 @@ import {
   BINARY_LIBRARY_PROGRAM_BASE,
   createDeterminismHost,
 } from '@blue-quickjs/test-harness';
-import { evaluate } from './evaluate.js';
+import { evaluate } from '../lib/evaluate.js';
 
 describe('library reuse: binary packages', () => {
   for (const fixture of BINARY_LIBRARY_FIXTURES) {

@@ -5,9 +5,22 @@ Minimal native harness for the QuickJS fork. Builds a standalone binary that eva
 ## Usage
 - Build: `pnpm nx build quickjs-native-harness`
 - Test: `pnpm nx test quickjs-native-harness`
+- Legacy shell suite: `pnpm nx run quickjs-native-harness:test-legacy`
 - Manual run: `tools/quickjs-native-harness/dist/quickjs-native-harness --eval "1 + 2"`
-- Gas goldens: `tools/quickjs-native-harness/scripts/gas-goldens.mjs` consumes fixtures under
-  `tools/quickjs-native-harness/fixtures/gas` and is invoked by the test script.
+- The default `nx test quickjs-native-harness` target is a focused Vitest suite
+  covering the deterministic-runtime contract introduced by patch `0001`
+  (`JS_NewDeterministicRuntime`, disabled `eval` / `Function`, and `Host.v1`
+  bootstrap shape).
+- Gas goldens now live in the new harness as
+  `libs/test-harness/src/lib/gas-goldens.spec.ts`, using fixture data from
+  `libs/test-harness/fixtures/gas-goldens.json`.
+- DV parity now lives in `libs/test-harness/src/lib/dv-parity.spec.ts`.
+- Host-call gas accounting now lives in
+  `libs/test-harness/src/lib/host-gas.spec.ts`.
+- Binary-library parity now lives in
+  `libs/test-harness/src/lib/binary-library-parity.spec.ts`.
+- Module-pack parity now lives in
+  `libs/test-harness/src/lib/module-pack-parity.spec.ts`.
 - Parity report: `tools/quickjs-native-harness/scripts/parity-report.mjs` runs
   determinism/module-pack/binary fixture suites through wasm-node + native,
   emits signed JSON snapshots, and supports:

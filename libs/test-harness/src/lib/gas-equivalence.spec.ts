@@ -27,6 +27,35 @@ interface ExpectedResult extends DeterministicOutput {
   value?: unknown;
 }
 
+interface ExpectedTrace {
+  opcodeCount: bigint;
+  opcodeGas: bigint;
+  arrayCbBaseCount: bigint;
+  arrayCbBaseGas: bigint;
+  arrayCbPerElCount: bigint;
+  arrayCbPerElGas: bigint;
+  allocationCount: bigint;
+  allocationBytes: bigint;
+  allocationGas: bigint;
+  jsonParseCount: bigint;
+  jsonParseGas: bigint;
+  jsonParseInputBytes: bigint;
+  jsonParseValues: bigint;
+  jsonParseObjectEntries: bigint;
+  jsonParseArrayElements: bigint;
+  jsonStringifyCount: bigint;
+  jsonStringifyGas: bigint;
+  jsonStringifyOutputBytes: bigint;
+  jsonStringifyValues: bigint;
+  jsonStringifyObjectEntries: bigint;
+  jsonStringifyArrayElements: bigint;
+  jsonStringifySortComparisons: bigint;
+  hostCallPreCount: bigint;
+  hostCallPreGas: bigint;
+  hostCallPostCount: bigint;
+  hostCallPostGas: bigint;
+}
+
 const repoRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   '../../../..',
@@ -157,6 +186,11 @@ interface BoundaryFixtureCase {
   expectedFirstSuccessGas: bigint;
 }
 
+interface TraceFixtureCase {
+  name: string;
+  fixture: string;
+}
+
 const boundaryCases: BoundaryFixtureCase[] = [
   {
     name: 'opcode-addition',
@@ -212,6 +246,25 @@ const boundaryCases: BoundaryFixtureCase[] = [
     name: 'gc-pending',
     fixture: 'gc-pending.js',
     expectedFirstSuccessGas: 89n,
+  },
+];
+
+const traceCases: TraceFixtureCase[] = [
+  {
+    name: 'addition',
+    fixture: 'addition.js',
+  },
+  {
+    name: 'json-parse',
+    fixture: 'json-parse-small.js',
+  },
+  {
+    name: 'json-stringify',
+    fixture: 'json-stringify-small.js',
+  },
+  {
+    name: 'gc-pending',
+    fixture: 'gc-pending.js',
   },
 ];
 
@@ -369,6 +422,121 @@ const wasm32Expectations: Record<string, ExpectedResult> = {
   },
 };
 
+const wasm32TraceExpectations: Record<string, ExpectedTrace> = {
+  addition: {
+    opcodeCount: 5n,
+    opcodeGas: 5n,
+    arrayCbBaseCount: 0n,
+    arrayCbBaseGas: 0n,
+    arrayCbPerElCount: 0n,
+    arrayCbPerElGas: 0n,
+    allocationCount: 12n,
+    allocationBytes: 1112n,
+    allocationGas: 34n,
+    jsonParseCount: 0n,
+    jsonParseGas: 0n,
+    jsonParseInputBytes: 0n,
+    jsonParseValues: 0n,
+    jsonParseObjectEntries: 0n,
+    jsonParseArrayElements: 0n,
+    jsonStringifyCount: 0n,
+    jsonStringifyGas: 0n,
+    jsonStringifyOutputBytes: 0n,
+    jsonStringifyValues: 0n,
+    jsonStringifyObjectEntries: 0n,
+    jsonStringifyArrayElements: 0n,
+    jsonStringifySortComparisons: 0n,
+    hostCallPreCount: 0n,
+    hostCallPreGas: 0n,
+    hostCallPostCount: 0n,
+    hostCallPostGas: 0n,
+  },
+  'json-parse': {
+    opcodeCount: 6n,
+    opcodeGas: 6n,
+    arrayCbBaseCount: 0n,
+    arrayCbBaseGas: 0n,
+    arrayCbPerElCount: 0n,
+    arrayCbPerElGas: 0n,
+    allocationCount: 26n,
+    allocationBytes: 1704n,
+    allocationGas: 36n,
+    jsonParseCount: 1n,
+    jsonParseGas: 35n,
+    jsonParseInputBytes: 14n,
+    jsonParseValues: 3n,
+    jsonParseObjectEntries: 2n,
+    jsonParseArrayElements: 0n,
+    jsonStringifyCount: 0n,
+    jsonStringifyGas: 0n,
+    jsonStringifyOutputBytes: 0n,
+    jsonStringifyValues: 0n,
+    jsonStringifyObjectEntries: 0n,
+    jsonStringifyArrayElements: 0n,
+    jsonStringifySortComparisons: 0n,
+    hostCallPreCount: 0n,
+    hostCallPreGas: 0n,
+    hostCallPostCount: 0n,
+    hostCallPostGas: 0n,
+  },
+  'json-stringify': {
+    opcodeCount: 10n,
+    opcodeGas: 10n,
+    arrayCbBaseCount: 0n,
+    arrayCbBaseGas: 0n,
+    arrayCbPerElCount: 0n,
+    arrayCbPerElGas: 0n,
+    allocationCount: 31n,
+    allocationBytes: 1768n,
+    allocationGas: 36n,
+    jsonParseCount: 0n,
+    jsonParseGas: 0n,
+    jsonParseInputBytes: 0n,
+    jsonParseValues: 0n,
+    jsonParseObjectEntries: 0n,
+    jsonParseArrayElements: 0n,
+    jsonStringifyCount: 1n,
+    jsonStringifyGas: 36n,
+    jsonStringifyOutputBytes: 14n,
+    jsonStringifyValues: 3n,
+    jsonStringifyObjectEntries: 2n,
+    jsonStringifyArrayElements: 0n,
+    jsonStringifySortComparisons: 1n,
+    hostCallPreCount: 0n,
+    hostCallPreGas: 0n,
+    hostCallPostCount: 0n,
+    hostCallPostGas: 0n,
+  },
+  'gc-pending': {
+    opcodeCount: 18n,
+    opcodeGas: 18n,
+    arrayCbBaseCount: 0n,
+    arrayCbBaseGas: 0n,
+    arrayCbPerElCount: 0n,
+    arrayCbPerElGas: 0n,
+    allocationCount: 40n,
+    allocationBytes: 2520n,
+    allocationGas: 71n,
+    jsonParseCount: 0n,
+    jsonParseGas: 0n,
+    jsonParseInputBytes: 0n,
+    jsonParseValues: 0n,
+    jsonParseObjectEntries: 0n,
+    jsonParseArrayElements: 0n,
+    jsonStringifyCount: 0n,
+    jsonStringifyGas: 0n,
+    jsonStringifyOutputBytes: 0n,
+    jsonStringifyValues: 0n,
+    jsonStringifyObjectEntries: 0n,
+    jsonStringifyArrayElements: 0n,
+    jsonStringifySortComparisons: 0n,
+    hostCallPreCount: 0n,
+    hostCallPreGas: 0n,
+    hostCallPostCount: 0n,
+    hostCallPostGas: 0n,
+  },
+};
+
 let wasmInit:
   | ((
       manifestPtr: WasmPtr,
@@ -384,6 +552,8 @@ let wasmEval: ((code: string) => WasmPtr) | null = null;
 let wasmFreeRuntime: (() => void) | null = null;
 let wasmMalloc: ((size: number) => WasmPtr) | null = null;
 let wasmFree: ((ptr: WasmPtr) => void) | null = null;
+let wasmEnableTrace: ((enabled: number) => number) | null = null;
+let wasmReadTrace: (() => WasmPtr) | null = null;
 let wasmModule: any = null;
 
 beforeAll(async () => {
@@ -414,9 +584,22 @@ beforeAll(async () => {
   wasmFreeRuntime = wasmModule.cwrap('qjs_det_free', null, []);
   wasmMalloc = wasmModule.cwrap('malloc', ptrReturnType, ['number']);
   wasmFree = wasmModule.cwrap('free', null, [ptrArgType]);
+  wasmEnableTrace = wasmModule.cwrap('qjs_det_enable_trace', 'number', [
+    'number',
+  ]);
+  wasmReadTrace = wasmModule.cwrap('qjs_det_read_trace', ptrReturnType, []);
 });
 
 function runNative(code: string, gasLimit: bigint): DeterministicOutput {
+  const result = runNativeProcess(code, gasLimit);
+  return parseDeterministicOutput(result.stdout);
+}
+
+function runNativeProcess(
+  code: string,
+  gasLimit: bigint,
+  extraArgs: string[] = [],
+): { stdout: string } {
   const args = [
     '--gas-limit',
     gasLimit.toString(),
@@ -427,6 +610,7 @@ function runNative(code: string, gasLimit: bigint): DeterministicOutput {
     MANIFEST_HASH,
     '--context-blob-hex',
     CONTEXT_HEX,
+    ...extraArgs,
     '--eval',
     code,
   ];
@@ -436,16 +620,31 @@ function runNative(code: string, gasLimit: bigint): DeterministicOutput {
   if (result.error) {
     throw result.error;
   }
-  return parseDeterministicOutput(result.stdout);
+  return {
+    stdout: result.stdout.trim(),
+  };
 }
 
 function runWasm(code: string, gasLimit: bigint): DeterministicOutput {
+  return runWasmWithOptions(code, gasLimit).output;
+}
+
+function runWasmWithOptions(
+  code: string,
+  gasLimit: bigint,
+  options?: { gasTrace?: boolean },
+): {
+  output: DeterministicOutput;
+  trace?: ExpectedTrace;
+} {
   if (
     !wasmEval ||
     !wasmInit ||
     !wasmFreeRuntime ||
     !wasmMalloc ||
     !wasmFree ||
+    !wasmEnableTrace ||
+    !wasmReadTrace ||
     !wasmModule
   ) {
     throw new Error('Wasm harness not initialized');
@@ -474,10 +673,23 @@ function runWasm(code: string, gasLimit: bigint): DeterministicOutput {
       throw new Error(`wasm init failed: ${message}`);
     }
 
+    if (options?.gasTrace) {
+      const rc = wasmEnableTrace(1);
+      if (rc !== 0) {
+        throw new Error(`failed to enable wasm gas trace (rc=${String(rc)})`);
+      }
+    }
+
     const ptr = wasmEval(code);
     const raw = readCString(wasmModule, ptr);
     wasmFree(ptr);
-    return parseDeterministicOutput(raw);
+    const trace = options?.gasTrace
+      ? readWasmTrace(wasmModule, wasmReadTrace, wasmFree)
+      : undefined;
+    return {
+      output: parseDeterministicOutput(raw),
+      ...(trace ? { trace } : {}),
+    };
   } finally {
     wasmFree(manifestPtr);
     wasmFree(hashPtr);
@@ -538,6 +750,28 @@ describe('exact OOG boundaries', () => {
       expect(isOutOfGasError(nativeBoundary.lastFailure)).toBe(true);
     },
   );
+});
+
+describe('gas trace parity', () => {
+  test.each(traceCases)('$name trace matches', ({ name, fixture }) => {
+    const code = readFileSync(path.join(fixturesRoot, fixture), 'utf8');
+    const wasm = runWasmWithOptions(code, 1_000_000n, { gasTrace: true });
+    if (!wasm.trace) {
+      throw new Error(`missing wasm trace for ${name}`);
+    }
+
+    if (useNativeBaseline) {
+      const native = runNativeWithTrace(code, 1_000_000n);
+      expectTraceResult(wasm.trace, native.trace);
+      return;
+    }
+
+    const expected = wasm32TraceExpectations[name];
+    if (!expected) {
+      throw new Error(`Missing wasm32 trace expectation for case ${name}`);
+    }
+    expectTraceResult(wasm.trace, expected);
+  });
 });
 
 function expectHarnessResult(
@@ -609,6 +843,138 @@ function bytesToHex(bytes: Uint8Array): string {
   return Array.from(bytes)
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
+}
+
+function runNativeWithTrace(
+  code: string,
+  gasLimit: bigint,
+): { output: DeterministicOutput; trace: ExpectedTrace } {
+  const result = runNativeProcess(code, gasLimit, ['--gas-trace']);
+  return {
+    output: parseDeterministicOutput(result.stdout),
+    trace: parseNativeTrace(result.stdout),
+  };
+}
+
+function readWasmTrace(
+  wasm: any,
+  readTrace: () => WasmPtr,
+  freeFn: (ptr: WasmPtr) => void,
+): ExpectedTrace {
+  const ptr = readTrace();
+  const raw = readCString(wasm, ptr);
+  freeFn(ptr);
+  return parseWasmTrace(raw);
+}
+
+function parseWasmTrace(raw: string): ExpectedTrace {
+  const trace = JSON.parse(raw) as Record<string, string | undefined>;
+  return {
+    opcodeCount: BigInt(trace.opcodeCount ?? '0'),
+    opcodeGas: BigInt(trace.opcodeGas ?? '0'),
+    arrayCbBaseCount: BigInt(trace.arrayCbBaseCount ?? '0'),
+    arrayCbBaseGas: BigInt(trace.arrayCbBaseGas ?? '0'),
+    arrayCbPerElCount: BigInt(trace.arrayCbPerElCount ?? '0'),
+    arrayCbPerElGas: BigInt(trace.arrayCbPerElGas ?? '0'),
+    allocationCount: BigInt(trace.allocationCount ?? '0'),
+    allocationBytes: BigInt(trace.allocationBytes ?? '0'),
+    allocationGas: BigInt(trace.allocationGas ?? '0'),
+    jsonParseCount: BigInt(trace.jsonParseCount ?? '0'),
+    jsonParseGas: BigInt(trace.jsonParseGas ?? '0'),
+    jsonParseInputBytes: BigInt(trace.jsonParseInputBytes ?? '0'),
+    jsonParseValues: BigInt(trace.jsonParseValues ?? '0'),
+    jsonParseObjectEntries: BigInt(trace.jsonParseObjectEntries ?? '0'),
+    jsonParseArrayElements: BigInt(trace.jsonParseArrayElements ?? '0'),
+    jsonStringifyCount: BigInt(trace.jsonStringifyCount ?? '0'),
+    jsonStringifyGas: BigInt(trace.jsonStringifyGas ?? '0'),
+    jsonStringifyOutputBytes: BigInt(trace.jsonStringifyOutputBytes ?? '0'),
+    jsonStringifyValues: BigInt(trace.jsonStringifyValues ?? '0'),
+    jsonStringifyObjectEntries: BigInt(
+      trace.jsonStringifyObjectEntries ?? '0',
+    ),
+    jsonStringifyArrayElements: BigInt(
+      trace.jsonStringifyArrayElements ?? '0',
+    ),
+    jsonStringifySortComparisons: BigInt(
+      trace.jsonStringifySortComparisons ?? '0',
+    ),
+    hostCallPreCount: BigInt(trace.hostCallPreCount ?? '0'),
+    hostCallPreGas: BigInt(trace.hostCallPreGas ?? '0'),
+    hostCallPostCount: BigInt(trace.hostCallPostCount ?? '0'),
+    hostCallPostGas: BigInt(trace.hostCallPostGas ?? '0'),
+  };
+}
+
+function parseNativeTrace(raw: string): ExpectedTrace {
+  const match = / TRACE (\{.+\})$/.exec(raw.trim());
+  if (!match) {
+    throw new Error(`Unable to parse native trace from output: ${raw}`);
+  }
+  const trace = JSON.parse(match[1]) as {
+    opcodeCount?: number;
+    opcodeGas?: number;
+    arrayCbBase?: { count?: number; gas?: number };
+    arrayCbPerEl?: { count?: number; gas?: number };
+    alloc?: { count?: number; bytes?: number; gas?: number };
+    jsonParse?: {
+      count?: number;
+      gas?: number;
+      inputBytes?: number;
+      values?: number;
+      objectEntries?: number;
+      arrayElements?: number;
+    };
+    jsonStringify?: {
+      count?: number;
+      gas?: number;
+      outputBytes?: number;
+      values?: number;
+      objectEntries?: number;
+      arrayElements?: number;
+      sortComparisons?: number;
+    };
+    hostCallPre?: { count?: number; gas?: number };
+    hostCallPost?: { count?: number; gas?: number };
+  };
+
+  return {
+    opcodeCount: BigInt(trace.opcodeCount ?? 0),
+    opcodeGas: BigInt(trace.opcodeGas ?? 0),
+    arrayCbBaseCount: BigInt(trace.arrayCbBase?.count ?? 0),
+    arrayCbBaseGas: BigInt(trace.arrayCbBase?.gas ?? 0),
+    arrayCbPerElCount: BigInt(trace.arrayCbPerEl?.count ?? 0),
+    arrayCbPerElGas: BigInt(trace.arrayCbPerEl?.gas ?? 0),
+    allocationCount: BigInt(trace.alloc?.count ?? 0),
+    allocationBytes: BigInt(trace.alloc?.bytes ?? 0),
+    allocationGas: BigInt(trace.alloc?.gas ?? 0),
+    jsonParseCount: BigInt(trace.jsonParse?.count ?? 0),
+    jsonParseGas: BigInt(trace.jsonParse?.gas ?? 0),
+    jsonParseInputBytes: BigInt(trace.jsonParse?.inputBytes ?? 0),
+    jsonParseValues: BigInt(trace.jsonParse?.values ?? 0),
+    jsonParseObjectEntries: BigInt(trace.jsonParse?.objectEntries ?? 0),
+    jsonParseArrayElements: BigInt(trace.jsonParse?.arrayElements ?? 0),
+    jsonStringifyCount: BigInt(trace.jsonStringify?.count ?? 0),
+    jsonStringifyGas: BigInt(trace.jsonStringify?.gas ?? 0),
+    jsonStringifyOutputBytes: BigInt(trace.jsonStringify?.outputBytes ?? 0),
+    jsonStringifyValues: BigInt(trace.jsonStringify?.values ?? 0),
+    jsonStringifyObjectEntries: BigInt(
+      trace.jsonStringify?.objectEntries ?? 0,
+    ),
+    jsonStringifyArrayElements: BigInt(
+      trace.jsonStringify?.arrayElements ?? 0,
+    ),
+    jsonStringifySortComparisons: BigInt(
+      trace.jsonStringify?.sortComparisons ?? 0,
+    ),
+    hostCallPreCount: BigInt(trace.hostCallPre?.count ?? 0),
+    hostCallPreGas: BigInt(trace.hostCallPre?.gas ?? 0),
+    hostCallPostCount: BigInt(trace.hostCallPost?.count ?? 0),
+    hostCallPostGas: BigInt(trace.hostCallPost?.gas ?? 0),
+  };
+}
+
+function expectTraceResult(actual: ExpectedTrace, expected: ExpectedTrace) {
+  expect(actual).toEqual(expected);
 }
 
 function tryDecodeExpectedPayload(payload: string): unknown {

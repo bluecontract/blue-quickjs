@@ -17,6 +17,15 @@
     "test": {
       "executor": "nx:run-commands",
       "dependsOn": ["build"],
+      "outputs": ["{projectRoot}/test-output/vitest/coverage"],
+      "options": {
+        "command": "vitest",
+        "cwd": "tools/quickjs-native-harness"
+      }
+    },
+    "test-legacy": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build"],
       "options": {
         "command": "bash tools/quickjs-native-harness/scripts/test.sh"
       }

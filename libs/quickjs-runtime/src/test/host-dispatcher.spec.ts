@@ -8,7 +8,7 @@ import {
   type HostCallMemory,
   createHostCallImport,
   createHostDispatcher,
-} from './host-dispatcher.js';
+} from '../lib/host-dispatcher.js';
 
 const DOC_GET_ID = getFnId(HOST_V1_MANIFEST, 'document.get');
 const DOC_GET_CANONICAL_ID = getFnId(HOST_V1_MANIFEST, 'document.getCanonical');
@@ -218,6 +218,43 @@ describe('host dispatcher', () => {
     expect(envelope.units).toBe(2);
     expect(envelope.ok).toBeInstanceOf(Uint8Array);
     expect(Array.from(envelope.ok)).toEqual([0xde, 0xad, 0xbe, 0xef]);
+  });
+
+  it('supports nested DV2 byte-string payloads', () => {
+    const handlers = createHandlers({
+      get: vi.fn(() => ({
+        ok: {
+          header: Uint8Array.from([1, 2]),
+          chunks: [Uint8Array.from([3]), Uint8Array.from([4, 5])],
+        },
+        units: 2,
+      })),
+    });
+    const dispatcher = createHostDispatcher(HOST_V2_MANIFEST, handlers, {
+      expectedAbiId: 'Host.v2',
+      expectedAbiVersion: 2,
+    });
+
+    const request = encodeDv2(['bytes/path']);
+    const result = dispatcher.dispatch(DOC_GET_ID_V2, request);
+    expect(result.kind).toBe('response');
+
+    const envelope = decodeDv2(
+      (result as Extract<typeof result, { kind: 'response' }>).envelope,
+    ) as {
+      ok: {
+        header: Uint8Array;
+        chunks: Uint8Array[];
+      };
+      units: number;
+    };
+
+    expect(envelope.units).toBe(2);
+    expect(Array.from(envelope.ok.header)).toEqual([1, 2]);
+    expect(envelope.ok.chunks.map((chunk) => Array.from(chunk))).toEqual([
+      [3],
+      [4, 5],
+    ]);
   });
 });
 
