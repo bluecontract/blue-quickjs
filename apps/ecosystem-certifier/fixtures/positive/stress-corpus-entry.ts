@@ -5,7 +5,9 @@ const firstDoc = corpus.markdownDocs[0]?.id ?? null;
 const semverPasses = corpus.semverChecks.filter((entry) =>
   satisfies(entry.version, entry.range),
 ).length;
-const sortedNumeric = [...corpus.numericWork].sort((left, right) => left - right);
+const sortedNumeric = [...corpus.numericWork].sort(
+  (left, right) => left - right,
+);
 
 export default {
   seed: corpus.seed,

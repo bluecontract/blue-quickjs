@@ -12,7 +12,8 @@ export const CERTIFIER_FIXTURES: BuildFixtureDefinition[] = [
     id: 'flagship-knowledge-pack',
     title: 'Flagship knowledge/compliance pack processor',
     kind: 'flagship',
-    entryPath: 'apps/ecosystem-certifier/fixtures/flagship/knowledge-pack-entry.ts',
+    entryPath:
+      'apps/ecosystem-certifier/fixtures/flagship/knowledge-pack-entry.ts',
     profile: 'compat-binary-v1',
     abiId: 'Host.v2',
     abiVersion: 2,
@@ -36,7 +37,8 @@ export const CERTIFIER_FIXTURES: BuildFixtureDefinition[] = [
     id: 'green-base64',
     title: 'base64-js deterministic roundtrip',
     kind: 'positive',
-    entryPath: 'libs/test-harness/fixtures/library-reuse/binary-base64-entry.ts',
+    entryPath:
+      'libs/test-harness/fixtures/library-reuse/binary-base64-entry.ts',
     profile: 'compat-binary-v1',
     abiId: 'Host.v2',
     abiVersion: 2,
@@ -48,7 +50,8 @@ export const CERTIFIER_FIXTURES: BuildFixtureDefinition[] = [
     id: 'green-noble-sha',
     title: '@noble/hashes deterministic digest',
     kind: 'positive',
-    entryPath: 'libs/test-harness/fixtures/library-reuse/binary-sha256-entry.ts',
+    entryPath:
+      'libs/test-harness/fixtures/library-reuse/binary-sha256-entry.ts',
     profile: 'compat-binary-v1',
     abiId: 'Host.v2',
     abiVersion: 2,
@@ -170,7 +173,8 @@ export const CERTIFIER_FIXTURES: BuildFixtureDefinition[] = [
     id: 'green-markdown-it',
     title: 'markdown-it deterministic tokenization',
     kind: 'positive',
-    entryPath: 'apps/ecosystem-certifier/fixtures/positive/markdown-it-entry.ts',
+    entryPath:
+      'apps/ecosystem-certifier/fixtures/positive/markdown-it-entry.ts',
     profile: 'compat-binary-v1',
     abiId: 'Host.v1',
     abiVersion: 1,
@@ -208,7 +212,8 @@ export const CERTIFIER_FIXTURES: BuildFixtureDefinition[] = [
     id: 'green-stress-corpus',
     title: 'seeded stress corpus deterministic summary',
     kind: 'positive',
-    entryPath: 'apps/ecosystem-certifier/fixtures/positive/stress-corpus-entry.ts',
+    entryPath:
+      'apps/ecosystem-certifier/fixtures/positive/stress-corpus-entry.ts',
     profile: 'compat-general-v1',
     abiId: 'Host.v1',
     abiVersion: 1,
@@ -366,7 +371,8 @@ export const CERTIFIER_FIXTURES: BuildFixtureDefinition[] = [
     id: 'red-dynamic-import',
     title: 'dynamic import must be rejected at build stage',
     kind: 'negative',
-    entryPath: 'apps/ecosystem-certifier/fixtures/negative/dynamic-import-entry.ts',
+    entryPath:
+      'apps/ecosystem-certifier/fixtures/negative/dynamic-import-entry.ts',
     profile: 'compat-general-v1',
     abiId: 'Host.v1',
     abiVersion: 1,
@@ -390,7 +396,8 @@ export const CERTIFIER_FIXTURES: BuildFixtureDefinition[] = [
     id: 'red-math-random',
     title: 'Math.random usage must be rejected at build stage',
     kind: 'negative',
-    entryPath: 'apps/ecosystem-certifier/fixtures/negative/math-random-entry.ts',
+    entryPath:
+      'apps/ecosystem-certifier/fixtures/negative/math-random-entry.ts',
     profile: 'compat-general-v1',
     abiId: 'Host.v1',
     abiVersion: 1,
@@ -416,7 +423,8 @@ export const CERTIFIER_FIXTURES: BuildFixtureDefinition[] = [
   },
   {
     id: 'red-function-constructor',
-    title: 'Function constructor must fail deterministically in module-pack flow',
+    title:
+      'Function constructor must fail deterministically in module-pack flow',
     kind: 'negative',
     entryPath:
       'apps/ecosystem-certifier/fixtures/negative/function-constructor-entry.ts',
@@ -433,6 +441,8 @@ export const CERTIFIER_FIXTURES: BuildFixtureDefinition[] = [
   },
 ];
 
-export function manifestForFixture(fixture: BuildFixtureDefinition): AbiManifest {
+export function manifestForFixture(
+  fixture: BuildFixtureDefinition,
+): AbiManifest {
   return fixture.abiId === 'Host.v2' ? HOST_V2_MANIFEST : HOST_V1_MANIFEST;
 }

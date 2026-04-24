@@ -10,7 +10,10 @@ import {
   type FailureStage,
   type FixtureSnapshot,
 } from '../src/shared/types.js';
-import { CERTIFIER_FIXTURES, manifestForFixture } from '../src/shared/fixtures.js';
+import {
+  CERTIFIER_FIXTURES,
+  manifestForFixture,
+} from '../src/shared/fixtures.js';
 import { createCertificationHost } from '../src/shared/host.js';
 import { hashDv, hashTape } from '../src/shared/hash.js';
 

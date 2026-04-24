@@ -13,8 +13,6 @@ export default defineConfig({
     strictPort: true,
   },
   optimizeDeps: {
-    exclude: [
-      '@blue-quickjs/quickjs-wasm',
-    ],
+    exclude: ['@blue-quickjs/quickjs-wasm'],
   },
 });

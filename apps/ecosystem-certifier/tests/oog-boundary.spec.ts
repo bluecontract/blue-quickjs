@@ -27,7 +27,11 @@ test('node and browser share exact OOG boundary for semver fixture', async ({
     low: 1n,
     high: maxGas,
     runSuccess: async (gasLimit) => {
-      const snapshot = await runBrowserSnapshot(page, certCase, gasLimit.toString());
+      const snapshot = await runBrowserSnapshot(
+        page,
+        certCase,
+        gasLimit.toString(),
+      );
       return snapshot.stage === 'success';
     },
   });

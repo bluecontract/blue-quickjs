@@ -9,7 +9,9 @@ type NamedFixtureResult = {
   name: string;
 };
 
-test('browser fixture suites cover example corpus mappings', async ({ page }) => {
+test('browser fixture suites cover example corpus mappings', async ({
+  page,
+}) => {
   const determinismResults = await readBrowserResults<NamedFixtureResult>(
     page,
     '/determinism.html',

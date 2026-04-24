@@ -81,12 +81,14 @@ for (const [id, previous] of baselineFixtures.entries()) {
 }
 
 const currentSummary = currentReport.summary ?? {
-  greenCount: currentFixturesRaw.filter((fixture) => fixture.kind === 'positive')
-    .length,
+  greenCount: currentFixturesRaw.filter(
+    (fixture) => fixture.kind === 'positive',
+  ).length,
   redCount: currentFixturesRaw.filter((fixture) => fixture.kind === 'negative')
     .length,
-  flagshipCount: currentFixturesRaw.filter((fixture) => fixture.kind === 'flagship')
-    .length,
+  flagshipCount: currentFixturesRaw.filter(
+    (fixture) => fixture.kind === 'flagship',
+  ).length,
 };
 
 const delta = {
@@ -103,9 +105,11 @@ const delta = {
   deltas: {
     greenDelta:
       (currentSummary.greenCount ?? 0) - (baseline.summary?.greenCount ?? 0),
-    redDelta: (currentSummary.redCount ?? 0) - (baseline.summary?.redCount ?? 0),
+    redDelta:
+      (currentSummary.redCount ?? 0) - (baseline.summary?.redCount ?? 0),
     flagshipDelta:
-      (currentSummary.flagshipCount ?? 0) - (baseline.summary?.flagshipCount ?? 0),
+      (currentSummary.flagshipCount ?? 0) -
+      (baseline.summary?.flagshipCount ?? 0),
   },
   added,
   removed,

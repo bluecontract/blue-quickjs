@@ -14,12 +14,15 @@ const repoRoot = path.resolve(__dirname, '..', '..', '..');
 const appRoot = path.resolve(repoRoot, 'apps/ecosystem-certifier');
 const require = jiti(import.meta.url, { interopDefault: true });
 
-const { buildDeterministicModulePack, DeterministicBuilderError } = require(
-  '../../../libs/deterministic-builder/src/index.ts',
-);
+const {
+  buildDeterministicModulePack,
+  DeterministicBuilderError,
+} = require('../../../libs/deterministic-builder/src/index.ts');
 const { evaluate } = require('../../../libs/quickjs-runtime/src/index.ts');
 const { encodeDv } = require('../../../libs/dv/src/index.ts');
-const { serializeHostTape } = require('../../../libs/test-harness/src/index.ts');
+const {
+  serializeHostTape,
+} = require('../../../libs/test-harness/src/index.ts');
 const {
   CERTIFIER_FIXTURES,
   manifestForFixture,
@@ -74,7 +77,9 @@ for (const fixture of CERTIFIER_FIXTURES) {
     };
 
     if (!built.programArtifact) {
-      throw new Error(`builder did not return ProgramArtifact.v2 (${fixture.id})`);
+      throw new Error(
+        `builder did not return ProgramArtifact.v2 (${fixture.id})`,
+      );
     }
 
     const host = createCertificationHost();
@@ -139,14 +144,20 @@ for (const record of nodeRecords) {
 }
 
 const mismatches = nodeRecords.filter((record) => !record.match);
-const positiveRecords = nodeRecords.filter((record) => record.kind === 'positive');
-const negativeRecords = nodeRecords.filter((record) => record.kind === 'negative');
-const flagshipRecords = nodeRecords.filter((record) => record.kind === 'flagship');
+const positiveRecords = nodeRecords.filter(
+  (record) => record.kind === 'positive',
+);
+const negativeRecords = nodeRecords.filter(
+  (record) => record.kind === 'negative',
+);
+const flagshipRecords = nodeRecords.filter(
+  (record) => record.kind === 'flagship',
+);
 const compatibilityMatrix = nodeRecords.map((record) => ({
   id: record.id,
   title: record.title,
   kind: record.kind,
-    profile: record.profile,
+  profile: record.profile,
   expectedStage: record.expected.stage,
   nodeStage: record.node?.stage ?? null,
   browserStage: record.browser?.stage ?? null,
@@ -282,7 +293,9 @@ async function runBrowserCases(cases, baseUrlOverride, browserName) {
     await page.goto('/');
     await page.waitForSelector('[data-runstate="done"]', { timeout: 120000 });
 
-    const records = await page.evaluate(() => window.__ECOSYSTEM_CERT_RESULTS__ ?? []);
+    const records = await page.evaluate(
+      () => window.__ECOSYSTEM_CERT_RESULTS__ ?? [],
+    );
     return new Map(records.map((record) => [record.id, record.browser]));
   } finally {
     await context.close();

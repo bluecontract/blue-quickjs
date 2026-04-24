@@ -51,7 +51,9 @@ try {
     window.__CONSUMER_ARTIFACT__ = artifact;
   }, payload.artifact);
   await page.goto('/');
-  await page.waitForFunction(() => typeof window.__runConsumerEvaluation === 'function');
+  await page.waitForFunction(
+    () => typeof window.__runConsumerEvaluation === 'function',
+  );
 
   browserBoundary = await searchBoundary({
     low: 1n,
@@ -70,9 +72,11 @@ try {
 
 const parity = {
   firstSuccessEqual:
-    nodeBoundary.firstSuccessGas.toString() === browserBoundary.firstSuccessGas.toString(),
+    nodeBoundary.firstSuccessGas.toString() ===
+    browserBoundary.firstSuccessGas.toString(),
   lastFailureEqual:
-    nodeBoundary.lastFailureGas.toString() === browserBoundary.lastFailureGas.toString(),
+    nodeBoundary.lastFailureGas.toString() ===
+    browserBoundary.lastFailureGas.toString(),
 };
 
 const report = {

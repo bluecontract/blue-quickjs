@@ -42,8 +42,8 @@ test('proxy fixture is rejected at build stage with deterministic rule', async (
   }
   expect(thrown).toBeInstanceOf(DeterministicBuilderError);
   if (thrown instanceof DeterministicBuilderError) {
-    expect(thrown.diagnostics.some((entry) => entry.ruleId === 'proxy_disabled')).toBe(
-      true,
-    );
+    expect(
+      thrown.diagnostics.some((entry) => entry.ruleId === 'proxy_disabled'),
+    ).toBe(true);
   }
 });

@@ -1,7 +1,9 @@
 import { HOST_V1_HASH, HOST_V1_MANIFEST } from '@blue-quickjs/abi-manifest';
 import { expect, test } from '@playwright/test';
 
-test('browser certifier executes injected evaluation cases', async ({ page }) => {
+test('browser certifier executes injected evaluation cases', async ({
+  page,
+}) => {
   const cases = [
     {
       id: 'sample-script-case',
@@ -30,7 +32,9 @@ test('browser certifier executes injected evaluation cases', async ({ page }) =>
   await page.goto('/');
   await page.waitForSelector('[data-runstate="done"]', { timeout: 60000 });
 
-  const results = await page.evaluate(() => window.__ECOSYSTEM_CERT_RESULTS__ ?? []);
+  const results = await page.evaluate(
+    () => window.__ECOSYSTEM_CERT_RESULTS__ ?? [],
+  );
   expect(results).toHaveLength(1);
   expect(results[0].id).toBe('sample-script-case');
   expect(results[0].browser.stage).toBe('success');

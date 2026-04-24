@@ -14,7 +14,8 @@ declare global {
 
 const app = document.querySelector<HTMLElement>('[data-app]');
 if (app) {
-  app.innerHTML = '<h1>Consumer Proof Browser Runner</h1><pre data-output>Idle</pre>';
+  app.innerHTML =
+    '<h1>Consumer Proof Browser Runner</h1><pre data-output>Idle</pre>';
 }
 
 window.__runConsumerEvaluation = async (gasLimit: string) => {
@@ -75,7 +76,8 @@ window.__runConsumerEvaluation = async (gasLimit: string) => {
 
 const gasLimit = window.__CONSUMER_GAS_LIMIT__;
 if (window.__CONSUMER_ARTIFACT__ && gasLimit) {
-  void window.__runConsumerEvaluation(gasLimit)
+  void window
+    .__runConsumerEvaluation(gasLimit)
     .then((snapshot) => {
       const out = document.querySelector<HTMLElement>('[data-output]');
       if (out) {
@@ -86,7 +88,9 @@ if (window.__CONSUMER_ARTIFACT__ && gasLimit) {
       const out = document.querySelector<HTMLElement>('[data-output]');
       if (out) {
         out.textContent =
-          error instanceof Error ? error.stack ?? error.message : String(error);
+          error instanceof Error
+            ? (error.stack ?? error.message)
+            : String(error);
       }
     });
 }

@@ -54,9 +54,13 @@ try {
     return window.__runConsumerEvaluation(gasLimit);
   }, args.gasLimit);
 
-  await page.waitForFunction(() => Boolean(window.__CONSUMER_RESULT__), undefined, {
-    timeout: 120000,
-  });
+  await page.waitForFunction(
+    () => Boolean(window.__CONSUMER_RESULT__),
+    undefined,
+    {
+      timeout: 120000,
+    },
+  );
   await writeJson(browserResultPath, {
     generatedAt: new Date().toISOString(),
     browser: args.browser,

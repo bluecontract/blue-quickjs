@@ -59,7 +59,9 @@ export function snapshotFromResult(result, encodeDv) {
     gasUsed: result.gasUsed.toString(),
     gasRemaining: result.gasRemaining.toString(),
     tapeHash:
-      tape.length > 0 ? sha256Hex(Buffer.from(stringifyWithBigInt(tape))) : null,
+      tape.length > 0
+        ? sha256Hex(Buffer.from(stringifyWithBigInt(tape)))
+        : null,
     tapeLength: tape.length,
   };
 }

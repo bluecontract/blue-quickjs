@@ -10,12 +10,15 @@ export const repoRoot = path.resolve(__dirname, '..', '..', '..');
 export const appRoot = path.resolve(repoRoot, 'apps/ecosystem-certifier');
 const require = jiti(import.meta.url, { interopDefault: true });
 
-const { buildDeterministicModulePack, DeterministicBuilderError } = require(
-  '../../../libs/deterministic-builder/src/index.ts',
-);
+const {
+  buildDeterministicModulePack,
+  DeterministicBuilderError,
+} = require('../../../libs/deterministic-builder/src/index.ts');
 const { evaluate } = require('../../../libs/quickjs-runtime/src/index.ts');
 const { encodeDv } = require('../../../libs/dv/src/index.ts');
-const { serializeHostTape } = require('../../../libs/test-harness/src/index.ts');
+const {
+  serializeHostTape,
+} = require('../../../libs/test-harness/src/index.ts');
 const {
   CERTIFIER_FIXTURES,
   manifestForFixture,
@@ -123,7 +126,10 @@ export async function launchBrowserCertifier(
             gasLimitValue,
           );
         },
-        { certCasePayload: certCase, gasLimitValue: gasLimit ?? certCase.gasLimit },
+        {
+          certCasePayload: certCase,
+          gasLimitValue: gasLimit ?? certCase.gasLimit,
+        },
       );
     },
     async close() {

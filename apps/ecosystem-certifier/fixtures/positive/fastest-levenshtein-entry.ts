@@ -1,6 +1,11 @@
 import { closest, distance } from 'fastest-levenshtein';
 
-const dictionary = ['consensus', 'determinism', 'compatibility', 'gas-metering'];
+const dictionary = [
+  'consensus',
+  'determinism',
+  'compatibility',
+  'gas-metering',
+];
 const target = 'deterministic';
 
 export default {

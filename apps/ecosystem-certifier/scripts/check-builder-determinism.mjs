@@ -10,9 +10,9 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..', '..', '..');
 const require = jiti(import.meta.url, { interopDefault: true });
-const { buildDeterministicModulePack } = require(
-  '../../../libs/deterministic-builder/src/index.ts',
-);
+const {
+  buildDeterministicModulePack,
+} = require('../../../libs/deterministic-builder/src/index.ts');
 const { HOST_V1_HASH } = require('../../../libs/abi-manifest/src/index.ts');
 
 const args = parseArgs(process.argv.slice(2));
@@ -20,9 +20,9 @@ const outDir = path.resolve(repoRoot, args.outDir);
 await mkdir(outDir, { recursive: true });
 
 const fixtureSource = [
-  "const values = [3, 1, 2];",
+  'const values = [3, 1, 2];',
   'values.sort((a, b) => a - b);',
-  "export default {",
+  'export default {',
   '  values,',
   "  joined: values.join(',')",
   '};',

@@ -55,7 +55,9 @@ const report = {
   parity,
   signature: {
     algorithm: 'sha256',
-    digest: sha256Hex(JSON.stringify({ artifact, nodeSnapshot, browserSnapshot, oogBoundary })),
+    digest: sha256Hex(
+      JSON.stringify({ artifact, nodeSnapshot, browserSnapshot, oogBoundary }),
+    ),
   },
 };
 

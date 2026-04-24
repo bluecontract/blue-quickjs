@@ -49,7 +49,10 @@ try {
   );
   const rulePasses = Boolean(jsonLogic.apply(rules, findingInput));
 
-  const queue = new TinyQueue([], (left, right) => left.priority - right.priority);
+  const queue = new TinyQueue(
+    [],
+    (left, right) => left.priority - right.priority,
+  );
   for (const link of linkMatches) {
     queue.push({ link, priority: link.length });
   }
@@ -67,9 +70,7 @@ try {
   mergedBinary.set(payload, attachmentRoundTrip.length);
   mergedBinary.set(extraPayload, attachmentRoundTrip.length + payload.length);
   const digestHex = bytesToHex(sha256(mergedBinary));
-  const crc32 = (CRC32.buf(mergedBinary) >>> 0)
-    .toString(16)
-    .padStart(8, '0');
+  const crc32 = (CRC32.buf(mergedBinary) >>> 0).toString(16).padStart(8, '0');
 
   const decodedEntities = he.decode('&lt;b&gt;safe&lt;/b&gt;');
   const versionCapture = pathMatch('/document/:id/version/:version')(

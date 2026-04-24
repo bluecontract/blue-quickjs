@@ -11,9 +11,10 @@ import {
 } from './_certifier-eval-helpers.mjs';
 
 const require = jiti(import.meta.url, { interopDefault: true });
-const { HOST_V1_HASH, HOST_V1_MANIFEST } = require(
-  '../../../libs/abi-manifest/src/index.ts',
-);
+const {
+  HOST_V1_HASH,
+  HOST_V1_MANIFEST,
+} = require('../../../libs/abi-manifest/src/index.ts');
 const { evaluate } = require('../../../libs/quickjs-runtime/src/index.ts');
 const { createCertificationHost } = require('../src/shared/host.ts');
 
@@ -21,7 +22,9 @@ const propertySeedConfigPath = path.resolve(
   repoRoot,
   'apps/ecosystem-certifier/src/shared/fixtures/property-seed-config.json',
 );
-const defaultConfig = JSON.parse(await readFile(propertySeedConfigPath, 'utf8'));
+const defaultConfig = JSON.parse(
+  await readFile(propertySeedConfigPath, 'utf8'),
+);
 
 const args = parseArgs(process.argv.slice(2));
 const outDir = path.resolve(repoRoot, args.outDir);
@@ -31,7 +34,11 @@ const browser = await launchBrowserCertifier(args.baseUrl, args.browser);
 const records = [];
 
 try {
-  for (let seed = args.seedStart; seed < args.seedStart + args.seedCount; seed += 1) {
+  for (
+    let seed = args.seedStart;
+    seed < args.seedStart + args.seedCount;
+    seed += 1
+  ) {
     const certCase = createSeededCase(seed, args.gasLimit);
     const host = createCertificationHost();
     const nodeResult = await evaluate({
@@ -53,7 +60,8 @@ try {
       certCase,
       certCase.gasLimit,
     );
-    const match = JSON.stringify(nodeSnapshot) === JSON.stringify(browserSnapshot);
+    const match =
+      JSON.stringify(nodeSnapshot) === JSON.stringify(browserSnapshot);
     records.push({
       seed,
       node: nodeSnapshot,

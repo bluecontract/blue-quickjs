@@ -26,7 +26,9 @@ await run(
   appRoot,
 );
 
-console.log(JSON.stringify({ tarballDir, installed: tarballs.length }, null, 2));
+console.log(
+  JSON.stringify({ tarballDir, installed: tarballs.length }, null, 2),
+);
 
 function parseArgs(argv) {
   let tarballDir = '../../artifacts/consumer-proof/tarballs';

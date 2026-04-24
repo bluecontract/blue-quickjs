@@ -1,4 +1,7 @@
-import type { BrowserEvaluationCase, FixtureParityRecord } from './shared/types.js';
+import type {
+  BrowserEvaluationCase,
+  FixtureParityRecord,
+} from './shared/types.js';
 
 declare global {
   interface Window {

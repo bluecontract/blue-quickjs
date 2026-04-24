@@ -104,19 +104,21 @@ const TEXT_DOCUMENTS = new Map<string, string>([
 const BINARY_DOCUMENTS = new Map<string, Uint8Array>([
   [
     'bytes/payload',
-    Uint8Array.from(Array.from({ length: 64 }, (_, index) => (index * 17) % 251)),
+    Uint8Array.from(
+      Array.from({ length: 64 }, (_, index) => (index * 17) % 251),
+    ),
   ],
   [
     'bytes/flagship-extra',
     Uint8Array.from(
-      Array.from({ length: 192 }, (_, index) => ((index * 29) + 11) % 251),
+      Array.from({ length: 192 }, (_, index) => (index * 29 + 11) % 251),
     ),
   ],
   [
     'pack/attachment.deflated',
     Uint8Array.from([
-      120, 156, 179, 73, 77, 206, 79, 73, 45, 86, 112, 46, 41, 202, 204, 75,
-      87, 72, 206, 207, 43, 73, 45, 2, 0, 101, 57, 8, 181,
+      120, 156, 179, 73, 77, 206, 79, 73, 45, 86, 112, 46, 41, 202, 204, 75, 87,
+      72, 206, 207, 43, 73, 45, 2, 0, 101, 57, 8, 181,
     ]),
   ],
 ]);
@@ -130,11 +132,13 @@ export function createCertificationHost(): {
   const handlers: HostDispatcherHandlers = {
     document: {
       get: (docPath: string): HostCallResult => {
-        if (BINARY_DOCUMENTS.has(docPath)) {
-          return { ok: BINARY_DOCUMENTS.get(docPath)!, units: 6 };
+        const binaryDocument = BINARY_DOCUMENTS.get(docPath);
+        if (binaryDocument !== undefined) {
+          return { ok: binaryDocument, units: 6 };
         }
-        if (TEXT_DOCUMENTS.has(docPath)) {
-          return { ok: TEXT_DOCUMENTS.get(docPath)!, units: 2 };
+        const textDocument = TEXT_DOCUMENTS.get(docPath);
+        if (textDocument !== undefined) {
+          return { ok: textDocument, units: 2 };
         }
         return {
           err: { code: 'NOT_FOUND', tag: 'host/not_found' },
@@ -142,11 +146,13 @@ export function createCertificationHost(): {
         };
       },
       getCanonical: (docPath: string): HostCallResult => {
-        if (TEXT_DOCUMENTS.has(docPath)) {
-          return { ok: TEXT_DOCUMENTS.get(docPath)!, units: 2 };
+        const textDocument = TEXT_DOCUMENTS.get(docPath);
+        if (textDocument !== undefined) {
+          return { ok: textDocument, units: 2 };
         }
-        if (BINARY_DOCUMENTS.has(docPath)) {
-          return { ok: BINARY_DOCUMENTS.get(docPath)!, units: 6 };
+        const binaryDocument = BINARY_DOCUMENTS.get(docPath);
+        if (binaryDocument !== undefined) {
+          return { ok: binaryDocument, units: 6 };
         }
         return {
           err: { code: 'NOT_FOUND', tag: 'host/not_found' },

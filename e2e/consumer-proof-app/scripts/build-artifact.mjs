@@ -3,7 +3,12 @@
 import { HOST_V1_HASH } from '@blue-quickjs/abi-manifest';
 import { buildDeterministicModulePack } from '@blue-quickjs/deterministic-bundler';
 import path from 'node:path';
-import { appRoot, artifactPath, ensureReportsDir, writeJson } from './_helpers.mjs';
+import {
+  appRoot,
+  artifactPath,
+  ensureReportsDir,
+  writeJson,
+} from './_helpers.mjs';
 
 await ensureReportsDir();
 
