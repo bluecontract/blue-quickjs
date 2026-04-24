@@ -123,7 +123,7 @@ This repo ensures:
 **Goal:**
 Create the Nx monorepo scaffold with pnpm workspaces, consistent TypeScript configuration, and a baseline build/test story.
 
-**Current state:** Nx workspace files configured (`nx.json`, `tsconfig.base.json`, `package.json`, `pnpm-workspace.yaml` with apps/libs/tools), engines policy + scripts added, .nvmrc pinned to Node 20.17.0; baseline Nx commands verified.
+**Current state:** Nx workspace files configured (`nx.json`, `tsconfig.base.json`, `package.json`, `pnpm-workspace.yaml` with apps/libs/tools), engines policy + scripts added, .nvmrc pinned to Node 22.19.0; baseline Nx commands verified.
 
 **Detailed tasks:**
 

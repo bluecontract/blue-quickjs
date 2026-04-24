@@ -21,7 +21,7 @@ promotes it explicitly.
 
 ## Prerequisites
 
-- Node.js `>= 20.17.0`
+- Node.js `>= 22.0.0`
 - `pnpm`
 - repository checkout with submodules initialized
 

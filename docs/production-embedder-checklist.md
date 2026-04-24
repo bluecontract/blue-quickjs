@@ -40,7 +40,7 @@ Use this checklist before embedding BlueQuickjs in production consensus flows.
 
 ## F) Operational readiness
 
-- [ ] Run consumer-proof matrix (Node 20/22 and multi-OS).
+- [ ] Run consumer-proof matrix (Node 22 and multi-OS).
 - [ ] Run registry-style publish rehearsal.
 - [ ] Run tarball-based consumer rehearsal.
 - [ ] Confirm docs/release notes match shipped consensus-safe scope.

@@ -138,7 +138,6 @@ jobs:
           - ubuntu-latest
           - windows-latest
         node:
-          - 20
           - 22
     timeout-minutes: 35
     steps:
