@@ -50,7 +50,7 @@ const DATA = {
         manifest: {
           abi_id: 'Host.v1',
           abi_version: 1,
-          funcs: [],
+          functions: [],
         },
       },
       {
@@ -99,7 +99,7 @@ const DATA = {
         manifest: {
           abi_id: 'Host.v1',
           abi_version: 1,
-          funcs: [],
+          functions: [],
         },
       },
     ],

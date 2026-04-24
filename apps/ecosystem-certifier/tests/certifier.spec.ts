@@ -1,10 +1,14 @@
 import { HOST_V1_HASH, HOST_V1_MANIFEST } from '@blue-quickjs/abi-manifest';
 import { expect, test } from '@playwright/test';
+import type {
+  BrowserEvaluationCase,
+  FixtureParityRecord,
+} from '../src/shared/types.js';
 
 test('browser certifier executes injected evaluation cases', async ({
   page,
 }) => {
-  const cases = [
+  const cases: BrowserEvaluationCase[] = [
     {
       id: 'sample-script-case',
       title: 'sample script',
@@ -32,11 +36,15 @@ test('browser certifier executes injected evaluation cases', async ({
   await page.goto('/');
   await page.waitForSelector('[data-runstate="done"]', { timeout: 60000 });
 
-  const results = await page.evaluate(
+  const results = await page.evaluate<FixtureParityRecord[]>(
     () => window.__ECOSYSTEM_CERT_RESULTS__ ?? [],
   );
   expect(results).toHaveLength(1);
-  expect(results[0].id).toBe('sample-script-case');
-  expect(results[0].browser.stage).toBe('success');
-  expect(results[0].browser.errorCode).toBeNull();
+  const [firstResult] = results;
+  if (!firstResult) {
+    throw new Error('expected one browser certifier result');
+  }
+  expect(firstResult.id).toBe('sample-script-case');
+  expect(firstResult.browser?.stage).toBe('success');
+  expect(firstResult.browser?.errorCode).toBeNull();
 });

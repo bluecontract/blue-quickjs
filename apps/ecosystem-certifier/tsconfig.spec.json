@@ -1,8 +1,45 @@
 {
-  "extends": "./tsconfig.json",
+  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "dist/out-tsc-spec",
-    "types": ["vitest/globals", "node"]
+    "lib": ["es2022", "dom", "dom.iterable"],
+    "types": [
+      "vitest/globals",
+      "vitest/importMeta",
+      "vite/client",
+      "node",
+      "vitest"
+    ],
+    "module": "esnext",
+    "moduleResolution": "bundler"
   },
-  "include": ["src/**/*.spec.ts", "tests/**/*.ts"]
+  "include": [
+    "src/**/*.d.ts",
+    "src/**/*.spec.ts",
+    "src/shared/**/*.ts",
+    "tests/**/*.ts"
+  ],
+  "references": [
+    {
+      "path": "./tsconfig.app.json"
+    },
+    {
+      "path": "../../libs/test-harness/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/quickjs-wasm/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/quickjs-runtime/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/dv/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/deterministic-builder/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/abi-manifest/tsconfig.lib.json"
+    }
+  ]
 }

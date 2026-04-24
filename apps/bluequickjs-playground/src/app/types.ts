@@ -1,4 +1,5 @@
 import type { AbiManifest } from '@blue-quickjs/abi-manifest';
+import type { PublicExecutionProfile } from '@blue-quickjs/execution-profiles';
 import type { ProgramArtifactV2 } from '@blue-quickjs/quickjs-runtime';
 
 export type HostPresetId = 'determinism' | 'certification';
@@ -21,7 +22,7 @@ export interface GalleryEntry {
   badge: string;
   description: string;
   certified: boolean;
-  executionProfile: string;
+  executionProfile: PublicExecutionProfile;
   sourceKind: ProgramArtifactV2['sourceKind'];
   abiId: string;
   gasLimit: string;
@@ -64,7 +65,7 @@ export interface RedFixtureRecord {
   id: string;
   title: string;
   kind: string;
-  executionProfile: string;
+  executionProfile: PublicExecutionProfile;
   failureStage: string;
   errorCode: string | null;
   errorTag: string | null;
@@ -152,7 +153,7 @@ export interface PlaygroundRunResult {
   runtimeMetadata: {
     engineBuildHash: string | null;
     gasVersion: number | null;
-    executionProfile: string;
+    executionProfile: PublicExecutionProfile;
     sourceKind: ProgramArtifactV2['sourceKind'];
     abiId: string;
     moduleGraphHash: string | null;

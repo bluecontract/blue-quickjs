@@ -5,7 +5,7 @@ import {
   HOST_V2_MANIFEST,
   type AbiManifest,
 } from '@blue-quickjs/abi-manifest';
-import { encodeDv2 } from '@blue-quickjs/dv';
+import { type DV2, encodeDv2 } from '@blue-quickjs/dv';
 import type {
   HostCallResult,
   HostDispatcherHandlers,
@@ -170,10 +170,7 @@ export async function runArtifact(options: {
       executionProfile: options.artifact.executionProfile,
       sourceKind: options.artifact.sourceKind,
       abiId: options.artifact.abiId,
-      moduleGraphHash:
-        options.artifact.sourceKind === 'module-pack'
-          ? options.artifact.source.modulePack.graphHash
-          : null,
+      moduleGraphHash: getModuleGraphHash(options.artifact),
     },
   };
 }
@@ -312,50 +309,53 @@ function createWrappedHost(hostPreset: HostPresetId): {
       : createDeterminismHost();
   const events: HostEvent[] = [];
 
-  return {
-    handlers: {
-      document: {
-        get: (docPath: string): HostCallResult => {
-          const result = base.handlers.document.get(docPath);
-          events.push({
-            fn: 'document.get',
-            request: docPath,
-            response: previewHostResult(result),
-            units: result.units,
-          });
-          return result;
-        },
-        getCanonical: (docPath: string): HostCallResult => {
-          const result = base.handlers.document.getCanonical(docPath);
-          events.push({
-            fn: 'document.getCanonical',
-            request: docPath,
-            response: previewHostResult(result),
-            units: result.units,
-          });
-          return result;
-        },
-      },
-      emit: (value: unknown): HostCallResult => {
-        const result = base.handlers.emit(value);
+  const handlers: HostDispatcherHandlers = {
+    document: {
+      get: (docPath: string): HostCallResult => {
+        const result = base.handlers.document.get(docPath);
         events.push({
-          fn: 'emit',
-          request: previewValue(value),
+          fn: 'document.get',
+          request: docPath,
+          response: previewHostResult(result),
+          units: result.units,
+        });
+        return result;
+      },
+      getCanonical: (docPath: string): HostCallResult => {
+        const result = base.handlers.document.getCanonical(docPath);
+        events.push({
+          fn: 'document.getCanonical',
+          request: docPath,
           response: previewHostResult(result),
           units: result.units,
         });
         return result;
       },
     },
-    events,
   };
+
+  const emitHandler = base.handlers.emit;
+  if (emitHandler) {
+    handlers.emit = (value: DV2): HostCallResult<null> => {
+      const result = emitHandler(value);
+      events.push({
+        fn: 'emit',
+        request: previewValue(value),
+        response: previewHostResult(result),
+        units: result.units,
+      });
+      return result;
+    };
+  }
+
+  return { handlers, events };
 }
 
 function createInlineCertificationHost(): {
   handlers: HostDispatcherHandlers;
-  emitted: unknown[];
+  emitted: DV2[];
 } {
-  const emitted: unknown[] = [];
+  const emitted: DV2[] = [];
   return {
     emitted,
     handlers: {
@@ -389,7 +389,7 @@ function createInlineCertificationHost(): {
           };
         },
       },
-      emit: (value: unknown): HostCallResult => {
+      emit: (value: DV2): HostCallResult<null> => {
         emitted.push(value);
         return { ok: null, units: 1 };
       },
@@ -455,6 +455,15 @@ function normalizeFailureStage(kind: string): RunSnapshot['stage'] {
     return 'pin_enforcement';
   }
   return 'runtime_error';
+}
+
+function getModuleGraphHash(artifact: ProgramArtifactV2): string | null {
+  if (artifact.sourceKind !== 'module-pack') {
+    return null;
+  }
+  return 'modulePack' in artifact.source
+    ? artifact.source.modulePack.graphHash
+    : null;
 }
 
 async function sha256Hex(input: Uint8Array | string): Promise<string> {

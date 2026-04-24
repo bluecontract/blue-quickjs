@@ -1,4 +1,7 @@
-import { isKnownExecutionProfile } from '@blue-quickjs/execution-profiles';
+import {
+  isKnownExecutionProfile,
+  type PublicExecutionProfile,
+} from '@blue-quickjs/execution-profiles';
 import { monaco } from './monaco.js';
 import { formatGas, shortenHash, slugToLabel, toPrettyJson } from './format.js';
 import {
@@ -44,7 +47,7 @@ export class PlaygroundApp {
 
   private boundaryOverride: OogBoundaryRecord | null = null;
 
-  private scriptProfile = 'baseline-v1';
+  private scriptProfile: PublicExecutionProfile = 'baseline-v1';
 
   private artifactJson = '';
 
@@ -439,7 +442,7 @@ export class PlaygroundApp {
             redFixture?.runtimeArtifact ??
             createScriptArtifact(
               'export default (() => 1 + 2)();\n',
-              this.scriptProfile as GalleryEntry['executionProfile'],
+              this.scriptProfile,
               this.data.examples.metadata,
             ),
         );
@@ -806,7 +809,7 @@ export class PlaygroundApp {
       if (this.mode === 'script') {
         artifact = createScriptArtifact(
           this.editor?.getValue() ?? '',
-          this.scriptProfile as GalleryEntry['executionProfile'],
+          this.scriptProfile,
           this.data.examples.metadata,
         );
         manifest = defaultManifestForArtifact(artifact);
@@ -880,7 +883,7 @@ export class PlaygroundApp {
     if (this.mode === 'script') {
       artifact = createScriptArtifact(
         this.editor?.getValue() ?? '',
-        this.scriptProfile as GalleryEntry['executionProfile'],
+        this.scriptProfile,
         this.data.examples.metadata,
       );
       manifest = defaultManifestForArtifact(artifact);
@@ -920,7 +923,7 @@ export class PlaygroundApp {
       artifactContent = toPrettyJson(
         createScriptArtifact(
           this.editor?.getValue() ?? '',
-          this.scriptProfile as GalleryEntry['executionProfile'],
+          this.scriptProfile,
           this.data.examples.metadata,
         ),
       );
