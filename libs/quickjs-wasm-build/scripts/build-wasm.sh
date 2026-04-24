@@ -226,7 +226,25 @@ const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
 
-const [outDir, qjsDir, emsdkVersionFile, gasSpecPath, metadataBasename, ...variantArgs] = process.argv.slice(2);
+const normalizeCliPath = (filePath) => {
+  if (process.platform !== 'win32') {
+    return filePath;
+  }
+  const msysDrivePath = /^\/([a-zA-Z])\/(.*)$/;
+  const match = msysDrivePath.exec(filePath);
+  if (!match) {
+    return filePath;
+  }
+  const [, driveLetter, rest] = match;
+  return path.win32.normalize(`${driveLetter.toUpperCase()}:\\${rest.replaceAll('/', '\\')}`);
+};
+
+const [rawOutDir, rawQjsDir, rawEmsdkVersionFile, rawGasSpecPath, metadataBasename, ...variantArgs] =
+  process.argv.slice(2);
+const outDir = normalizeCliPath(rawOutDir);
+const qjsDir = normalizeCliPath(rawQjsDir);
+const emsdkVersionFile = normalizeCliPath(rawEmsdkVersionFile);
+const gasSpecPath = normalizeCliPath(rawGasSpecPath);
 if (variantArgs.length === 0) {
   throw new Error('No variant arguments passed to metadata writer.');
 }
@@ -283,7 +301,14 @@ const variants = variantArgs
     const buildTypeFlags = buildTypeFlagsRaw
       ? buildTypeFlagsRaw.split(',').map((flag) => flag.trim()).filter(Boolean)
       : [];
-    return { variant, buildType, wasmPath, loaderPath, variantFlags, buildTypeFlags };
+    return {
+      variant,
+      buildType,
+      wasmPath: normalizeCliPath(wasmPath),
+      loaderPath: normalizeCliPath(loaderPath),
+      variantFlags,
+      buildTypeFlags,
+    };
   })
   .sort((a, b) => {
     if (a.variant === b.variant) {
