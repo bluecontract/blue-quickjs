@@ -1,0 +1,124 @@
+From c6fe5a5255ebfe904dc63e9f1d81a0cc3d3a981c Mon Sep 17 00:00:00 2001
+From: Cursor Agent <cursoragent@cursor.com>
+Date: Mon, 16 Mar 2026 03:34:40 +0000
+Subject: [PATCH 37/51] Trace host-call gas counters in QuickJS
+
+---
+ quickjs-host.c     | 10 ++++++++--
+ quickjs-internal.h |  2 ++
+ quickjs.c          | 28 ++++++++++++++++++++++++++++
+ quickjs.h          |  4 ++++
+ 4 files changed, 42 insertions(+), 2 deletions(-)
+
+diff --git a/quickjs-host.c b/quickjs-host.c
+index 3030e3b..420291a 100644
+--- a/quickjs-host.c
++++ b/quickjs-host.c
+@@ -2874,7 +2874,10 @@ static int js_host_charge_pre(JSContext *ctx, const JSHostFunctionDef *fn, size_
+     }
+ 
+     charge += arg_part;
+-    return JS_UseGas(ctx, charge);
++    if (JS_UseGas(ctx, charge) != 0)
++        return -1;
++    js_gas_trace_record_host_call_pre(ctx, charge);
++    return 0;
+ }
+ 
+ static int js_host_charge_post(JSContext *ctx, const JSHostFunctionDef *fn, size_t resp_len, uint32_t units)
+@@ -2889,7 +2892,10 @@ static int js_host_charge_post(JSContext *ctx, const JSHostFunctionDef *fn, size
+     }
+ 
+     charge += resp_part + unit_part;
+-    return JS_UseGas(ctx, charge);
++    if (JS_UseGas(ctx, charge) != 0)
++        return -1;
++    js_gas_trace_record_host_call_post(ctx, charge);
++    return 0;
+ }
+ 
+ static JSValue js_host_call_wrapper(JSContext *ctx,
+diff --git a/quickjs-internal.h b/quickjs-internal.h
+index 955a44e..78d6200 100644
+--- a/quickjs-internal.h
++++ b/quickjs-internal.h
+@@ -31,6 +31,8 @@ void js_deterministic_set_manifest_state(JSContext *ctx,
+ 
+ int js_deterministic_init_context(JSContext *ctx, uint32_t feature_flags);
+ int js_deterministic_install_json(JSContext *ctx);
++void js_gas_trace_record_host_call_pre(JSContext *ctx, uint64_t gas_cost);
++void js_gas_trace_record_host_call_post(JSContext *ctx, uint64_t gas_cost);
+ 
+ int js_reserve_host_response_buffer(JSContext *ctx, uint32_t capacity);
+ uint8_t *js_get_host_response_buffer(JSContext *ctx);
+diff --git a/quickjs.c b/quickjs.c
+index 4f1b250..609c68a 100644
+--- a/quickjs.c
++++ b/quickjs.c
+@@ -1155,6 +1155,10 @@ struct JSGasTraceData {
+     uint64_t json_stringify_object_entry_count;
+     uint64_t json_stringify_array_element_count;
+     uint64_t json_stringify_sort_comparison_count;
++    uint64_t host_call_pre_count;
++    uint64_t host_call_pre_gas;
++    uint64_t host_call_post_count;
++    uint64_t host_call_post_gas;
+ };
+ 
+ static void js_gas_trace_reset_counts(JSGasTraceData *trace)
+@@ -1259,6 +1263,26 @@ static void js_gas_trace_record_json_stringify(JSContext *ctx,
+     trace->json_stringify_sort_comparison_count += sort_comparison_count;
+ }
+ 
++void js_gas_trace_record_host_call_pre(JSContext *ctx, uint64_t gas_cost)
++{
++    JSGasTraceData *trace = js_gas_trace_or_null(ctx);
++    if (!trace)
++        return;
++
++    trace->host_call_pre_count++;
++    trace->host_call_pre_gas += gas_cost;
++}
++
++void js_gas_trace_record_host_call_post(JSContext *ctx, uint64_t gas_cost)
++{
++    JSGasTraceData *trace = js_gas_trace_or_null(ctx);
++    if (!trace)
++        return;
++
++    trace->host_call_post_count++;
++    trace->host_call_post_gas += gas_cost;
++}
++
+ static int JS_InitAtoms(JSRuntime *rt);
+ static JSAtom __JS_NewAtomInit(JSRuntime *rt, const char *str, int len,
+                                int atom_type);
+@@ -2773,6 +2797,10 @@ int JS_ReadGasTrace(JSContext *ctx, JSGasTrace *out_trace)
+     out_trace->json_stringify_object_entry_count = trace->json_stringify_object_entry_count;
+     out_trace->json_stringify_array_element_count = trace->json_stringify_array_element_count;
+     out_trace->json_stringify_sort_comparison_count = trace->json_stringify_sort_comparison_count;
++    out_trace->host_call_pre_count = trace->host_call_pre_count;
++    out_trace->host_call_pre_gas = trace->host_call_pre_gas;
++    out_trace->host_call_post_count = trace->host_call_post_count;
++    out_trace->host_call_post_gas = trace->host_call_post_gas;
+ 
+     return 0;
+ }
+diff --git a/quickjs.h b/quickjs.h
+index 3a4208e..3baa40a 100644
+--- a/quickjs.h
++++ b/quickjs.h
+@@ -440,6 +440,10 @@ typedef struct JSGasTrace {
+     uint64_t json_stringify_object_entry_count;
+     uint64_t json_stringify_array_element_count;
+     uint64_t json_stringify_sort_comparison_count;
++    uint64_t host_call_pre_count;
++    uint64_t host_call_pre_gas;
++    uint64_t host_call_post_count;
++    uint64_t host_call_post_gas;
+ } JSGasTrace;
+ int JS_EnableGasTrace(JSContext *ctx, int enabled);
+ int JS_ResetGasTrace(JSContext *ctx);
+-- 
+2.54.0
+

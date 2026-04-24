@@ -59,3 +59,5 @@ e2e/consumer-proof-app/node_modules/
 e2e/consumer-proof-app/reports/
 e2e/consumer-proof-app/package-lock.json
 artifacts/
+vendor/.quickjs-cache/
+vendor/quickjs/

@@ -1,0 +1,45 @@
+From 8b3253bddf6a5a792dd098b1a8a154f534b88586 Mon Sep 17 00:00:00 2001
+From: Cursor Agent <cursoragent@cursor.com>
+Date: Mon, 16 Mar 2026 18:38:52 +0000
+Subject: [PATCH 51/51] Close deterministic parity allocation charge drift
+
+---
+ quickjs.c | 8 +++++++-
+ quickjs.h | 2 +-
+ 2 files changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/quickjs.c b/quickjs.c
+index 80bc0e0..2142eec 100644
+--- a/quickjs.c
++++ b/quickjs.c
+@@ -1818,7 +1818,13 @@ static int js_charge_gas_allocation_ctx_with_class(JSContext *ctx,
+     }
+ 
+     if (rt->deterministic_mode &&
+-        alloc_class == JS_GAS_ALLOC_CLASS_UNKNOWN) {
++        (alloc_class == JS_GAS_ALLOC_CLASS_UNKNOWN ||
++         alloc_class == JS_GAS_ALLOC_CLASS_OBJECT_HEADER ||
++         alloc_class == JS_GAS_ALLOC_CLASS_PROPERTY_SLOTS ||
++         alloc_class == JS_GAS_ALLOC_CLASS_SHAPE ||
++         alloc_class == JS_GAS_ALLOC_CLASS_ARRAY_BUFFER_HEADER ||
++         alloc_class == JS_GAS_ALLOC_CLASS_TYPED_ARRAY_BACKING ||
++         alloc_class == JS_GAS_ALLOC_CLASS_TYPED_ARRAY_RECORD)) {
+         js_gas_trace_record_allocation(ctx, requested_size, charged_size, 0);
+         return 0;
+     }
+diff --git a/quickjs.h b/quickjs.h
+index efbb0e2..61febdd 100644
+--- a/quickjs.h
++++ b/quickjs.h
+@@ -355,7 +355,7 @@ typedef JSValue JSCFunction(JSContext *ctx, JSValueConst this_val, int argc, JSV
+ typedef JSValue JSCFunctionMagic(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv, int magic);
+ typedef JSValue JSCFunctionData(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv, int magic, JSValue *func_data);
+ 
+-#define JS_GAS_VERSION_LATEST 7
++#define JS_GAS_VERSION_LATEST 8
+ #define JS_GAS_UNLIMITED UINT64_C(0xffffffffffffffff)
+ 
+ typedef struct JSMallocState {
+-- 
+2.54.0
+

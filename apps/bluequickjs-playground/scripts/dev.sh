@@ -12,7 +12,7 @@ if [ ! -f "tools/emsdk/emsdk_env.sh" ]; then
   exit 1
 fi
 
-bash tools/scripts/ensure-quickjs-submodule.sh
+bash tools/scripts/prepare-quickjs-source.sh
 source tools/emsdk/emsdk_env.sh
 pnpm nx build bluequickjs-playground
 node apps/bluequickjs-playground/scripts/generate-playground-data.mjs

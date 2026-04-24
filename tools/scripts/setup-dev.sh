@@ -24,13 +24,9 @@ step "Installing pnpm dependencies"
 pnpm install
 ok "Dependencies installed"
 
-if [ ! -d "vendor/quickjs/.git" ]; then
-  step "Initializing git submodules"
-  git submodule update --init --recursive vendor/quickjs
-  ok "Submodules initialized"
-else
-  skip "Submodules"
-fi
+step "Preparing QuickJS source from patch series"
+bash tools/scripts/prepare-quickjs-source.sh
+ok "QuickJS source ready"
 
 
 EMSDK_DIR="$ROOT/tools/emsdk"

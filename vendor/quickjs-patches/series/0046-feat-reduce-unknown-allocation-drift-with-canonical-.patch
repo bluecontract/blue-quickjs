@@ -1,0 +1,31 @@
+From f6cc539ff3fa2629de906b8db03a92a437ac513a Mon Sep 17 00:00:00 2001
+From: Cursor Agent <cursoragent@cursor.com>
+Date: Mon, 16 Mar 2026 13:10:31 +0000
+Subject: [PATCH 46/51] feat: reduce unknown allocation drift with canonical
+ header floor
+
+---
+ quickjs.c | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/quickjs.c b/quickjs.c
+index faed455..1249ed9 100644
+--- a/quickjs.c
++++ b/quickjs.c
+@@ -1777,7 +1777,12 @@ static size_t js_det_canonical_allocation_size(size_t requested_size,
+         break;
+     case JS_GAS_ALLOC_CLASS_UNKNOWN:
+     default:
+-        canonical = requested_size;
++        if (requested_size == 0)
++            canonical = 0;
++        else if (requested_size <= JS_GAS_CANON_OBJECT_HEADER_BYTES)
++            canonical = JS_GAS_CANON_OBJECT_HEADER_BYTES;
++        else
++            canonical = requested_size;
+         break;
+     }
+ 
+-- 
+2.54.0
+

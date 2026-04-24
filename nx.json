@@ -17,9 +17,9 @@
       "!{projectRoot}/.eslintrc.json",
       "!{projectRoot}/eslint.config.mjs"
     ],
-    "quickjsSubmodule": [
-      "{workspaceRoot}/vendor/quickjs",
-      "{workspaceRoot}/vendor/quickjs/**"
+    "quickjsSource": [
+      "{workspaceRoot}/vendor/quickjs-patches/**",
+      "{workspaceRoot}/tools/scripts/prepare-quickjs-source.sh"
     ],
     "sharedGlobals": ["{workspaceRoot}/.github/workflows/ci.yml"]
   },

@@ -8,7 +8,7 @@ QJS_DIR="${REPO_ROOT}/vendor/quickjs"
 OUT_DIR="${PROJECT_ROOT}/dist"
 METADATA_BASENAME="quickjs-wasm-build.metadata.json"
 
-bash "${REPO_ROOT}/tools/scripts/ensure-quickjs-submodule.sh"
+bash "${REPO_ROOT}/tools/scripts/prepare-quickjs-source.sh"
 VARIANTS_RAW="${WASM_VARIANTS:-wasm32}"
 BUILD_TYPES_RAW="${WASM_BUILD_TYPES:-release,debug}"
 WASM_INITIAL_MEMORY_BYTES=$((32 * 1024 * 1024))

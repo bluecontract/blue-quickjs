@@ -129,10 +129,10 @@ See:
 
 ## QuickJS fork
 
-- Submodule at `vendor/quickjs` (origin `git@github.com:bluecontract/quickjs.git`).
-- Fresh checkout: `git submodule update --init --recursive`.
-- Update the pin after landing changes in the fork: `cd vendor/quickjs && git fetch origin && git checkout <new-ref>` then `cd .. && git add vendor/quickjs && git commit -m "chore: bump quickjs submodule"`.
-- Do QuickJS edits in the fork repository and only commit the pinned SHA here.
+- Patch series lives in `vendor/quickjs-patches/series`.
+- `vendor/quickjs` is generated from upstream QuickJS base `e5fd3918c1c4a2ee39016e71b66a9eeda85ce716` plus that patch series.
+- Fresh checkout: run `pnpm setup` or `bash tools/scripts/prepare-quickjs-source.sh`.
+- Update fork behavior by exporting a new patch series and regenerating `vendor/quickjs`; do not commit generated QuickJS source.
 
 ## Workspace basics
 

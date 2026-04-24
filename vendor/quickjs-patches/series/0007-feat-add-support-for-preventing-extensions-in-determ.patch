@@ -1,0 +1,28 @@
+From eb8f3eb11b07e06656ac65c4637dfb6c5e80cc15 Mon Sep 17 00:00:00 2001
+From: Mateusz Jonak <mateusz@web.blue>
+Date: Thu, 11 Dec 2025 00:13:57 +0100
+Subject: [PATCH 07/51] feat: Add support for preventing extensions in
+ deterministic runtime
+
+This commit enhances the deterministic runtime in QuickJS by introducing the ability to prevent extensions on host objects. It includes checks to ensure that extensions are disabled during context initialization, further improving control over the execution environment in deterministic scenarios.
+---
+ quickjs.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/quickjs.c b/quickjs.c
+index 7ab8406..f6cdb03 100644
+--- a/quickjs.c
++++ b/quickjs.c
+@@ -2594,6 +2594,9 @@ static int js_deterministic_init_host(JSContext *ctx)
+     if (ret < 0)
+         goto fail;
+ 
++    if (JS_PreventExtensions(ctx, host_v1) < 0 || JS_PreventExtensions(ctx, host_ns) < 0)
++        goto fail;
++
+     JS_FreeValue(ctx, host_ns);
+     JS_FreeValue(ctx, host_v1);
+ 
+-- 
+2.54.0
+

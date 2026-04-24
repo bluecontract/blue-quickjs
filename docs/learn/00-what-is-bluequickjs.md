@@ -71,7 +71,7 @@ Next: [01 — Install and run your first script](./01-install-and-run-your-first
 
 - If `pnpm install` fails, confirm your Node version matches the root
   `package.json` engines field.
-- If the CLI build fails, run `git submodule update --init --recursive` and
+- If the CLI build fails, run `bash tools/scripts/prepare-quickjs-source.sh` and
   then retry.
 - For a scope summary without running commands, read
   [Consensus-safe vs diagnostic-only](../consensus-safe-vs-diagnostic-only.md).

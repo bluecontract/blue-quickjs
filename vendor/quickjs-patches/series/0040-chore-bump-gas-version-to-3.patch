@@ -1,0 +1,25 @@
+From ae6d251892e263565732443711f2f3594216036e Mon Sep 17 00:00:00 2001
+From: Cursor Agent <cursoragent@cursor.com>
+Date: Mon, 16 Mar 2026 10:23:38 +0000
+Subject: [PATCH 40/51] chore: bump gas version to 3
+
+---
+ quickjs.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/quickjs.h b/quickjs.h
+index 3baa40a..469c728 100644
+--- a/quickjs.h
++++ b/quickjs.h
+@@ -355,7 +355,7 @@ typedef JSValue JSCFunction(JSContext *ctx, JSValueConst this_val, int argc, JSV
+ typedef JSValue JSCFunctionMagic(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv, int magic);
+ typedef JSValue JSCFunctionData(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv, int magic, JSValue *func_data);
+ 
+-#define JS_GAS_VERSION_LATEST 2
++#define JS_GAS_VERSION_LATEST 3
+ #define JS_GAS_UNLIMITED UINT64_C(0xffffffffffffffff)
+ 
+ typedef struct JSMallocState {
+-- 
+2.54.0
+

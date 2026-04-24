@@ -1,0 +1,24 @@
+From 108c0f8d526308d373a619e93ef1cf46a8430b28 Mon Sep 17 00:00:00 2001
+From: Cursor Agent <cursoragent@cursor.com>
+Date: Mon, 16 Mar 2026 02:31:14 +0000
+Subject: [PATCH 36/51] Normalize deterministic runtime malloc usable size
+
+---
+ quickjs.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/quickjs.c b/quickjs.c
+index 182d253..4f1b250 100644
+--- a/quickjs.c
++++ b/quickjs.c
+@@ -2568,6 +2568,7 @@ int JS_NewDeterministicRuntimeWithFeatures(JSRuntime **out_rt,
+     rt->deterministic_mode = TRUE;
+     rt->det_gc_pending = FALSE;
+     rt->det_gc_alloc_bytes = 0;
++    rt->mf.js_malloc_usable_size = js_malloc_usable_size_unknown;
+ #ifdef __EMSCRIPTEN__
+     rt->host_call_func = js_wasm_host_call;
+ #else
+-- 
+2.54.0
+

@@ -7,7 +7,7 @@ QJS_DIR="${REPO_ROOT}/vendor/quickjs"
 OUT_DIR="${REPO_ROOT}/tools/quickjs-native-harness/dist"
 CC_BIN="${CC:-cc}"
 
-bash "${REPO_ROOT}/tools/scripts/ensure-quickjs-submodule.sh"
+bash "${REPO_ROOT}/tools/scripts/prepare-quickjs-source.sh"
 
 VERSION="$(cat "${QJS_DIR}/VERSION")"
 

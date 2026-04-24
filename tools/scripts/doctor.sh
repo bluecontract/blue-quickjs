@@ -58,10 +58,24 @@ else
   fail "package.json missing at repo root"
 fi
 
-if [ -d "$ROOT/vendor/quickjs" ]; then
-  pass "vendor/quickjs directory found"
+if [ -d "$ROOT/vendor/quickjs-patches/series" ]; then
+  pass "vendor/quickjs patch series found"
 else
-  fail "vendor/quickjs missing; run: git submodule update --init --recursive vendor/quickjs"
+  fail "vendor/quickjs patch series missing"
+fi
+
+if [ -f "$ROOT/vendor/quickjs-patches/manifest.json" ]; then
+  pass "QuickJS patch manifest found"
+else
+  fail "QuickJS patch manifest missing"
+fi
+
+if [ -f "$ROOT/vendor/quickjs/.blue-quickjs-source.json" ]; then
+  pass "vendor/quickjs prepared from patch series"
+elif [ -d "$ROOT/vendor/quickjs" ]; then
+  warn "vendor/quickjs exists but is not marked as generated; run: bash tools/scripts/prepare-quickjs-source.sh"
+else
+  warn "vendor/quickjs missing; run: bash tools/scripts/prepare-quickjs-source.sh"
 fi
 
 if [ -f "$ROOT/tools/scripts/setup-emsdk.sh" ]; then

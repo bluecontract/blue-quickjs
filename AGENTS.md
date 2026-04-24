@@ -13,7 +13,7 @@ Key locations:
 - **Apps**: `apps/*` (e.g. browser and node smoke projects)
 - **Libraries**: `libs/*` (e.g. DV, wasm runtime/build, test harness)
 - **Tooling**: `tools/*` (e.g. native harness, emsdk bootstrap scripts)
-- **QuickJS fork pin**: `vendor/quickjs` (git submodule)
+- **QuickJS fork patches**: `vendor/quickjs-patches` (applied onto clean upstream source)
 - **Specs/docs**: `docs/*` (determinism profile, gas schedule, DV wire format, host ABI)
 
 ## Environment expectations

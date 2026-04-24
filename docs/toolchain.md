@@ -14,10 +14,10 @@ Baseline anchors: see `docs/baseline-1.md` (deterministic execution constraints)
 1. From repo root: `tools/scripts/setup-emsdk.sh`
    - Clones `emsdk` into `tools/emsdk` if missing.
    - Installs + activates the pinned version.
-2. Ensure the pinned QuickJS submodule is present:
+2. Ensure the generated QuickJS source tree is prepared:
 
    ```bash
-   git submodule update --init --recursive vendor/quickjs
+   bash tools/scripts/prepare-quickjs-source.sh
    ```
 
    The repo now auto-runs this check before native-harness and wasm builds, but

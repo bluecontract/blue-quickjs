@@ -4,7 +4,7 @@ Early Emscripten build of the deterministic QuickJS fork with gas metering.
 
 ## Building
 
-- Ensure the pinned toolchain is installed (`tools/scripts/setup-emsdk.sh`) and `vendor/quickjs` is initialized.
+- Ensure the pinned Emscripten toolchain is installed (`tools/scripts/setup-emsdk.sh`) and the generated QuickJS source tree exists (`bash tools/scripts/prepare-quickjs-source.sh` or `pnpm setup`).
 - Run `pnpm nx build quickjs-wasm-build` to compile the wasm harness and emit both release and debug wasm32 artifacts (`quickjs-eval{,-debug}.{js,wasm}`) to `libs/quickjs-wasm-build/dist/`. TypeScript outputs also land in this directory.
 - Set `WASM_BUILD_TYPES=release` to skip debug builds, or `WASM_BUILD_TYPES=release,debug` (default) to emit both. Set `WASM_VARIANTS=wasm32,wasm64` to also emit the memory64 artifacts (`quickjs-eval-wasm64{,-debug}.{js,wasm}`) used with `QJS_WASM_VARIANT=wasm64` in tests.
 - Wasm memory is fixed at 32 MiB (1 MiB stack) with growth disabled; the Emscripten filesystem is stripped (`-sFILESYSTEM=0`), and we pin `SOURCE_DATE_EPOCH=1704067200` to avoid timestamp/env noise in the wasm/loader. We intentionally avoid `-sDETERMINISTIC` because it patches host `Date.now`/`Math.random`.
