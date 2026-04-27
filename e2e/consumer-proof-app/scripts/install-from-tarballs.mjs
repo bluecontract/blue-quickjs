@@ -9,6 +9,8 @@ const appRoot = path.resolve(import.meta.dirname, '..');
 const npmCacheDir = path.join(appRoot, '.npm-cache');
 const args = parseArgs(process.argv.slice(2));
 const tarballDir = path.resolve(appRoot, args.tarballDir);
+const useShell = process.platform === 'win32';
+const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 await mkdir(npmCacheDir, { recursive: true });
 const entries = await readdir(tarballDir);
 const tarballs = entries
@@ -21,9 +23,9 @@ if (tarballs.length === 0) {
   throw new Error(`no .tgz files found in ${tarballDir}`);
 }
 
-await run('npm', ['install', '--no-fund', '--no-audit'], appRoot);
+await run(npmCommand, ['install', '--no-fund', '--no-audit'], appRoot);
 await run(
-  'npm',
+  npmCommand,
   ['install', '--no-save', '--no-fund', '--no-audit', ...tarballs],
   appRoot,
 );
@@ -55,7 +57,9 @@ async function run(command, args, cwd) {
       cwd,
       stdio: 'inherit',
       env: createCleanNpmEnv(),
+      shell: useShell,
     });
+    child.on('error', reject);
     child.on('exit', (code) => {
       if (code === 0) {
         resolve(undefined);

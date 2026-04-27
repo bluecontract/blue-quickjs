@@ -9,6 +9,8 @@ import { PUBLIC_PACKAGES } from './public-packages.mjs';
 const repoRoot = process.cwd();
 const args = parseArgs(process.argv.slice(2));
 const outDir = path.resolve(repoRoot, args.outDir);
+const useShell = process.platform === 'win32';
+const pnpmCommand = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
 await mkdir(outDir, { recursive: true });
 for (const entry of await readdir(outDir)) {
   if (entry.endsWith('.tgz')) {
@@ -25,7 +27,7 @@ for (const pkg of packages) {
     throw new Error(`workspace package not found: ${pkg}`);
   }
   await run(
-    'pnpm',
+    pnpmCommand,
     ['pack', '--pack-destination', outDir],
     packageDir,
   );
@@ -53,8 +55,9 @@ async function run(command, argsList, cwd) {
     const child = spawn(command, argsList, {
       cwd,
       stdio: 'inherit',
-      shell: false,
+      shell: useShell,
     });
+    child.on('error', reject);
     child.on('exit', (code) => {
       if (code === 0) {
         resolve(undefined);

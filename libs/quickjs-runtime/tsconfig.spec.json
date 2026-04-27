@@ -29,6 +29,18 @@
   "references": [
     {
       "path": "./tsconfig.lib.json"
+    },
+    {
+      "path": "../dv/tsconfig.lib.json"
+    },
+    {
+      "path": "../abi-manifest/tsconfig.lib.json"
+    },
+    {
+      "path": "../test-harness/tsconfig.lib.json"
+    },
+    {
+      "path": "../deterministic-bundler/tsconfig.lib.json"
     }
   ]
 }

@@ -917,8 +917,8 @@ function computeDependencyIntegrity(absWorkingDir: string): string {
   if (!lockfilePath) {
     return sha256Hex('no-lockfile');
   }
-  const bytes = fs.readFileSync(lockfilePath);
-  return createHash('sha256').update(bytes).digest('hex');
+  const contents = fs.readFileSync(lockfilePath, 'utf8');
+  return sha256Hex(normalizeLineEndings(contents));
 }
 
 function findNearestLockfile(startDir: string): string | null {

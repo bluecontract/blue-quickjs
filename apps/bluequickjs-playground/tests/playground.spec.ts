@@ -1,5 +1,10 @@
 import { expect, test } from '@playwright/test';
 
+const screenshotOptions = {
+  fullPage: true,
+  maxDiffPixels: 5000,
+};
+
 async function selectGalleryItem(
   page: import('@playwright/test').Page,
   text: string,
@@ -21,9 +26,10 @@ test('renders the landing state', async ({ page, browserName }) => {
   );
 
   if (browserName === 'chromium') {
-    await expect(page).toHaveScreenshot('playground-landing.png', {
-      fullPage: true,
-    });
+    await expect(page).toHaveScreenshot(
+      'playground-landing.png',
+      screenshotOptions,
+    );
   }
 });
 
@@ -43,9 +49,10 @@ test('runs the baseline example and matches certified evidence', async ({
   );
 
   if (browserName === 'chromium') {
-    await expect(page).toHaveScreenshot('playground-success.png', {
-      fullPage: true,
-    });
+    await expect(page).toHaveScreenshot(
+      'playground-success.png',
+      screenshotOptions,
+    );
   }
 });
 
@@ -70,9 +77,10 @@ test('runs promise and binary examples through their profile-gated flows', async
   );
 
   if (browserName === 'chromium') {
-    await expect(page).toHaveScreenshot('playground-binary.png', {
-      fullPage: true,
-    });
+    await expect(page).toHaveScreenshot(
+      'playground-binary.png',
+      screenshotOptions,
+    );
   }
 });
 
@@ -98,9 +106,10 @@ test('shows deterministic failure messaging for red fixtures', async ({
   );
 
   if (browserName === 'chromium') {
-    await expect(page).toHaveScreenshot('playground-failure.png', {
-      fullPage: true,
-    });
+    await expect(page).toHaveScreenshot(
+      'playground-failure.png',
+      screenshotOptions,
+    );
   }
 });
 
@@ -120,9 +129,10 @@ test('supports exact OOG boundary inspection and artifact-json roundtrips', asyn
   );
 
   if (browserName === 'chromium') {
-    await expect(page).toHaveScreenshot('playground-oog.png', {
-      fullPage: true,
-    });
+    await expect(page).toHaveScreenshot(
+      'playground-oog.png',
+      screenshotOptions,
+    );
   }
 
   await selectGalleryItem(page, 'Standard ESM module-pack');

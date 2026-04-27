@@ -169,8 +169,17 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: bash tools/scripts/setup-emsdk.sh
 
-      - name: Build public packages for consumer proof
+      - name: Build public packages for consumer proof (Linux)
+        if: matrix.os == 'ubuntu-latest'
         run: pnpm nx run-many -t build --projects abi-manifest,dv,execution-profiles,quickjs-wasm-constants,quickjs-wasm,quickjs-runtime,deterministic-bundler
+
+      - name: Build public packages for consumer proof (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          pnpm nx build quickjs-wasm-build
+          pnpm nx run-many -t build --projects abi-manifest,dv,execution-profiles,quickjs-wasm-constants,deterministic-bundler
+          pnpm nx build quickjs-wasm --excludeTaskDependencies
+          pnpm nx build quickjs-runtime --excludeTaskDependencies
 
       - name: Pack public tarballs
         run: node tools/workload-certification/pack-public-tarballs.mjs --out-dir artifacts/consumer-proof/tarballs

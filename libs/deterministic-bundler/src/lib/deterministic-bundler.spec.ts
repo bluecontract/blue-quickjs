@@ -327,6 +327,29 @@ describe('buildDeterministicModulePack', () => {
     );
   });
 
+  it('keeps dependency integrity stable across lockfile line endings', async () => {
+    const lfRoot = createFixtureDir();
+    const crlfRoot = createFixtureDir();
+    writeFixture(lfRoot, 'pnpm-lock.yaml', 'lockfileVersion: 9.0\n');
+    writeFixture(crlfRoot, 'pnpm-lock.yaml', 'lockfileVersion: 9.0\r\n');
+    writeFixture(lfRoot, 'fixture/entry.ts', 'export default 1;');
+    writeFixture(crlfRoot, 'fixture/entry.ts', 'export default 1;');
+
+    const lfBuilt = await buildDeterministicModulePack({
+      absWorkingDir: path.join(lfRoot, 'fixture'),
+      entryPath: 'entry.ts',
+    });
+    const crlfBuilt = await buildDeterministicModulePack({
+      absWorkingDir: path.join(crlfRoot, 'fixture'),
+      entryPath: 'entry.ts',
+    });
+
+    expect(crlfBuilt.modulePack.dependencyIntegrity).toBe(
+      lfBuilt.modulePack.dependencyIntegrity,
+    );
+    expect(crlfBuilt.modulePack.graphHash).toBe(lfBuilt.modulePack.graphHash);
+  });
+
   it('rejects non-hex dependencyIntegrity overrides', async () => {
     const fixtureDir = createFixtureDir();
     writeFixture(fixtureDir, 'entry.ts', 'export default 1;');

@@ -9,6 +9,8 @@ import { PUBLIC_PACKAGES } from './public-packages.mjs';
 const args = parseArgs(process.argv.slice(2));
 const repoRoot = process.cwd();
 const outDir = path.resolve(repoRoot, args.outDir);
+const useShell = process.platform === 'win32';
+const pnpmCommand = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
 await mkdir(outDir, { recursive: true });
 for (const entry of await readdir(outDir)) {
   if (entry.endsWith('.tgz')) {
@@ -26,7 +28,7 @@ for (const pkg of PUBLIC_PACKAGES) {
   const packageJson = JSON.parse(
     await readFile(path.join(packageDir, 'package.json'), 'utf8'),
   );
-  await run('pnpm', ['pack', '--pack-destination', outDir], packageDir);
+  await run(pnpmCommand, ['pack', '--pack-destination', outDir], packageDir);
   const filename = `${pkg.replace('@', '').replaceAll('/', '-')}-${packageJson.version}.tgz`;
   records.push({
     package: pkg,
@@ -82,8 +84,9 @@ async function run(command, args, cwd) {
     const child = spawn(command, args, {
       cwd,
       stdio: 'inherit',
-      shell: false,
+      shell: useShell,
     });
+    child.on('error', reject);
     child.on('exit', (code) => {
       if (code === 0) {
         resolve(undefined);
