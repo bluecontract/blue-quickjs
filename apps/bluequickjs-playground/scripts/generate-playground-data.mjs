@@ -167,13 +167,22 @@ const redPayload = {
 };
 
 const outputs = new Map([
-  ['playground-examples.json', `${JSON.stringify(examplesPayload, null, 2)}\n`],
-  ['playground-evidence.json', `${JSON.stringify(evidencePayload, null, 2)}\n`],
+  [
+    'playground-examples.json',
+    `${JSON.stringify(canonicalizeGeneratedValue(examplesPayload), null, 2)}\n`,
+  ],
+  [
+    'playground-evidence.json',
+    `${JSON.stringify(canonicalizeGeneratedValue(evidencePayload), null, 2)}\n`,
+  ],
   [
     'playground-oog-boundaries.json',
-    `${JSON.stringify(oogPayload, null, 2)}\n`,
+    `${JSON.stringify(canonicalizeGeneratedValue(oogPayload), null, 2)}\n`,
   ],
-  ['playground-red-fixtures.json', `${JSON.stringify(redPayload, null, 2)}\n`],
+  [
+    'playground-red-fixtures.json',
+    `${JSON.stringify(canonicalizeGeneratedValue(redPayload), null, 2)}\n`,
+  ],
 ]);
 
 await mkdir(outDir, { recursive: true });
@@ -890,6 +899,24 @@ function sha256Hex(input) {
   const bytes =
     typeof input === 'string' ? new TextEncoder().encode(input) : input;
   return createHash('sha256').update(bytes).digest('hex');
+}
+
+function canonicalizeGeneratedValue(value) {
+  if (typeof value === 'string') {
+    return value.split(repoRoot).join('/workspace');
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => canonicalizeGeneratedValue(item));
+  }
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [
+        key,
+        canonicalizeGeneratedValue(item),
+      ]),
+    );
+  }
+  return value;
 }
 
 function parseArgs(argv) {
