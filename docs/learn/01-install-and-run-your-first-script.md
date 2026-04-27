@@ -7,7 +7,6 @@ deterministic run with visible gas accounting.
 
 - Node.js `>= 22.0.0`
 - `pnpm`
-- repository checkout with submodules initialized
 
 ## Commands
 

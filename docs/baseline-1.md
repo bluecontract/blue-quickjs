@@ -37,7 +37,7 @@ Definitions:
 ## 2. “Same engine everywhere” (normative)
 
 - The evaluator must ship/instantiate the **same QuickJS-in-Wasm bytes** in Node and browsers.
-- Engine identity (or equivalent immutable metadata) is pinnable via `P` (see runtime types and `docs/implementation-plan.md` for the broader architecture).
+- Engine identity (or equivalent immutable metadata) is pinnable via `P` (see runtime types and `docs/architecture-overview.md` for the broader architecture).
 
 ## 3. Deterministic capability profile (normative)
 

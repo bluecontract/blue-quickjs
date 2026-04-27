@@ -7,7 +7,7 @@ This doc explains how to use the TypeScript runtime SDK (`libs/quickjs-runtime`)
 - deterministic gas metering
 - optional tape + gas trace
 
-Conceptual overview: [Implementation summary](./implementation-summary.md).  
+Conceptual overview: [Core concepts](./concepts.md).
 ABI and DV specs: [Baseline #2](./baseline-2.md), [ABI manifest](./abi-manifest.md), [Host call ABI](./host-call-abi.md), [DV wire format](./dv-wire-format.md).
 Runnable scenario matrix (module-pack, promises, libraries, binary, OOG
 boundaries): [Examples corpus](../examples/README.md).
@@ -353,7 +353,7 @@ See the gas sample fixtures in `libs/test-harness` for examples.
 
 ## See also
 
-- [Implementation summary](./implementation-summary.md)
+- [Core concepts](./concepts.md)
 - [Determinism profile](./determinism-profile.md)
 - [Host call ABI](./host-call-abi.md)
 - [ABI manifest](./abi-manifest.md)

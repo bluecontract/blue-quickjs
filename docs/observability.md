@@ -184,5 +184,4 @@ They are safe to include in golden tests and reproducibility baselines (see fixt
 - [SDK usage](./sdk.md) (how to turn these on)
 - [Host call ABI](./host-call-abi.md) (tape details and ABI mechanics)
 - [Gas schedule](./gas-schedule.md) (what is metered and trace semantics)
-- [Implementation summary](./implementation-summary.md) (how it all fits together)
-
+- [Core concepts](./concepts.md) (how it all fits together)

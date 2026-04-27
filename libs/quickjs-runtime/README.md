@@ -9,7 +9,7 @@ TypeScript runtime SDK for **deterministic QuickJS-in-Wasm** evaluation with:
 
 If you are looking for the conceptual architecture and contracts, start with:
 - `docs/README.md`
-- `docs/implementation-summary.md`
+- `docs/concepts.md`
 
 ---
 
@@ -64,7 +64,7 @@ console.log(result.value, result.gasUsed, result.gasRemaining);
 ## Docs
 
 - SDK guide: `docs/sdk.md`
-- Implementation overview: `docs/implementation-summary.md`
+- Implementation overview: `docs/concepts.md`
 - ABI + DV reference:
   - `docs/baseline-2.md`
   - `docs/abi-manifest.md`
