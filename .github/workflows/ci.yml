@@ -65,11 +65,16 @@ jobs:
       - name: Reset Nx state (just in case)
         run: pnpm exec nx reset
 
+      - name: Clear TypeScript build state
+        run: |
+          find libs apps tools -name '*.tsbuildinfo' -delete
+          rm -rf libs/*/out-tsc apps/*/out-tsc tools/*/out-tsc
+
       - uses: nrwl/nx-set-shas@v4
 
       # Prepend any command with "nx-cloud record --" to record its logs to Nx Cloud
       # - run: pnpm exec nx-cloud record -- echo Hello World
-      - run: pnpm exec nx affected -t lint test build typecheck
+      - run: NX_DAEMON=false NX_NO_CLOUD=true pnpm exec nx affected -t lint test build typecheck --skip-nx-cache --output-style=stream
 
       - name: Run native harness suites
         run: |
