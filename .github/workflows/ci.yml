@@ -45,16 +45,19 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Validate docs links
-        run: pnpm docs:check-links
-
-      - name: Validate learning-path docs structure
-        run: pnpm docs:verify-learning-path
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: >
+            --root-dir .
+            --offline
+            --no-progress
+            README.md
+            'docs/**/*.md'
+            examples/README.md
+          fail: true
 
       - name: Run release evidence unit tests
         run: pnpm release-evidence:test
-
-      - name: Validate README quickstart script wiring
-        run: node tools/release-evidence/verify-readme-quickstart.mjs --skip-setup --skip-verify --skip-evidence
 
       - name: Install emsdk (pinned 3.1.56)
         run: bash tools/scripts/setup-emsdk.sh

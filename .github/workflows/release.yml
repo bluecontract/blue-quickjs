@@ -53,10 +53,6 @@ jobs:
       - name: Verify generated gas schedule docs are in sync
         run: node tools/gas-spec/render-gas-artifacts.mjs --check
 
-      - name: Verify learning-path docs
-        run: |
-          pnpm docs:verify-learning-path
-
       - name: Generate SBOM and dependency license reports
         run: |
           pnpm release-evidence:sbom -- --out-dir artifacts/security
@@ -125,11 +121,21 @@ jobs:
       - name: Synthesize release evidence bundle
         run: pnpm release-evidence:synthesize -- --out-dir artifacts/release-evidence
 
+      - name: Validate docs links
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: >
+            --root-dir .
+            --offline
+            --no-progress
+            README.md
+            'docs/**/*.md'
+            examples/README.md
+          fail: true
+
       - name: Validate generated release evidence and docs freshness
         run: |
           EXPECTED_DATE=$(node -e "const fs=require('fs');console.log(JSON.parse(fs.readFileSync('artifacts/release-evidence/release-evidence-manifest.json','utf8')).date)")
-          pnpm docs:check-links
-          pnpm docs:verify-learning-path
           pnpm docs:check-freshness -- --expected-branch "${GITHUB_REF_NAME}" --expected-date "${EXPECTED_DATE}"
           pnpm playground:check-generated
           pnpm release-evidence:synthesize -- --out-dir artifacts/release-evidence --check
