@@ -12,10 +12,7 @@ export interface DeterminismProgramArtifact {
   abiId: string;
   abiVersion: number;
   abiManifestHash: string;
-  executionProfile?:
-    | 'baseline-v1'
-    | 'compat-general-v1'
-    | 'compat-binary-v1';
+  executionProfile?: 'baseline-v1' | 'compat-general-v1' | 'compat-binary-v1';
   engineBuildHash?: string;
 }
 

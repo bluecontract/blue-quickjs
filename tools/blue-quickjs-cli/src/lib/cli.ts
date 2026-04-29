@@ -16,6 +16,13 @@ import {
   type DeterministicExecutionProfile,
 } from '@blue-quickjs/deterministic-builder';
 import {
+  buildLibraryArtifact,
+  buildStepArtifact,
+  createImportLock,
+  importNpmLibrary,
+  inspectBlueDocument,
+} from '@blue-quickjs/blue-documents';
+import {
   type ProgramArtifact,
   type ProgramArtifactV2,
   type HostDispatcherHandlers,
@@ -34,6 +41,8 @@ type StackLocation = {
   column: number;
 };
 
+const COMMANDS_WITH_POSITIONAL_ARGUMENT = new Set(['import-npm']);
+
 export function parseArgMap(args: string[]): {
   command: string | null;
   options: ArgMap;
@@ -48,7 +57,14 @@ export function parseArgMap(args: string[]): {
   for (let i = 0; i < rest.length; i += 1) {
     const token = rest[i];
     if (!token.startsWith('--')) {
-      throw new Error(`unexpected positional argument: ${token}`);
+      if (!COMMANDS_WITH_POSITIONAL_ARGUMENT.has(command)) {
+        throw new Error(`unexpected positional argument: ${token}`);
+      }
+      if (options.has('_')) {
+        throw new Error(`unexpected positional argument: ${token}`);
+      }
+      options.set('_', token);
+      continue;
     }
     const key = token.slice(2);
     const maybeValue = rest[i + 1];
@@ -86,6 +102,16 @@ export async function runCli(args: string[]): Promise<number> {
         return await runCompat(options);
       case 'inspect':
         return await runInspect(options);
+      case 'import-npm':
+        return await runImportNpm(options);
+      case 'build-library-doc':
+        return await runBuildLibraryDoc(options);
+      case 'create-import-lock':
+        return await runCreateImportLock(options);
+      case 'build-step-doc':
+        return await runBuildStepDoc(options);
+      case 'inspect-blue-doc':
+        return await runInspectBlueDoc(options);
       case 'explain-error':
         return await runExplainError(options);
       case 'help':
@@ -198,6 +224,130 @@ async function runInspect(options: ArgMap): Promise<number> {
   const program = normalizeProgramArtifact(artifactJson);
   const summary = summarizeProgramArtifact(program);
   console.log(JSON.stringify(summary, null, 2));
+  return 0;
+}
+
+async function runImportNpm(options: ArgMap): Promise<number> {
+  const packageSpec =
+    getOptionalString(options, 'package') ?? getRequiredString(options, '_');
+  const parsed = parseNpmPackageSpec(packageSpec);
+  const profile = (getOptionalString(options, 'profile') ??
+    'baseline-v1') as DeterministicExecutionProfile;
+  const registryUrl =
+    getOptionalString(options, 'registry') ?? 'https://registry.npmjs.org';
+  const outPath = getRequiredString(options, 'out');
+  const entry = getOptionalString(options, 'entry') ?? 'auto';
+  const integrity = getOptionalString(options, 'integrity');
+  const packageDir = getOptionalString(options, 'package-dir');
+  const artifact = await importNpmLibrary(
+    {
+      type: 'BlueQuickjs/Npm Library Source',
+      npm: {
+        registryUrl,
+        name: parsed.name,
+        version: parsed.version,
+        ...(integrity ? { integrity } : {}),
+        ...(packageDir ? { packageDir } : {}),
+      },
+      executionProfile: profile,
+      entry,
+    },
+    {
+      packageDir,
+      rejectIncompatible: !options.has('allow-incompatible'),
+    },
+  );
+  await writeJsonFile(outPath, artifact);
+  console.log(JSON.stringify(inspectBlueDocument(artifact), null, 2));
+  return 0;
+}
+
+async function runBuildLibraryDoc(options: ArgMap): Promise<number> {
+  const sourcePath = getRequiredString(options, 'source');
+  const outPath = getRequiredString(options, 'out');
+  const artifact = await buildLibraryArtifact(await readJsonFile(sourcePath), {
+    builderOptions: {
+      rejectIncompatible: !options.has('allow-incompatible'),
+    },
+  });
+  await writeJsonFile(outPath, artifact);
+  console.log(JSON.stringify(inspectBlueDocument(artifact), null, 2));
+  return 0;
+}
+
+async function runCreateImportLock(options: ArgMap): Promise<number> {
+  const specifier = getRequiredString(options, 'specifier');
+  const documentId = getRequiredString(options, 'library-document-id');
+  const libraryPath = getRequiredString(options, 'library');
+  const outPath = getRequiredString(options, 'out');
+  const lock = createImportLock({
+    specifier,
+    libraryDocumentId: documentId,
+    artifact: await readJsonFile(libraryPath),
+  });
+  await writeJsonFile(outPath, lock);
+  console.log(
+    JSON.stringify(
+      {
+        specifier: lock.specifier,
+        documentId: lock.library.documentId,
+        package: lock.requiredPackage,
+        origin: lock.requiredOrigin ?? null,
+        build: lock.requiredBuild,
+      },
+      null,
+      2,
+    ),
+  );
+  return 0;
+}
+
+async function runBuildStepDoc(options: ArgMap): Promise<number> {
+  const stepPath = getRequiredString(options, 'step');
+  const scopePath = getRequiredString(options, 'scope');
+  const documentsPath = getRequiredString(options, 'documents');
+  const outPath = getRequiredString(options, 'out');
+  const gasVersionRaw = getOptionalString(options, 'gas-version');
+  const result = await buildStepArtifact(
+    await readJsonFile(stepPath),
+    (await readJsonFile(scopePath)) as { contracts?: Record<string, unknown> },
+    {
+      documents: (await readJsonFile(documentsPath)) as Record<string, unknown>,
+      rejectIncompatible: !options.has('allow-incompatible'),
+      engineBuildHash: getOptionalString(options, 'engine-build-hash'),
+      ...(gasVersionRaw !== undefined
+        ? { gasVersion: Number.parseInt(gasVersionRaw, 10) }
+        : {}),
+    },
+  );
+  await writeJsonFile(outPath, result.programArtifact);
+  console.log(
+    JSON.stringify(
+      {
+        outPath,
+        sourceKind: result.programArtifact.sourceKind,
+        executionProfile: result.programArtifact.executionProfile,
+        abiId: result.programArtifact.abiId,
+        abiVersion: result.programArtifact.abiVersion,
+        graphHash: result.programArtifact.source.modulePack.graphHash,
+        importedLibraries: result.importedLibraries,
+      },
+      null,
+      2,
+    ),
+  );
+  return 0;
+}
+
+async function runInspectBlueDoc(options: ArgMap): Promise<number> {
+  const documentPath = getRequiredString(options, 'document');
+  console.log(
+    JSON.stringify(
+      inspectBlueDocument(await readJsonFile(documentPath)),
+      null,
+      2,
+    ),
+  );
   return 0;
 }
 
@@ -485,6 +635,24 @@ function getOptionalString(options: ArgMap, key: string): string | undefined {
   return typeof value === 'string' ? value : undefined;
 }
 
+function parseNpmPackageSpec(specifier: string): {
+  readonly name: string;
+  readonly version: string;
+} {
+  const atIndex = specifier.startsWith('@')
+    ? specifier.lastIndexOf('@')
+    : specifier.indexOf('@');
+  if (atIndex <= 0) {
+    throw new Error('package must use exact name@version syntax');
+  }
+  const name = specifier.slice(0, atIndex);
+  const version = specifier.slice(atIndex + 1);
+  if (!name || !version) {
+    throw new Error('package must use exact name@version syntax');
+  }
+  return { name, version };
+}
+
 function resolveCliRepoRoot(cwdOverride?: string): string {
   const start = path.resolve(cwdOverride ?? process.cwd());
   const root = findWorkspaceRoot(start);
@@ -683,6 +851,11 @@ function printHelp(): void {
       '  compat --entry <path> [--profile baseline-v1] [--out report.json]',
       '  run --artifact <path> [--manifest <path>] [--input <path>] [--gas-limit <u64>]',
       '  inspect --artifact <path>',
+      '  import-npm <name@version> --profile <profile> --out library-artifact.json [--registry <url>] [--entry <path|auto>] [--package-dir <path>]',
+      '  build-library-doc --source library-source.json --out library-artifact.json',
+      '  create-import-lock --specifier <import> --library-document-id <id> --library library-artifact.json --out import-lock.json',
+      '  build-step-doc --step step.json --scope scope.json --documents documents.json --out program-artifact.json',
+      '  inspect-blue-doc --document <path>',
       '  explain-error --payload <vm-payload> | --raw "ERROR ..."',
       '  consensus-report [--out-dir artifacts/reproducibility-consensus] [--base-url http://127.0.0.1:4300] [--browser chromium|firefox|webkit] [--reuse-server]',
       '  native-report [--strict] [--out-dir artifacts/reproducibility] [--gas-charge-tape-capacity <u32>]',

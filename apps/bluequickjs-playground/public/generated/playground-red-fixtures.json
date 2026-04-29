@@ -153,14 +153,14 @@
               }
             ],
             "builderVersion": "deterministic-builder-v1",
-            "dependencyIntegrity": "483aad47a5ae3669a320d313a6ce1be9be705b5c52775cba1b4f45d1fada0562",
+            "dependencyIntegrity": "4759d0df665d9a2957715627e378fa6785a9f5419ea409908ea9979a64d77cfd",
             "diagnosticsMeta": {
               "entryPath": "/workspace/apps/ecosystem-certifier/fixtures/negative/function-constructor-entry.ts",
               "modulePaths": [
                 "./function-constructor-entry.js"
               ]
             },
-            "graphHash": "540034aad543c614a540b986b8c391e620261b8046c00edede6484f37461f21b"
+            "graphHash": "5bc1fb329926a04c12c3413fcfb8ea014e39104e09ce7ad42e2194dd86c842c4"
           }
         }
       },

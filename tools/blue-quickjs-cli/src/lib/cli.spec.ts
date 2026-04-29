@@ -29,6 +29,19 @@ describe('blue-quickjs-cli argument parsing', () => {
     );
   });
 
+  it('allows import-npm package positional argument', () => {
+    const parsed = parseArgMap([
+      'import-npm',
+      '@scope/pkg@1.2.3',
+      '--out',
+      'library-artifact.json',
+    ]);
+
+    expect(parsed.command).toBe('import-npm');
+    expect(parsed.options.get('_')).toBe('@scope/pkg@1.2.3');
+    expect(parsed.options.get('out')).toBe('library-artifact.json');
+  });
+
   it('extracts and de-duplicates stack locations', () => {
     const locations = extractStackLocations(
       'ModuleEvaluationError: Error at src/app.ts:12:4 and src/app.ts:12:4, helper ./entry.js:3:1',

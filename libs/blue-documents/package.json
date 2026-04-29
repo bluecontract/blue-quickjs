@@ -1,11 +1,7 @@
 {
-  "name": "@blue-quickjs/blue-quickjs-cli",
+  "name": "@blue-quickjs/blue-documents",
   "version": "0.0.1",
-  "private": true,
   "type": "module",
-  "bin": {
-    "blue-quickjs": "./dist/cli.js"
-  },
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -23,14 +19,20 @@
     "!**/*.tsbuildinfo"
   ],
   "nx": {
-    "name": "blue-quickjs-cli"
+    "name": "blue-documents"
   },
   "dependencies": {
     "@blue-quickjs/abi-manifest": "workspace:*",
-    "@blue-quickjs/blue-documents": "workspace:*",
     "@blue-quickjs/deterministic-builder": "workspace:*",
     "@blue-quickjs/quickjs-runtime": "workspace:*",
-    "@blue-quickjs/test-harness": "workspace:*",
     "tslib": "^2.3.0"
+  },
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bluecontract/blue-quickjs.git"
   }
 }

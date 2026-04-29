@@ -261,14 +261,14 @@
               }
             ],
             "builderVersion": "deterministic-builder-v1",
-            "dependencyIntegrity": "483aad47a5ae3669a320d313a6ce1be9be705b5c52775cba1b4f45d1fada0562",
+            "dependencyIntegrity": "4759d0df665d9a2957715627e378fa6785a9f5419ea409908ea9979a64d77cfd",
             "diagnosticsMeta": {
               "entryPath": "/workspace/examples/02-module-pack/entry.js",
               "modulePaths": [
                 "./entry.js"
               ]
             },
-            "graphHash": "73f5f34c3f965a90d50b923534cb9afd11cbcee8e9b28111724f1b5c73e7c712"
+            "graphHash": "e88ceec321311936c964ff502f395e8bea104ae29bc5d65bf760435572c37e74"
           }
         }
       },
@@ -468,19 +468,19 @@
                   "originalPath": "node_modules/.pnpm/chess.js@1.4.0/node_modules/chess.js/dist/esm/chess.js",
                   "packageName": "chess.js",
                   "packageVersion": "1.4.0",
-                  "integrity": "483aad47a5ae3669a320d313a6ce1be9be705b5c52775cba1b4f45d1fada0562"
+                  "integrity": "4759d0df665d9a2957715627e378fa6785a9f5419ea409908ea9979a64d77cfd"
                 }
               }
             ],
             "builderVersion": "deterministic-builder-v1",
-            "dependencyIntegrity": "483aad47a5ae3669a320d313a6ce1be9be705b5c52775cba1b4f45d1fada0562",
+            "dependencyIntegrity": "4759d0df665d9a2957715627e378fa6785a9f5419ea409908ea9979a64d77cfd",
             "diagnosticsMeta": {
               "entryPath": "/workspace/libs/test-harness/fixtures/library-reuse/chess-entry.ts",
               "modulePaths": [
                 "./chess-entry.js"
               ]
             },
-            "graphHash": "689f4980e43e34c287819a4445a4a2f32b61ea8714e9ff3edc909b76496de91f"
+            "graphHash": "459442b666cc8ad805480b63b59dbaacc2049f1c2b0242f59dc4b3a9529c6d34"
           }
         }
       },
@@ -875,14 +875,14 @@
               }
             ],
             "builderVersion": "deterministic-builder-v1",
-            "dependencyIntegrity": "483aad47a5ae3669a320d313a6ce1be9be705b5c52775cba1b4f45d1fada0562",
+            "dependencyIntegrity": "4759d0df665d9a2957715627e378fa6785a9f5419ea409908ea9979a64d77cfd",
             "diagnosticsMeta": {
               "entryPath": "/workspace/examples/05-promises-library-host/entry.js",
               "modulePaths": [
                 "./entry.js"
               ]
             },
-            "graphHash": "2cbcc7bf38d7b998a6e4e855e5f5a7bb9f77b0bb2f8434982409678812d39ec7"
+            "graphHash": "d42abbd097bd634ec5f9b43ea334b1cf4af4f25191ad9b31dbe1666141f51d7b"
           }
         }
       },
@@ -1643,14 +1643,14 @@
               }
             ],
             "builderVersion": "deterministic-builder-v1",
-            "dependencyIntegrity": "483aad47a5ae3669a320d313a6ce1be9be705b5c52775cba1b4f45d1fada0562",
+            "dependencyIntegrity": "4759d0df665d9a2957715627e378fa6785a9f5419ea409908ea9979a64d77cfd",
             "diagnosticsMeta": {
               "entryPath": "/workspace/examples/09-kitchen-sink/entry.js",
               "modulePaths": [
                 "./entry.js"
               ]
             },
-            "graphHash": "d79be16d156f0ee1669d4d6d7d422e08d8c1d287039e46fad9aa65c81d754d91"
+            "graphHash": "ce14b58e50a3d6de931758a804d5f582331e0f3780a747c540c7b331cafd9343"
           }
         }
       },
@@ -2041,19 +2041,19 @@
                   "originalPath": "node_modules/.pnpm/semver@7.7.3/node_modules/semver/classes/comparator.js",
                   "packageName": "semver",
                   "packageVersion": "7.7.3",
-                  "integrity": "483aad47a5ae3669a320d313a6ce1be9be705b5c52775cba1b4f45d1fada0562"
+                  "integrity": "4759d0df665d9a2957715627e378fa6785a9f5419ea409908ea9979a64d77cfd"
                 }
               }
             ],
             "builderVersion": "deterministic-builder-v1",
-            "dependencyIntegrity": "483aad47a5ae3669a320d313a6ce1be9be705b5c52775cba1b4f45d1fada0562",
+            "dependencyIntegrity": "4759d0df665d9a2957715627e378fa6785a9f5419ea409908ea9979a64d77cfd",
             "diagnosticsMeta": {
               "entryPath": "/workspace/apps/ecosystem-certifier/fixtures/positive/semver-entry.ts",
               "modulePaths": [
                 "./semver-entry.js"
               ]
             },
-            "graphHash": "9215dccaba757b484b9b1c608c38ec06a9d4e4c98b0b16ddf6e1d9cf18c0d03f"
+            "graphHash": "e5465be832dc643f76a7d6b49f06c448d371546d3a7e5dc3b73a6ab1a11366cb"
           }
         }
       },
@@ -2255,19 +2255,19 @@
                   "originalPath": "node_modules/.pnpm/base64-js@1.5.1/node_modules/base64-js/index.js",
                   "packageName": "base64-js",
                   "packageVersion": "1.5.1",
-                  "integrity": "483aad47a5ae3669a320d313a6ce1be9be705b5c52775cba1b4f45d1fada0562"
+                  "integrity": "4759d0df665d9a2957715627e378fa6785a9f5419ea409908ea9979a64d77cfd"
                 }
               }
             ],
             "builderVersion": "deterministic-builder-v1",
-            "dependencyIntegrity": "483aad47a5ae3669a320d313a6ce1be9be705b5c52775cba1b4f45d1fada0562",
+            "dependencyIntegrity": "4759d0df665d9a2957715627e378fa6785a9f5419ea409908ea9979a64d77cfd",
             "diagnosticsMeta": {
               "entryPath": "/workspace/libs/test-harness/fixtures/library-reuse/binary-base64-entry.ts",
               "modulePaths": [
                 "./binary-base64-entry.js"
               ]
             },
-            "graphHash": "d409281c0ea5deb67a631c31052e39836768a41ecc80e946d071853620684b98"
+            "graphHash": "31cb1ce2fa2d6dd875c1c936710eb6670e4abf5c623e39864d04fc0d8c08bd80"
           }
         }
       },
@@ -2469,19 +2469,19 @@
                   "originalPath": "node_modules/.pnpm/entities@4.5.0/node_modules/entities/lib/esm/decode.js",
                   "packageName": "entities",
                   "packageVersion": "4.5.0",
-                  "integrity": "483aad47a5ae3669a320d313a6ce1be9be705b5c52775cba1b4f45d1fada0562"
+                  "integrity": "4759d0df665d9a2957715627e378fa6785a9f5419ea409908ea9979a64d77cfd"
                 }
               }
             ],
             "builderVersion": "deterministic-builder-v1",
-            "dependencyIntegrity": "483aad47a5ae3669a320d313a6ce1be9be705b5c52775cba1b4f45d1fada0562",
+            "dependencyIntegrity": "4759d0df665d9a2957715627e378fa6785a9f5419ea409908ea9979a64d77cfd",
             "diagnosticsMeta": {
               "entryPath": "/workspace/apps/ecosystem-certifier/fixtures/positive/markdown-it-entry.ts",
               "modulePaths": [
                 "./markdown-it-entry.js"
               ]
             },
-            "graphHash": "6715cbd20f57956012dee5439799c99cde5890a813559ad2f7440e37c71896f8"
+            "graphHash": "e9c3985c938c093346ccb246a0c2d2027f9eb105ebf0e40836de05ad1c4655ec"
           }
         }
       },
@@ -2683,19 +2683,19 @@
                   "originalPath": "node_modules/.pnpm/@noble+hashes@1.8.0/node_modules/@noble/hashes/esm/_md.js",
                   "packageName": "@noble/hashes",
                   "packageVersion": "1.8.0",
-                  "integrity": "483aad47a5ae3669a320d313a6ce1be9be705b5c52775cba1b4f45d1fada0562"
+                  "integrity": "4759d0df665d9a2957715627e378fa6785a9f5419ea409908ea9979a64d77cfd"
                 }
               }
             ],
             "builderVersion": "deterministic-builder-v1",
-            "dependencyIntegrity": "483aad47a5ae3669a320d313a6ce1be9be705b5c52775cba1b4f45d1fada0562",
+            "dependencyIntegrity": "4759d0df665d9a2957715627e378fa6785a9f5419ea409908ea9979a64d77cfd",
             "diagnosticsMeta": {
               "entryPath": "/workspace/libs/test-harness/fixtures/library-reuse/binary-sha256-entry.ts",
               "modulePaths": [
                 "./binary-sha256-entry.js"
               ]
             },
-            "graphHash": "ffab4b727f608149e30ca86a1fb421eb9b44ef62b3136b5aca6057fbd034af12"
+            "graphHash": "ee6707d6973883ca35bdaf927f528716f8059922c4955773e318cada78f127d3"
           }
         }
       },
@@ -2901,19 +2901,19 @@
                   "originalPath": "node_modules/.pnpm/@noble+hashes@1.8.0/node_modules/@noble/hashes/esm/_md.js",
                   "packageName": "@noble/hashes",
                   "packageVersion": "1.8.0",
-                  "integrity": "483aad47a5ae3669a320d313a6ce1be9be705b5c52775cba1b4f45d1fada0562"
+                  "integrity": "4759d0df665d9a2957715627e378fa6785a9f5419ea409908ea9979a64d77cfd"
                 }
               }
             ],
             "builderVersion": "deterministic-builder-v1",
-            "dependencyIntegrity": "483aad47a5ae3669a320d313a6ce1be9be705b5c52775cba1b4f45d1fada0562",
+            "dependencyIntegrity": "4759d0df665d9a2957715627e378fa6785a9f5419ea409908ea9979a64d77cfd",
             "diagnosticsMeta": {
               "entryPath": "/workspace/apps/ecosystem-certifier/fixtures/flagship/knowledge-pack-entry.ts",
               "modulePaths": [
                 "./knowledge-pack-entry.js"
               ]
             },
-            "graphHash": "c1aa035e83f709d6345f4b3c0208d5217d7deac086a3d5f98b296035e3145ec8"
+            "graphHash": "7eb4c8b522a698b7f6cc78cdf0bfc43cc6c915fc13cabbbd1f2e557b8d75d71e"
           }
         }
       },

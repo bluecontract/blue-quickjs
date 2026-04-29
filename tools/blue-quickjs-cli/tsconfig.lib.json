@@ -18,6 +18,9 @@
   ],
   "references": [
     {
+      "path": "../../libs/blue-documents/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/test-harness/tsconfig.lib.json"
     },
     {
