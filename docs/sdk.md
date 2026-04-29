@@ -85,7 +85,7 @@ import { bundleDeterministicProgram } from '@blue-quickjs/deterministic-bundler'
 const bundled = await bundleDeterministicProgram({
   absWorkingDir: process.cwd(),
   entryPath: 'src/program-entry.ts',
-  // baseline-v1 rejects RegExp; compat-regexp-v1 allows it explicitly.
+  // Use compat-general-v1 here and in program.executionProfile if entry uses RegExp.
   profile: 'baseline-v1',
 });
 
@@ -176,7 +176,7 @@ Optional fields:
 - `engineBuildHash` (lowercase hex; sha256 of the wasm bytes)
 - `gasVersion` (uint32 gas schedule version)
 - `executionProfile` (`"baseline-v1"` default, or `"compat-general-v1"` for
-  compatibility-mode execution; `"compat-regexp-v1"` remains as a legacy alias)
+  compatibility-mode execution)
 
 Program artifact limits (validation defaults used by `evaluate()` and `initializeDeterministicVm()`):
 

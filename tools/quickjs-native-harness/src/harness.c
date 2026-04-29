@@ -91,9 +91,6 @@ static uint32_t deterministic_feature_flags_for_profile(const char *profile) {
   if (!profile || strcmp(profile, "baseline-v1") == 0) {
     return 0;
   }
-  if (strcmp(profile, "compat-regexp-v1") == 0) {
-    return JS_DETERMINISTIC_FEATURE_REGEXP;
-  }
   if (strcmp(profile, "compat-general-v1") == 0) {
     return JS_DETERMINISTIC_FEATURE_REGEXP |
            JS_DETERMINISTIC_FEATURE_PROMISE_JOBS |
@@ -1890,11 +1887,11 @@ cleanup:
 static void print_usage(const char *prog) {
   fprintf(stderr,
           "Usage:\n"
-          "  %s [--gas-limit <u64>] [--report-gas] [--report-tape] [--gas-charge-tape] [--gas-charge-tape-capacity <u32>] [--gas-trace] [--dump-global <name>] [--execution-profile <baseline-v1|compat-regexp-v1|compat-general-v1|compat-binary-v1>] [--abi-manifest-hex <hex> | --abi-manifest-hex-file <path>] [--abi-manifest-hash <hex>] [--context-blob-hex <hex>] [--parity-eval] --eval \"<js-source>\"\n"
-          "  %s [--gas-limit <u64>] [--report-gas] [--report-tape] [--gas-charge-tape] [--gas-charge-tape-capacity <u32>] [--gas-trace] [--execution-profile <baseline-v1|compat-regexp-v1|compat-general-v1|compat-binary-v1>] [--abi-manifest-hex <hex> | --abi-manifest-hex-file <path>] [--abi-manifest-hash <hex>] --module-entry-specifier <specifier> [--module-entry-export <name>] (--module-pack-json \"<json>\" | --module-pack-file <path>)\n"
+          "  %s [--gas-limit <u64>] [--report-gas] [--report-tape] [--gas-charge-tape] [--gas-charge-tape-capacity <u32>] [--gas-trace] [--dump-global <name>] [--execution-profile <baseline-v1|compat-general-v1|compat-binary-v1>] [--abi-manifest-hex <hex> | --abi-manifest-hex-file <path>] [--abi-manifest-hash <hex>] [--context-blob-hex <hex>] [--parity-eval] --eval \"<js-source>\"\n"
+          "  %s [--gas-limit <u64>] [--report-gas] [--report-tape] [--gas-charge-tape] [--gas-charge-tape-capacity <u32>] [--gas-trace] [--execution-profile <baseline-v1|compat-general-v1|compat-binary-v1>] [--abi-manifest-hex <hex> | --abi-manifest-hex-file <path>] [--abi-manifest-hash <hex>] --module-entry-specifier <specifier> [--module-entry-export <name>] (--module-pack-json \"<json>\" | --module-pack-file <path>)\n"
           "  %s --dv-encode --eval \"<js-source>\"\n"
           "  %s --dv-decode <hex-string>\n"
-          "  %s --host-call <hex-string> [--host-fn-id <u32>] [--host-max-request <u32>] [--host-max-response <u32>] [--host-max-units <u32>] [--host-parse-envelope] [--host-reentrant] [--host-exception] [--gas-limit <u64>] [--report-gas] [--report-tape] [--gas-charge-tape] [--gas-charge-tape-capacity <u32>] [--gas-trace] [--execution-profile <baseline-v1|compat-regexp-v1|compat-general-v1|compat-binary-v1>] [--abi-manifest-hex <hex> | --abi-manifest-hex-file <path>] [--abi-manifest-hash <hex>] [--context-blob-hex <hex>]\n"
+          "  %s --host-call <hex-string> [--host-fn-id <u32>] [--host-max-request <u32>] [--host-max-response <u32>] [--host-max-units <u32>] [--host-parse-envelope] [--host-reentrant] [--host-exception] [--gas-limit <u64>] [--report-gas] [--report-tape] [--gas-charge-tape] [--gas-charge-tape-capacity <u32>] [--gas-trace] [--execution-profile <baseline-v1|compat-general-v1|compat-binary-v1>] [--abi-manifest-hex <hex> | --abi-manifest-hex-file <path>] [--abi-manifest-hash <hex>] [--context-blob-hex <hex>]\n"
           "  %s --sha256-hex <hex-string>\n",
           prog,
           prog,

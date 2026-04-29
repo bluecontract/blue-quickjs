@@ -459,7 +459,7 @@ function expectExecutionProfile(
   if (!isKnownExecutionProfile(value)) {
     throw runtimeError(
       'INVALID_VALUE',
-      `${path} must be one of baseline-v1, compat-regexp-v1, compat-general-v1, compat-binary-v1`,
+      `${path} must be one of baseline-v1, compat-general-v1, compat-binary-v1`,
       path,
     );
   }

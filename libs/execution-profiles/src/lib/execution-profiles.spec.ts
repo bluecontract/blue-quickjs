@@ -15,9 +15,6 @@ describe('execution profile registry', () => {
 
   it('returns deterministic capability sets per profile', () => {
     expect(getExecutionProfileCapabilities('baseline-v1')).toEqual([]);
-    expect(getExecutionProfileCapabilities('compat-regexp-v1')).toEqual([
-      'regexp',
-    ]);
     expect(getExecutionProfileCapabilities('compat-general-v1')).toEqual([
       'regexp',
       'promiseJobs',
@@ -38,7 +35,7 @@ describe('execution profile registry', () => {
 
   it('checks individual capability membership', () => {
     expect(executionProfileHasCapability('baseline-v1', 'regexp')).toBe(false);
-    expect(executionProfileHasCapability('compat-regexp-v1', 'regexp')).toBe(
+    expect(executionProfileHasCapability('compat-general-v1', 'regexp')).toBe(
       true,
     );
     expect(
@@ -49,7 +46,6 @@ describe('execution profile registry', () => {
   it('lists all profiles in deterministic order', () => {
     expect(listExecutionProfiles()).toEqual([
       'baseline-v1',
-      'compat-regexp-v1',
       'compat-general-v1',
       'compat-binary-v1',
     ]);

@@ -9,7 +9,6 @@ export type DeterministicCapability =
 
 export type PublicExecutionProfile =
   | 'baseline-v1'
-  | 'compat-regexp-v1'
   | 'compat-general-v1'
   | 'compat-binary-v1';
 
@@ -23,7 +22,6 @@ const PROFILE_CAPABILITIES: Record<
   readonly DeterministicCapability[]
 > = {
   'baseline-v1': [],
-  'compat-regexp-v1': ['regexp'],
   'compat-general-v1': [
     'regexp',
     'promiseJobs',

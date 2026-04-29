@@ -16,7 +16,6 @@ export interface BuildFixtureDefinition {
   entryPath: string;
   profile:
     | 'baseline-v1'
-    | 'compat-regexp-v1'
     | 'compat-general-v1'
     | 'compat-binary-v1';
   abiId: 'Host.v1' | 'Host.v2';

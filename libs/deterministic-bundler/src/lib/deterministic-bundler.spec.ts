@@ -66,21 +66,21 @@ describe('bundleDeterministicProgram', () => {
     ).toBe(true);
   });
 
-  it('allows regexp usage under compat-regexp profile', async () => {
+  it('allows regexp usage under compat-general profile', async () => {
     const fixtureDir = createFixtureDir();
     writeFixture(fixtureDir, 'entry.ts', "export default /a/.test('a');");
 
     const bundled = await bundleDeterministicProgram({
       absWorkingDir: fixtureDir,
       entryPath: 'entry.ts',
-      profile: 'compat-regexp-v1',
+      profile: 'compat-general-v1',
     });
 
     expect(bundled.meta.compatibility.ok).toBe(true);
-    expect(bundled.meta.profile).toBe('compat-regexp-v1');
+    expect(bundled.meta.profile).toBe('compat-general-v1');
   });
 
-  it('bundles chess.js fixture only under compat-regexp profile', async () => {
+  it('bundles chess.js fixture only under compat-general profile', async () => {
     const workspaceRoot = path.resolve(process.cwd(), '../..');
 
     await expect(
@@ -93,7 +93,7 @@ describe('bundleDeterministicProgram', () => {
     const bundled = await bundleDeterministicProgram({
       absWorkingDir: workspaceRoot,
       entryPath: 'libs/test-harness/fixtures/library-reuse/chess-entry.ts',
-      profile: 'compat-regexp-v1',
+      profile: 'compat-general-v1',
     });
 
     expect(bundled.meta.compatibility.ok).toBe(true);
@@ -215,7 +215,7 @@ describe('buildDeterministicModulePack', () => {
     const built = await buildDeterministicModulePack({
       absWorkingDir: fixtureDir,
       entryPath: 'entry.ts',
-      profile: 'compat-regexp-v1',
+      profile: 'compat-general-v1',
       dependencyIntegrity: SAMPLE_HASH,
     });
 
@@ -261,7 +261,7 @@ describe('buildDeterministicModulePack', () => {
     const built = await buildDeterministicModulePack({
       absWorkingDir: fixtureDir,
       entryPath: 'entry.ts',
-      profile: 'compat-regexp-v1',
+      profile: 'compat-general-v1',
       dependencyIntegrity: SAMPLE_HASH,
     });
 

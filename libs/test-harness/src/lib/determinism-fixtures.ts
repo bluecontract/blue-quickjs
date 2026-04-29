@@ -14,7 +14,6 @@ export interface DeterminismProgramArtifact {
   abiManifestHash: string;
   executionProfile?:
     | 'baseline-v1'
-    | 'compat-regexp-v1'
     | 'compat-general-v1'
     | 'compat-binary-v1';
   engineBuildHash?: string;

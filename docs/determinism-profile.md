@@ -20,8 +20,6 @@ Scope: capture the deterministic VM configuration required by Baseline #1 for bo
 `program.executionProfile` controls deterministic feature flags:
 
 - `baseline-v1` (default): canonical baseline restrictions.
-- `compat-regexp-v1`: transitional alias for baseline + deterministic RegExp
-  compatibility.
 - `compat-general-v1`: `baseline-v1` + RegExp + Promise jobs +
   `queueMicrotask` + deterministic console shim + deterministic stable sort.
 - `compat-binary-v1`: `compat-general-v1` + typed arrays / ArrayBuffer /
@@ -59,15 +57,15 @@ The following globals or methods exist but throw the exact TypeError shown:
 - `Proxy` -> `TypeError: Proxy is disabled in deterministic mode`
 - `Promise` and statics (`resolve`, `reject`, `all`, `race`, `any`, `allSettled`) -> `TypeError: Promise is disabled in deterministic mode` (**baseline-v1 only**)
 - `Math.random()` -> `TypeError: Math.random is disabled in deterministic mode`
-- `ArrayBuffer` -> `TypeError: ArrayBuffer is disabled in deterministic mode` (**baseline-v1 / compat-regexp-v1**)
+- `ArrayBuffer` -> `TypeError: ArrayBuffer is disabled in deterministic mode` (**baseline-v1 / compat-general-v1**)
 - `SharedArrayBuffer` -> `TypeError: SharedArrayBuffer is disabled in deterministic mode`
-- `DataView` -> `TypeError: DataView is disabled in deterministic mode` (**baseline-v1 / compat-regexp-v1**)
-- Typed arrays: `Uint8Array`, `Uint8ClampedArray`, `Int8Array`, `Uint16Array`, `Int16Array`, `Uint32Array`, `Int32Array`, `BigInt64Array`, `BigUint64Array`, `Float16Array`, `Float32Array`, `Float64Array` -> `TypeError: Typed arrays are disabled in deterministic mode` (**baseline-v1 / compat-regexp-v1**)
+- `DataView` -> `TypeError: DataView is disabled in deterministic mode` (**baseline-v1 / compat-general-v1**)
+- Typed arrays: `Uint8Array`, `Uint8ClampedArray`, `Int8Array`, `Uint16Array`, `Int16Array`, `Uint32Array`, `Int32Array`, `BigInt64Array`, `BigUint64Array`, `Float16Array`, `Float32Array`, `Float64Array` -> `TypeError: Typed arrays are disabled in deterministic mode` (**baseline-v1 / compat-general-v1**)
 - `Atomics` -> `TypeError: Atomics is disabled in deterministic mode`
 - `WebAssembly` -> `TypeError: WebAssembly is disabled in deterministic mode`
-- `console.log/info/warn/error/debug` -> `TypeError: console is disabled in deterministic mode` (**baseline-v1 / compat-regexp-v1**)
+- `console.log/info/warn/error/debug` -> `TypeError: console is disabled in deterministic mode` (**baseline-v1**)
 - `print` -> `TypeError: print is disabled in deterministic mode`
-- `Array.prototype.sort` -> `TypeError: Array.prototype.sort is disabled in deterministic mode` (**baseline-v1 / compat-regexp-v1**)
+- `Array.prototype.sort` -> `TypeError: Array.prototype.sort is disabled in deterministic mode` (**baseline-v1**)
 
 Notes:
 
@@ -116,8 +114,8 @@ Absent/disabled by profile:
 
 - `Date`
 - `setTimeout` / `setInterval`
-- `queueMicrotask` (`baseline-v1`, `compat-regexp-v1`)
-- `Promise` (`baseline-v1`, `compat-regexp-v1`)
+- `queueMicrotask` (`baseline-v1`)
+- `Promise` (`baseline-v1`)
 
 Enabled in compatibility profiles:
 
@@ -146,8 +144,8 @@ Why:
 
 Disabled by profile:
 
-- `ArrayBuffer`, `DataView`, typed arrays (`Uint8Array`, `Float64Array`, …)
-  (`baseline-v1`, `compat-regexp-v1`)
+- `ArrayBuffer`, `DataView`, typed arrays (`Uint8Array`, `Float64Array`, ...)
+  (`baseline-v1`, `compat-general-v1`)
 - `SharedArrayBuffer`
 - `Atomics`
 
@@ -239,11 +237,11 @@ Why this split exists:
 
 ### Engine-version-dependent behavior and performance cliffs
 
-Disabled:
+Disabled by profile:
 
-- `RegExp` (and regex literals)
+- `RegExp` (and regex literals) in `baseline-v1`
 - `Proxy`
-- `Array.prototype.sort`
+- `Array.prototype.sort` in `baseline-v1`
 
 Why:
 
@@ -274,7 +272,7 @@ The deterministic init does not install these globals; `typeof` returns `"undefi
 
 - `Date`
 - `setTimeout` / `setInterval`
-- `queueMicrotask` (**baseline-v1 / compat-regexp-v1**)
+- `queueMicrotask` (**baseline-v1**)
 
 ## Host namespace and ergonomic globals
 

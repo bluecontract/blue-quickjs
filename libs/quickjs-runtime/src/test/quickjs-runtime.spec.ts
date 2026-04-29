@@ -72,13 +72,6 @@ describe('validateProgramArtifact', () => {
     expect(
       validateProgramArtifact({
         ...baseProgram,
-        executionProfile: 'compat-regexp-v1',
-      }),
-    ).toMatchObject({ executionProfile: 'compat-regexp-v1' });
-
-    expect(
-      validateProgramArtifact({
-        ...baseProgram,
         executionProfile: 'compat-general-v1',
       }),
     ).toMatchObject({ executionProfile: 'compat-general-v1' });
