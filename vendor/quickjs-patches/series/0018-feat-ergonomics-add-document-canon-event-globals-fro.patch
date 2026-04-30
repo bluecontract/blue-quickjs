@@ -1,4 +1,4 @@
-From 9b3dbfd8d4208109033c0babadb4f91ed594e227 Mon Sep 17 00:00:00 2001
+From b1a47dfde5b7d0195b393e3200c14890c6c15510 Mon Sep 17 00:00:00 2001
 From: Mateusz Jonak <mateusz@web.blue>
 Date: Tue, 16 Dec 2025 23:26:42 +0100
 Subject: [PATCH 18/51] feat(ergonomics): add document/canon/event globals from
@@ -663,6 +663,3 @@ index 8e44131..2d13d34 100644
      memcpy(ctx->abi_manifest_hash, computed_hash, sizeof(computed_hash));
      js_sha256_to_hex(computed_hash, ctx->abi_manifest_hash_hex);
      ctx->abi_manifest_bytes = manifest_copy;
--- 
-2.54.0
-

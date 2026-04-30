@@ -1,4 +1,4 @@
-From c9947cef419b8958c5f45047f0803c79297a6087 Mon Sep 17 00:00:00 2001
+From 4be069acbbff89e08996a8d8cce2a682c650ce43 Mon Sep 17 00:00:00 2001
 From: Mateusz Jonak <mateusz@web.blue>
 Date: Wed, 10 Dec 2025 23:50:48 +0100
 Subject: [PATCH 04/51] feat: Add support for disabling RegExp and Proxy in
@@ -108,6 +108,3 @@ index dca0621..438e8f3 100644
          js_deterministic_disable_random(ctx) ||
          js_deterministic_disable_promise(ctx) ||
          js_deterministic_init_host(ctx)) {
--- 
-2.54.0
-

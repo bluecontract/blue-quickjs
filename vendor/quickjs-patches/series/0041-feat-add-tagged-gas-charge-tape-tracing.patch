@@ -1,4 +1,4 @@
-From 2ac1761cdae6672e4d60543e1f7f69dad9dc2457 Mon Sep 17 00:00:00 2001
+From 268c9634eb68aebc450feec0b580d9ec67b379fa Mon Sep 17 00:00:00 2001
 From: Cursor Agent <cursoragent@cursor.com>
 Date: Mon, 16 Mar 2026 10:49:01 +0000
 Subject: [PATCH 41/51] feat: add tagged gas charge tape tracing
@@ -447,6 +447,3 @@ index 469c728..8f0ef0a 100644
  int JS_UseGas(JSContext *ctx, uint64_t amount);
  
  #define JS_HOST_CALL_TRANSPORT_ERROR UINT32_C(0xffffffff)
--- 
-2.54.0
-

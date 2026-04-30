@@ -1,4 +1,4 @@
-From 8f4f682d761a421c3ed22a66a319c7fe5426a58c Mon Sep 17 00:00:00 2001
+From 7bf66276ded3cf31d15515104dbc6f8578d94e52 Mon Sep 17 00:00:00 2001
 From: Mateusz Jonak <mateusz@web.blue>
 Date: Mon, 15 Dec 2025 18:16:50 +0100
 Subject: [PATCH 13/51] feat(quickjs): add DV (canonical CBOR) encode/decode
@@ -1142,6 +1142,3 @@ index 6d362b5..c850ba7 100644
  JSRuntime *JS_GetRuntime(JSContext *ctx);
  void JS_SetClassProto(JSContext *ctx, JSClassID class_id, JSValue obj);
  JSValue JS_GetClassProto(JSContext *ctx, JSClassID class_id);
--- 
-2.54.0
-

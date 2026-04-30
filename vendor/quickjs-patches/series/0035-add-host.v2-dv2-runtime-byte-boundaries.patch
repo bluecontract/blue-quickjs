@@ -1,4 +1,4 @@
-From 28939712e9da10bd22dc641f211d6f9079bae9fd Mon Sep 17 00:00:00 2001
+From 9af4643da6f8f78d8d57e42fc8e3f1245a83fae8 Mon Sep 17 00:00:00 2001
 From: Cursor Agent <cursoragent@cursor.com>
 Date: Sun, 15 Mar 2026 23:32:56 +0000
 Subject: [PATCH 35/51] add Host.v2 DV2 runtime byte boundaries
@@ -496,6 +496,3 @@ index 98305a8..3a4208e 100644
  
  typedef JSValue JSCFunction(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv);
  typedef JSValue JSCFunctionMagic(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv, int magic);
--- 
-2.54.0
-

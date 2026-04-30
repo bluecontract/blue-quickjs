@@ -1,4 +1,4 @@
-From 62c409a4391c23b0f5a5f29173d43315d88581f2 Mon Sep 17 00:00:00 2001
+From 254b5556bb4d50b8c7940000acb3797b78cd0185 Mon Sep 17 00:00:00 2001
 From: Mateusz Jonak <mateusz@web.blue>
 Date: Wed, 10 Dec 2025 22:00:03 +0100
 Subject: [PATCH 01/51] feat: Add deterministic runtime support with disabled
@@ -205,6 +205,3 @@ index 92cc000..766d365 100644
  void JS_FreeContext(JSContext *s);
  JSContext *JS_DupContext(JSContext *ctx);
  void *JS_GetContextOpaque(JSContext *ctx);
--- 
-2.54.0
-

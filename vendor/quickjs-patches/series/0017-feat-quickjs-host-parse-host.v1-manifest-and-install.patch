@@ -1,4 +1,4 @@
-From 54c408db3f8fc2903970b08951e3edc3cc3d1aee Mon Sep 17 00:00:00 2001
+From e4fbc8fade5c3bd9305bd517723df5418b8b7a0e Mon Sep 17 00:00:00 2001
 From: Mateusz Jonak <mateusz@web.blue>
 Date: Tue, 16 Dec 2025 21:42:40 +0100
 Subject: [PATCH 17/51] feat(quickjs-host): parse Host.v1 manifest and install
@@ -1509,6 +1509,3 @@ index 3cc7d35..8e44131 100644
      js_free_modules(ctx, JS_FREE_MODULE_ALL);
  
      JS_FreeValue(ctx, ctx->global_obj);
--- 
-2.54.0
-

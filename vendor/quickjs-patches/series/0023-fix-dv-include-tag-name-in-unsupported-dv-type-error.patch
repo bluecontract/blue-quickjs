@@ -1,4 +1,4 @@
-From 753916543ac3ed2fcbbd4d6e721a8cc903e97a52 Mon Sep 17 00:00:00 2001
+From 0a8fc5a50ba10c4bbb7b1e895b0b526b2f98362b Mon Sep 17 00:00:00 2001
 From: Mateusz Jonak <mateusz@web.blue>
 Date: Wed, 7 Jan 2026 17:56:15 +0100
 Subject: [PATCH 23/51] fix(dv): include tag name in unsupported DV type error
@@ -59,6 +59,3 @@ index e82dad5..8314329 100644
      }
  }
  
--- 
-2.54.0
-

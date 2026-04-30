@@ -1,4 +1,4 @@
-From 58ece4abb2a55b268c5f5c81e79e4d7eece1bad9 Mon Sep 17 00:00:00 2001
+From 9a07074b2b2d94f3d5061e75692d78963574cf2b Mon Sep 17 00:00:00 2001
 From: Cursor Agent <cursoragent@cursor.com>
 Date: Mon, 16 Mar 2026 04:28:07 +0000
 Subject: [PATCH 38/51] Tune deterministic allocation metering normalization
@@ -61,6 +61,3 @@ index 609c68a..9f1263d 100644
      return 0;
  }
  
--- 
-2.54.0
-

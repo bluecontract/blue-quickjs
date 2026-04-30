@@ -1,4 +1,4 @@
-From 9992bbdb9f35100891b05de8f927a0bc5ca42f22 Mon Sep 17 00:00:00 2001
+From 4a9a15b132ef0e4af253b1370ee726cb453dbeca Mon Sep 17 00:00:00 2001
 From: Cursor Agent <cursoragent@cursor.com>
 Date: Mon, 16 Mar 2026 11:06:18 +0000
 Subject: [PATCH 42/51] feat: split allocation trace requested and charged
@@ -95,6 +95,3 @@ index 8f0ef0a..ca52a62 100644
      uint64_t allocation_bytes;
      uint64_t allocation_gas;
      uint64_t json_parse_count;
--- 
-2.54.0
-

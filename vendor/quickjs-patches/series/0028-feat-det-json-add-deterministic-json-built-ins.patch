@@ -1,4 +1,4 @@
-From 3ef2a886099b34a94e470f8a5b3d4f331492d647 Mon Sep 17 00:00:00 2001
+From 6a6818a29187d30e57e017d52aed770354b403bb Mon Sep 17 00:00:00 2001
 From: Cursor Agent <cursoragent@cursor.com>
 Date: Thu, 12 Mar 2026 18:25:04 +0000
 Subject: [PATCH 28/51] feat(det-json): add deterministic JSON built-ins
@@ -1616,6 +1616,3 @@ index e933a6f..045712a 100644
  } JSGasTrace;
  int JS_EnableGasTrace(JSContext *ctx, int enabled);
  int JS_ResetGasTrace(JSContext *ctx);
--- 
-2.54.0
-

@@ -1,4 +1,4 @@
-From c593a8ab3ffc7a4052d3416650b0ff3ece90fc7e Mon Sep 17 00:00:00 2001
+From 62d271e7d40347618067672fd0c54578680ad9b7 Mon Sep 17 00:00:00 2001
 From: Cursor Agent <cursoragent@cursor.com>
 Date: Sun, 15 Mar 2026 22:20:34 +0000
 Subject: [PATCH 34/51] add versioned quickjs dv2 byte-string codecs
@@ -386,6 +386,3 @@ index 22cb907..98305a8 100644
  void JS_FreeDVBuffer(JSContext *ctx, JSDvBuffer *buffer);
  
  JSRuntime *JS_GetRuntime(JSContext *ctx);
--- 
-2.54.0
-

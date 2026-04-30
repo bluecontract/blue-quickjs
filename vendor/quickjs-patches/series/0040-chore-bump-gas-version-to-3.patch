@@ -1,4 +1,4 @@
-From ae6d251892e263565732443711f2f3594216036e Mon Sep 17 00:00:00 2001
+From 9ccd2319e58a80c2da8c32f32b9ebac5efcac857 Mon Sep 17 00:00:00 2001
 From: Cursor Agent <cursoragent@cursor.com>
 Date: Mon, 16 Mar 2026 10:23:38 +0000
 Subject: [PATCH 40/51] chore: bump gas version to 3
@@ -20,6 +20,3 @@ index 3baa40a..469c728 100644
  #define JS_GAS_UNLIMITED UINT64_C(0xffffffffffffffff)
  
  typedef struct JSMallocState {
--- 
-2.54.0
-

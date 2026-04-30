@@ -1,4 +1,4 @@
-From 2cf0a963f3a48e37dda17ded9b576a10e6c14917 Mon Sep 17 00:00:00 2001
+From a4cdb804e812b27055e4ef5fd51cf18ea84655ed Mon Sep 17 00:00:00 2001
 From: Mateusz Jonak <mateusz@web.blue>
 Date: Mon, 16 Feb 2026 13:20:52 +0100
 Subject: [PATCH 27/51] fix(dv): increase max_encoded_bytes and
@@ -37,6 +37,3 @@ index 5c817d8..e933a6f 100644
  
  typedef JSValue JSCFunction(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv);
  typedef JSValue JSCFunctionMagic(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv, int magic);
--- 
-2.54.0
-

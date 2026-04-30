@@ -1,4 +1,4 @@
-From 92d22fdd372ed759f70708c9155baabb90753caa Mon Sep 17 00:00:00 2001
+From b63e7eb0837d6458af7edd32314408c695afdc61 Mon Sep 17 00:00:00 2001
 From: Mateusz Jonak <mateusz@web.blue>
 Date: Wed, 7 Jan 2026 11:36:00 +0100
 Subject: [PATCH 20/51] quickjs-host: change canon.at to accept JSON Pointer
@@ -316,6 +316,3 @@ index b46b69f..38585de 100644
      JS_FreeValue(ctx, canonical);
      if (!JS_IsUndefined(current))
          JS_FreeValue(ctx, current);
--- 
-2.54.0
-

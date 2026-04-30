@@ -1,4 +1,4 @@
-From 93c9611ec18ee885963f45d622927a154fe5e0c3 Mon Sep 17 00:00:00 2001
+From 0f16210311465d9a37ef9255f361514b3e770beb Mon Sep 17 00:00:00 2001
 From: Cursor Agent <cursoragent@cursor.com>
 Date: Mon, 16 Mar 2026 11:53:08 +0000
 Subject: [PATCH 43/51] feat: canonicalize allocation gas classes
@@ -490,6 +490,3 @@ index ca52a62..302cb08 100644
  #define JS_GAS_UNLIMITED UINT64_C(0xffffffffffffffff)
  
  typedef struct JSMallocState {
--- 
-2.54.0
-

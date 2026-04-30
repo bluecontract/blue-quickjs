@@ -1,4 +1,4 @@
-From d1f2ad213af32ae5886a67e05aa117f90b2890cf Mon Sep 17 00:00:00 2001
+From 6d6c7b0bac0f75804ca74542343b184cc5352f51 Mon Sep 17 00:00:00 2001
 From: Mateusz Jonak <mateusz@web.blue>
 Date: Wed, 7 Jan 2026 20:06:01 +0100
 Subject: [PATCH 25/51] refactor(quickjs): move deterministic host plumbing
@@ -1775,6 +1775,3 @@ index 2d13d34..7e1da9e 100644
  }
  
  void *JS_GetContextOpaque(JSContext *ctx)
--- 
-2.54.0
-

@@ -1,4 +1,4 @@
-From be5ac0fb4e3a8db8958dfe2ead456d133d3e0912 Mon Sep 17 00:00:00 2001
+From ec4e5a0816013bff34433e4d9131dd3080d4db79 Mon Sep 17 00:00:00 2001
 From: Cursor Agent <cursoragent@cursor.com>
 Date: Sun, 15 Mar 2026 17:22:18 +0000
 Subject: [PATCH 29/51] add deterministic feature-flag runtime initialization
@@ -158,6 +158,3 @@ index 045712a..54db62e 100644
  } JSDeterministicInitOptions;
  int JS_InitDeterministicContext(JSContext *ctx, const JSDeterministicInitOptions *options);
  void JS_FreeContext(JSContext *s);
--- 
-2.54.0
-

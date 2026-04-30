@@ -1,4 +1,4 @@
-From 821a066c322b7d75f91596a9a471318c3581d130 Mon Sep 17 00:00:00 2001
+From 7c9b3bcec82dc223de7096b2206965f4205f1e0d Mon Sep 17 00:00:00 2001
 From: Mateusz Jonak <mateusz@web.blue>
 Date: Fri, 12 Dec 2025 15:53:28 +0100
 Subject: [PATCH 12/51] fix: Reset gas trace counts using dedicated function
@@ -21,6 +21,3 @@ index 6b052ab..ac14932 100644
      trace->enabled = enabled ? TRUE : FALSE;
      return 0;
  }
--- 
-2.54.0
-

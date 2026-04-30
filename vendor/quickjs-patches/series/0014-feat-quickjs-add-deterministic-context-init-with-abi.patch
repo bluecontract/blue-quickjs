@@ -1,4 +1,4 @@
-From 9cfaffe5ec38765dc01ec118f9895128a90109e4 Mon Sep 17 00:00:00 2001
+From 59c29ef5ac40f514160b5c3e5aa06a692e5d8e18 Mon Sep 17 00:00:00 2001
 From: Mateusz Jonak <mateusz@web.blue>
 Date: Tue, 16 Dec 2025 11:12:25 +0100
 Subject: [PATCH 14/51] feat(quickjs): add deterministic context init with ABI
@@ -441,6 +441,3 @@ index c850ba7..6fbafed 100644
  void JS_FreeContext(JSContext *s);
  JSContext *JS_DupContext(JSContext *ctx);
  void *JS_GetContextOpaque(JSContext *ctx);
--- 
-2.54.0
-

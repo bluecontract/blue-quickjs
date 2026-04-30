@@ -1,4 +1,4 @@
-From c860955ea3ead45cfb6c3e4c1207faa798a5d193 Mon Sep 17 00:00:00 2001
+From eded35d8be88b7bfe1f1e2e94adf89424915a58f Mon Sep 17 00:00:00 2001
 From: Cursor Agent <cursoragent@cursor.com>
 Date: Mon, 16 Mar 2026 05:01:53 +0000
 Subject: [PATCH 39/51] Retune deterministic allocation scaling for parity
@@ -35,6 +35,3 @@ index 9f1263d..047f8ec 100644
      }
  #else
      return size;
--- 
-2.54.0
-

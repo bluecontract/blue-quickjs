@@ -1,4 +1,4 @@
-From 6704ad80cb57954d0839a481bf1946fcf336242b Mon Sep 17 00:00:00 2001
+From 33353d1be1464c8195cf58873e22e5170023ba31 Mon Sep 17 00:00:00 2001
 From: Mateusz Jonak <mateusz@web.blue>
 Date: Thu, 15 Jan 2026 15:10:57 +0100
 Subject: [PATCH 26/51] feat(runtime): expose current contract globals when
@@ -128,6 +128,3 @@ index 4865db0..f13fe05 100644
 +        JS_FreeValue(ctx, current_contract_canonical_val);
      return ret;
  }
--- 
-2.54.0
-

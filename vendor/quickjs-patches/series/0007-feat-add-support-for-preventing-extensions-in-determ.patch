@@ -1,4 +1,4 @@
-From eb8f3eb11b07e06656ac65c4637dfb6c5e80cc15 Mon Sep 17 00:00:00 2001
+From d6758d3402c323a696abf75ed00b3a4d2458b20d Mon Sep 17 00:00:00 2001
 From: Mateusz Jonak <mateusz@web.blue>
 Date: Thu, 11 Dec 2025 00:13:57 +0100
 Subject: [PATCH 07/51] feat: Add support for preventing extensions in
@@ -23,6 +23,3 @@ index 7ab8406..f6cdb03 100644
      JS_FreeValue(ctx, host_ns);
      JS_FreeValue(ctx, host_v1);
  
--- 
-2.54.0
-

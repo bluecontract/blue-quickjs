@@ -1,4 +1,4 @@
-From ba10dc4328313eabed7bae2fe04f230ea2aaaa9f Mon Sep 17 00:00:00 2001
+From 0b191267eb0bc0e287c95b37fbb434a5c1db04a7 Mon Sep 17 00:00:00 2001
 From: Mateusz Jonak <mateusz@web.blue>
 Date: Thu, 11 Dec 2025 12:57:05 +0100
 Subject: [PATCH 09/51] feat: Implement gas allocation tracking in memory
@@ -177,6 +177,3 @@ index 2ee5695..a3efc3f 100644
      return JS_EXCEPTION;
  }
  
--- 
-2.54.0
-

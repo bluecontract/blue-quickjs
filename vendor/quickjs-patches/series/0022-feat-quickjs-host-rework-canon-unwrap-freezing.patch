@@ -1,4 +1,4 @@
-From 5abee3f7d3d7d62f2d719bbc0202249f28929076 Mon Sep 17 00:00:00 2001
+From ba7e0cd427ac3aaff42270e04aedbfc07800b4af Mon Sep 17 00:00:00 2001
 From: Mateusz Jonak <mateusz@web.blue>
 Date: Wed, 7 Jan 2026 16:42:03 +0100
 Subject: [PATCH 22/51] feat(quickjs-host): rework canon unwrap + freezing
@@ -424,6 +424,3 @@ index daf6795..37a1f41 100644
  
      return clone;
  }
--- 
-2.54.0
-

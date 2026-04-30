@@ -1,4 +1,4 @@
-From e29f46513c0d4a198e8ee8a0fe090d476dcf19d5 Mon Sep 17 00:00:00 2001
+From 872a0f56f630351d638385b1a32db2d30e5afaac Mon Sep 17 00:00:00 2001
 From: Mateusz Jonak <mateusz@web.blue>
 Date: Wed, 17 Dec 2025 09:46:26 +0100
 Subject: [PATCH 19/51] feat(host-tape): add optional host-call tape ring
@@ -359,6 +359,3 @@ index 7d1fcf4..1b67157 100644
 +int JS_ReadHostTape(JSContext *ctx, JSHostTapeRecord *out_records, size_t max_records, size_t *out_count);
 +
  #endif /* QUICKJS_HOST_H */
--- 
-2.54.0
-

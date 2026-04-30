@@ -1,4 +1,4 @@
-From 658f0d9408035d80214b153cf17bc4e381a4d76a Mon Sep 17 00:00:00 2001
+From 5fd62c8ee66456bdca9ab83d1082b033828a9c92 Mon Sep 17 00:00:00 2001
 From: Cursor Agent <cursoragent@cursor.com>
 Date: Sun, 15 Mar 2026 21:40:29 +0000
 Subject: [PATCH 32/51] add deterministic console shim feature flag
@@ -233,6 +233,3 @@ index 2538e9b..bdefdff 100644
  
  typedef JSValue JSCFunction(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv);
  typedef JSValue JSCFunctionMagic(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv, int magic);
--- 
-2.54.0
-

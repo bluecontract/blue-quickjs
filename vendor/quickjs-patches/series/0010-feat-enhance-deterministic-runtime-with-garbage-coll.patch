@@ -1,4 +1,4 @@
-From b4a584c794d471ef9a581cabd750aafd32b2f40d Mon Sep 17 00:00:00 2001
+From f7dcf2d22dd1b3ec2270db0a01d2fbf2c58bfa06 Mon Sep 17 00:00:00 2001
 From: Mateusz Jonak <mateusz@web.blue>
 Date: Thu, 11 Dec 2025 14:48:56 +0100
 Subject: [PATCH 10/51] feat: Enhance deterministic runtime with garbage
@@ -102,6 +102,3 @@ index afcebe5..a027514 100644
  JS_BOOL JS_IsLiveObject(JSRuntime *rt, JSValueConst obj);
  
  JSContext *JS_NewContext(JSRuntime *rt);
--- 
-2.54.0
-

@@ -1,4 +1,4 @@
-From 68508150229536d9f588087a95e1a2b0f8c70cf3 Mon Sep 17 00:00:00 2001
+From 4fbda0733a4d10cf8c9d5ed8cce806b5f1ea5129 Mon Sep 17 00:00:00 2001
 From: Mateusz Jonak <mateusz@web.blue>
 Date: Wed, 7 Jan 2026 18:14:05 +0100
 Subject: [PATCH 24/51] feat(host): expose Host.v1.emit as global emit()
@@ -99,6 +99,3 @@ index 37a1f41..7bdc9f9 100644
      if (!JS_IsUndefined(canon_obj))
          JS_FreeValue(ctx, canon_obj);
      if (!JS_IsUndefined(canon_unwrap_fn))
--- 
-2.54.0
-

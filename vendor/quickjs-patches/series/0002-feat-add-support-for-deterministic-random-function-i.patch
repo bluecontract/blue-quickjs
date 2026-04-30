@@ -1,4 +1,4 @@
-From adac78bc30b82150d1e11895ea5a7cecf36bd878 Mon Sep 17 00:00:00 2001
+From 2ce753ae916b18716bf62766d9c6b7e7e64505fc Mon Sep 17 00:00:00 2001
 From: Mateusz Jonak <mateusz@web.blue>
 Date: Wed, 10 Dec 2025 23:35:13 +0100
 Subject: [PATCH 02/51] feat: Add support for deterministic random function in
@@ -79,6 +79,3 @@ index d9e00bf..905d8e2 100644
      ctx->deterministic_mode = TRUE;
      return 0;
  }
--- 
-2.54.0
-

@@ -1,4 +1,4 @@
-From 8eb984915c35c763853093a0d66c05c71e383349 Mon Sep 17 00:00:00 2001
+From 0c7fcbb99efc29758c275f82001c8825ab5801f4 Mon Sep 17 00:00:00 2001
 From: Cursor Agent <cursoragent@cursor.com>
 Date: Sun, 15 Mar 2026 20:05:33 +0000
 Subject: [PATCH 30/51] expose context loaded-module cleanup helper
@@ -47,6 +47,3 @@ index 54db62e..c842707 100644
  
  /* JS Job support */
  
--- 
-2.54.0
-

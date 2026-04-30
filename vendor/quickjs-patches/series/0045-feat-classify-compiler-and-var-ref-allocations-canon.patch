@@ -1,4 +1,4 @@
-From 7aa5576d990ba3e5f25f58ec756239733f355c2c Mon Sep 17 00:00:00 2001
+From 76191e3972baf390b0d6eb5459c53bbf642bfc1c Mon Sep 17 00:00:00 2001
 From: Cursor Agent <cursoragent@cursor.com>
 Date: Mon, 16 Mar 2026 12:51:13 +0000
 Subject: [PATCH 45/51] feat: classify compiler and var-ref allocations
@@ -123,6 +123,3 @@ index 325573f..faed455 100644
      if (!s->closure_var)
          return -1;
      /* Add lexical variables in scope at the point of evaluation */
--- 
-2.54.0
-

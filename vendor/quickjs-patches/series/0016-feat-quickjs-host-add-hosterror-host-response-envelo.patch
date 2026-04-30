@@ -1,4 +1,4 @@
-From 17b19102ad73b0d785f2855d7bf0799fef969d9c Mon Sep 17 00:00:00 2001
+From dc368adab17e1d696baee86c1a73e0ec51bf6b60 Mon Sep 17 00:00:00 2001
 From: Mateusz Jonak <mateusz@web.blue>
 Date: Tue, 16 Dec 2025 19:30:30 +0100
 Subject: [PATCH 16/51] feat(quickjs-host): add HostError + host response
@@ -505,6 +505,3 @@ index e54a2fc..3cc7d35 100644
          return -1;
      }
  
--- 
-2.54.0
-

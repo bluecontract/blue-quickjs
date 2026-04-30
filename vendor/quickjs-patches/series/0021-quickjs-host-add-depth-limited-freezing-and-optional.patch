@@ -1,4 +1,4 @@
-From 82af2dd65815621de6e8affd286b679a8b8a2db6 Mon Sep 17 00:00:00 2001
+From ff420e0eb9637dce4c87b201f1fe44dda4e3b0c2 Mon Sep 17 00:00:00 2001
 From: Mateusz Jonak <mateusz@web.blue>
 Date: Wed, 7 Jan 2026 12:17:18 +0100
 Subject: [PATCH 21/51] quickjs-host: add depth-limited freezing and optional
@@ -289,6 +289,3 @@ index 38585de..daf6795 100644
      if (JS_IsException(canon_unwrap_fn))
          goto done;
  
--- 
-2.54.0
-

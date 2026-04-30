@@ -1,4 +1,4 @@
-From 0f829d5b4831cacd5cb9a86065e316129fbb9578 Mon Sep 17 00:00:00 2001
+From ed5937463688b36c8f9f7499b91b78942d3c0f8b Mon Sep 17 00:00:00 2001
 From: Cursor Agent <cursoragent@cursor.com>
 Date: Mon, 16 Mar 2026 13:26:53 +0000
 Subject: [PATCH 47/51] feat: canonicalize dynamic array allocation charging
@@ -67,6 +67,3 @@ index 302cb08..c91a520 100644
  #define JS_GAS_UNLIMITED UINT64_C(0xffffffffffffffff)
  
  typedef struct JSMallocState {
--- 
-2.54.0
-

@@ -1,4 +1,4 @@
-From b2d34642b6c54f879c37870de347e015592a5012 Mon Sep 17 00:00:00 2001
+From 78f37b6d562bb0b0cec14248da46e6f9ee99694a Mon Sep 17 00:00:00 2001
 From: Mateusz Jonak <mateusz@web.blue>
 Date: Thu, 11 Dec 2025 00:06:44 +0100
 Subject: [PATCH 06/51] feat: Add support for disabling console and print in
@@ -90,6 +90,3 @@ index 99466f2..7ab8406 100644
          js_deterministic_disable_webassembly(ctx) ||
          js_deterministic_init_host(ctx)) {
          return -1;
--- 
-2.54.0
-

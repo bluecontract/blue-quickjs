@@ -1,4 +1,4 @@
-From cc6d54b0d43fe2936a3ed2ab2999c1eca159039c Mon Sep 17 00:00:00 2001
+From 83668259e64b00e1272ab1550930ade33c01eefd Mon Sep 17 00:00:00 2001
 From: Cursor Agent <cursoragent@cursor.com>
 Date: Sun, 15 Mar 2026 21:24:38 +0000
 Subject: [PATCH 31/51] add deterministic promise-jobs feature flag support
@@ -140,6 +140,3 @@ index c842707..2538e9b 100644
  
  typedef JSValue JSCFunction(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv);
  typedef JSValue JSCFunctionMagic(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv, int magic);
--- 
-2.54.0
-

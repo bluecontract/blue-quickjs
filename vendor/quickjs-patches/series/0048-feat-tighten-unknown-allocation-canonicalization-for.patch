@@ -1,4 +1,4 @@
-From aa87e0e5e43ab7c1bca56fdb08f9f9d42747331e Mon Sep 17 00:00:00 2001
+From 411368c95104007a40d48885a2faaa8ec7de4d4e Mon Sep 17 00:00:00 2001
 From: Cursor Agent <cursoragent@cursor.com>
 Date: Mon, 16 Mar 2026 14:43:20 +0000
 Subject: [PATCH 48/51] feat: tighten unknown allocation canonicalization for
@@ -134,6 +134,3 @@ index c91a520..abae5d0 100644
  #define JS_GAS_UNLIMITED UINT64_C(0xffffffffffffffff)
  
  typedef struct JSMallocState {
--- 
-2.54.0
-

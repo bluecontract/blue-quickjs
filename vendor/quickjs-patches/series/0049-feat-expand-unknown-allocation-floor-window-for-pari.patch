@@ -1,4 +1,4 @@
-From ac42d1cd6b0480e6781851f3c9ff2c1c33273afd Mon Sep 17 00:00:00 2001
+From 17c0b4ab0a0e44f4fcd5dea0e8fa05567555c7a4 Mon Sep 17 00:00:00 2001
 From: Cursor Agent <cursoragent@cursor.com>
 Date: Mon, 16 Mar 2026 15:26:34 +0000
 Subject: [PATCH 49/51] feat: expand unknown allocation floor window for parity
@@ -21,6 +21,3 @@ index f02d82b..a4f3c4e 100644
  
  static void js_gas_trace_reset_counts(JSGasTraceData *trace)
  {
--- 
-2.54.0
-

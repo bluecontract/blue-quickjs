@@ -1,4 +1,4 @@
-From 5595afed795da3f142d7d9b124a6e2ddf26f9c1a Mon Sep 17 00:00:00 2001
+From 3503ee976b61f4efa939243839885d9c2a3f3704 Mon Sep 17 00:00:00 2001
 From: Mateusz Jonak <mateusz@web.blue>
 Date: Thu, 11 Dec 2025 09:52:57 +0100
 Subject: [PATCH 08/51] feat: Introduce gas management in QuickJS runtime
@@ -405,6 +405,3 @@ index 766d365..afcebe5 100644
  JSRuntime *JS_GetRuntime(JSContext *ctx);
  void JS_SetClassProto(JSContext *ctx, JSClassID class_id, JSValue obj);
  JSValue JS_GetClassProto(JSContext *ctx, JSClassID class_id);
--- 
-2.54.0
-
