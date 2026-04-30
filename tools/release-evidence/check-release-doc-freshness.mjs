@@ -4,51 +4,68 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
+import { pathToFileURL } from 'node:url';
 
-const args = parseArgs(process.argv.slice(2));
-const repoRoot = process.cwd();
-const reportPath = path.resolve(
-  repoRoot,
-  args.reportPath ?? 'docs/release-readiness-report.md',
-);
-const reportText = await readFile(reportPath, 'utf8');
+if (isMain()) {
+  const args = parseArgs(process.argv.slice(2));
+  const repoRoot = process.cwd();
+  const reportPath = path.resolve(
+    repoRoot,
+    args.reportPath ?? 'docs/release-readiness-report.md',
+  );
+  const reportText = await readFile(reportPath, 'utf8');
 
-const expectedBranch = args.expectedBranch ?? resolveCurrentBranch(repoRoot);
-const expectedDate = args.expectedDate ?? new Date().toISOString().slice(0, 10);
+  const expectedBranch = args.expectedBranch ?? resolveCurrentBranch(repoRoot);
+  const expectedDate =
+    args.expectedDate ?? new Date().toISOString().slice(0, 10);
+  const output = checkReleaseDocFreshness({
+    reportText,
+    expectedBranch,
+    expectedDate,
+    reportPath: path.relative(repoRoot, reportPath),
+  });
 
-const branchMatch = reportText.match(/^Branch:\s*`([^`]+)`/m);
-const dateMatch = reportText.match(/^Date:\s*(\d{4}-\d{2}-\d{2})/m);
-
-if (!branchMatch) {
-  throw new Error(`missing Branch line in ${path.relative(repoRoot, reportPath)}`);
+  process.stdout.write(`${JSON.stringify(output, null, 2)}\n`);
+  if (!output.checks.branchMatches || !output.checks.dateMatches) {
+    process.exitCode = 1;
+  }
 }
-if (!dateMatch) {
-  throw new Error(`missing Date line in ${path.relative(repoRoot, reportPath)}`);
-}
 
-const actualBranch = branchMatch[1];
-const actualDate = dateMatch[1];
-const checks = {
-  branchMatches: actualBranch === expectedBranch,
-  dateMatches: actualDate === expectedDate,
-};
+export function checkReleaseDocFreshness({
+  reportText,
+  expectedBranch,
+  expectedDate,
+  reportPath = 'docs/release-readiness-report.md',
+}) {
+  const branchMatch = reportText.match(/^Branch:\s*`([^`]+)`/m);
+  const dateMatch = reportText.match(/^Date:\s*(\d{4}-\d{2}-\d{2})/m);
 
-const output = {
-  reportPath: path.relative(repoRoot, reportPath),
-  expected: {
-    branch: expectedBranch,
-    date: expectedDate,
-  },
-  actual: {
-    branch: actualBranch,
-    date: actualDate,
-  },
-  checks,
-};
+  if (!branchMatch) {
+    throw new Error(`missing Branch line in ${reportPath}`);
+  }
+  if (!dateMatch) {
+    throw new Error(`missing Date line in ${reportPath}`);
+  }
 
-process.stdout.write(`${JSON.stringify(output, null, 2)}\n`);
-if (!checks.branchMatches || !checks.dateMatches) {
-  process.exitCode = 1;
+  const actualBranch = branchMatch[1];
+  const actualDate = dateMatch[1];
+  const checks = {
+    branchMatches: actualBranch === expectedBranch,
+    dateMatches: actualDate === expectedDate,
+  };
+
+  return {
+    reportPath,
+    expected: {
+      branch: expectedBranch,
+      date: expectedDate,
+    },
+    actual: {
+      branch: actualBranch,
+      date: actualDate,
+    },
+    checks,
+  };
 }
 
 function resolveCurrentBranch(cwd) {
@@ -90,4 +107,11 @@ function parseArgs(argv) {
     throw new Error(`unknown argument: ${arg}`);
   }
   return { expectedBranch, expectedDate, reportPath };
+}
+
+function isMain() {
+  if (!process.argv[1]) {
+    return false;
+  }
+  return import.meta.url === pathToFileURL(process.argv[1]).href;
 }
