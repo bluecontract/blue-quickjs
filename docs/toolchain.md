@@ -20,8 +20,12 @@ Baseline anchors: see `docs/baseline-1.md` (deterministic execution constraints)
    bash tools/scripts/prepare-quickjs-source.sh
    ```
 
-   The repo now auto-runs this check before native-harness and wasm builds, but
-   it is still useful as an explicit recovery step on fresh clones.
+   The script verifies the vendored upstream QuickJS base archive checksum,
+   extracts that base source, and applies `vendor/quickjs-patches/series/*.patch`.
+   It can still fall back to the upstream Git mirror path if the archive fields
+   are removed from the manifest. The repo auto-runs this check before
+   native-harness and wasm builds, but it is still useful as an explicit recovery
+   step on fresh clones.
 3. Load env into your shell for the session: `source tools/emsdk/emsdk_env.sh`.
 4. Verify: `emcc --version` should report `3.1.56`.
 

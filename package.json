@@ -26,6 +26,7 @@
     "workload:check-pack-manifests": "node tools/workload-certification/check-pack-manifests.mjs",
     "workload:compat-delta": "node apps/ecosystem-certifier/scripts/generate-compatibility-delta-report.mjs",
     "typecheck:project-references": "node tools/scripts/check-ts-project-references.mjs",
+    "quickjs-source:test": "node --test tools/scripts/quickjs-source-prep.test.mjs",
     "publish-rehearsal:verdaccio": "node tools/workload-certification/run-verdaccio-publish-rehearsal.mjs",
     "setup": "bash tools/scripts/setup-dev.sh",
     "verify": "bash tools/scripts/verify-dev.sh",

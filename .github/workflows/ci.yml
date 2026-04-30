@@ -62,6 +62,11 @@ jobs:
       - name: Install emsdk (pinned 3.1.56)
         run: bash tools/scripts/setup-emsdk.sh
 
+      - name: Verify QuickJS source reconstruction
+        run: |
+          pnpm quickjs-source:test
+          bash tools/scripts/check-quickjs-source-prep.sh
+
       - name: Verify generated gas schedule docs are in sync
         run: node tools/gas-spec/render-gas-artifacts.mjs --check
 
