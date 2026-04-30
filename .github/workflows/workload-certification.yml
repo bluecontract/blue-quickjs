@@ -171,13 +171,13 @@ jobs:
 
       - name: Build public packages for consumer proof (Linux)
         if: matrix.os == 'ubuntu-latest'
-        run: pnpm nx run-many -t build --projects abi-manifest,dv,execution-profiles,quickjs-wasm-constants,quickjs-wasm,quickjs-runtime,deterministic-bundler
+        run: pnpm nx run-many -t build --projects abi-manifest,dv,execution-profiles,quickjs-wasm-constants,quickjs-wasm,quickjs-runtime,deterministic-bundler,deterministic-builder
 
       - name: Build public packages for consumer proof (Windows)
         if: matrix.os == 'windows-latest'
         run: |
           pnpm nx build quickjs-wasm-build
-          pnpm nx run-many -t build --projects abi-manifest,dv,execution-profiles,quickjs-wasm-constants,deterministic-bundler
+          pnpm nx run-many -t build --projects abi-manifest,dv,execution-profiles,quickjs-wasm-constants,deterministic-bundler,deterministic-builder
           pnpm nx build quickjs-wasm --excludeTaskDependencies
           pnpm nx build quickjs-runtime --excludeTaskDependencies
 
@@ -185,7 +185,9 @@ jobs:
         run: node tools/workload-certification/pack-public-tarballs.mjs --out-dir artifacts/consumer-proof/tarballs
 
       - name: Validate public package version alignment
-        run: pnpm workload:check-public-package-versions
+        run: |
+          pnpm workload:check-public-package-coverage
+          pnpm workload:check-public-package-versions
 
       - name: Validate npm pack manifests
         run: pnpm workload:check-pack-manifests -- --out-dir artifacts/consumer-proof/pack-manifests

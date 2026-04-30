@@ -90,10 +90,11 @@ jobs:
           node apps/ecosystem-certifier/scripts/run-repeatability-certification.mjs --out-dir artifacts/workload-certification --iterations 100 --flagship-iterations 40
 
       - name: Build public packages for packaging checks
-        run: pnpm nx run-many -t build --projects abi-manifest,dv,execution-profiles,quickjs-wasm-constants,quickjs-wasm,quickjs-runtime,deterministic-bundler
+        run: pnpm nx run-many -t build --projects abi-manifest,dv,execution-profiles,quickjs-wasm-constants,quickjs-wasm,quickjs-runtime,deterministic-bundler,deterministic-builder
 
       - name: Validate public package release alignment
         run: |
+          pnpm workload:check-public-package-coverage
           pnpm workload:check-public-package-versions
           pnpm workload:check-pack-manifests -- --out-dir artifacts/consumer-proof/pack-manifests
 

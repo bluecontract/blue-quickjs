@@ -6,7 +6,7 @@ import process from 'node:process';
 import { spawn, spawnSync } from 'node:child_process';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { URL } from 'node:url';
-import { PUBLIC_PACKAGES } from './public-packages.mjs';
+import { PUBLIC_PACKAGE_PROJECTS, PUBLIC_PACKAGES } from './public-packages.mjs';
 
 const args = parseArgs(process.argv.slice(2));
 const repoRoot = process.cwd();
@@ -70,7 +70,7 @@ try {
       '-t',
       'build',
       '-p',
-      'dv,abi-manifest,execution-profiles,quickjs-wasm-constants,quickjs-runtime,deterministic-bundler',
+      PUBLIC_PACKAGE_PROJECTS.join(','),
     ],
     repoRoot,
   );
