@@ -159,3 +159,4 @@ Overflow during charge throws `TypeError: host_call gas overflow`. OOG on pre-ch
   - deterministic `JSON.parse` gas,
   - deterministic `JSON.stringify` gas.
 - Host-call gas is billed and tracked in dedicated host pre/post counters.
+
