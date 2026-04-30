@@ -1,6 +1,6 @@
 import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 import {
@@ -32,6 +32,7 @@ import {
   validateProgramArtifactV2,
 } from '@blue-quickjs/quickjs-runtime';
 import { DETERMINISM_INPUT } from '@blue-quickjs/test-harness';
+import { stringify as stringifyYaml } from 'yaml';
 
 type ArgValue = string | true;
 type ArgMap = Map<string, ArgValue>;
@@ -108,6 +109,8 @@ export async function runCli(args: string[]): Promise<number> {
         return await runBuildLibraryDoc(options);
       case 'create-import-lock':
         return await runCreateImportLock(options);
+      case 'create-step-document':
+        return await runCreateStepDocument(options);
       case 'build-step-doc':
         return await runBuildStepDoc(options);
       case 'inspect-blue-doc':
@@ -294,6 +297,67 @@ async function runCreateImportLock(options: ArgMap): Promise<number> {
         package: lock.requiredPackage,
         origin: lock.requiredOrigin ?? null,
         build: lock.requiredBuild,
+      },
+      null,
+      2,
+    ),
+  );
+  return 0;
+}
+
+async function runCreateStepDocument(options: ArgMap): Promise<number> {
+  const entryPath = getRequiredString(options, 'entry');
+  const specifier = getRequiredString(options, 'specifier');
+  const documentId = getRequiredString(options, 'library-document-id');
+  const libraryPath = getRequiredString(options, 'library');
+  const outPath = getRequiredString(options, 'out');
+  const contractName = getOptionalString(options, 'contract') ?? 'jsRuntime';
+  const profile = getOptionalString(options, 'profile') ?? 'compat-general-v1';
+  const abiId = getOptionalString(options, 'abi-id') ?? 'Host.v1';
+  const abiVersion = Number(getOptionalString(options, 'abi-version') ?? '1');
+  if (!Number.isInteger(abiVersion)) {
+    throw new Error('--abi-version must be an integer');
+  }
+
+  const artifact = await readJsonFile(libraryPath);
+  const importLock = createImportLock({
+    specifier,
+    libraryDocumentId: documentId,
+    artifact,
+  });
+  const document = {
+    name: getOptionalString(options, 'name') ?? path.basename(entryPath),
+    contracts: {
+      [contractName]: {
+        type: 'BlueQuickjs/JavaScript Environment Contract',
+        executionProfile: profile,
+        abi: {
+          id: abiId,
+          version: abiVersion,
+        },
+        imports: {
+          [specifier]: importLock,
+        },
+      },
+    },
+    step: {
+      type: 'BlueQuickjs/JavaScript Step',
+      useContracts: [contractName],
+      entry: await readFile(path.resolve(entryPath), 'utf8'),
+    },
+  };
+
+  await writeStructuredFile(outPath, document);
+  console.log(
+    JSON.stringify(
+      {
+        outPath,
+        name: document.name,
+        contract: contractName,
+        specifier,
+        documentId,
+        profile,
+        abi: document.contracts[contractName].abi,
       },
       null,
       2,
@@ -756,11 +820,26 @@ async function writeJsonFile(
   filePath: string,
   payload: unknown,
 ): Promise<void> {
+  await mkdir(path.dirname(path.resolve(filePath)), { recursive: true });
   await writeFile(
     path.resolve(filePath),
     `${JSON.stringify(payload, null, 2)}\n`,
     'utf8',
   );
+}
+
+async function writeStructuredFile(
+  filePath: string,
+  payload: unknown,
+): Promise<void> {
+  const resolved = path.resolve(filePath);
+  await mkdir(path.dirname(resolved), { recursive: true });
+  const lower = resolved.toLowerCase();
+  const text =
+    lower.endsWith('.yaml') || lower.endsWith('.yml')
+      ? stringifyYaml(payload, { lineWidth: 0 })
+      : `${JSON.stringify(payload, null, 2)}\n`;
+  await writeFile(resolved, text, 'utf8');
 }
 
 function mapVmPayload(payload: string, manifest: AbiManifest) {
@@ -854,6 +933,7 @@ function printHelp(): void {
       '  import-npm <name@version> --profile <profile> --out library-artifact.json [--registry <url>] [--entry <path|auto>] [--package-dir <path>]',
       '  build-library-doc --source library-source.json --out library-artifact.json',
       '  create-import-lock --specifier <import> --library-document-id <id> --library library-artifact.json --out import-lock.json',
+      '  create-step-document --entry entry.js --specifier <import> --library-document-id <id> --library library-artifact.json --out user-document.yaml [--name <name>] [--contract jsRuntime] [--profile compat-general-v1] [--abi-id Host.v1] [--abi-version 1]',
       '  build-step-doc --step step.json --scope scope.json --documents documents.json --out program-artifact.json',
       '  inspect-blue-doc --document <path>',
       '  explain-error --payload <vm-payload> | --raw "ERROR ..."',

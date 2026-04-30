@@ -47,6 +47,9 @@
     },
     {
       "path": "./apps/bluequickjs-playground"
+    },
+    {
+      "path": "./libs/blue-documents"
     }
   ]
 }

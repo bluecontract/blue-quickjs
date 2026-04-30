@@ -15,10 +15,13 @@
   "include": ["src/**/*.ts"],
   "references": [
     {
+      "path": "../quickjs-runtime/tsconfig.lib.json"
+    },
+    {
       "path": "../deterministic-builder/tsconfig.lib.json"
     },
     {
-      "path": "../quickjs-runtime/tsconfig.lib.json"
+      "path": "../abi-manifest/tsconfig.lib.json"
     }
   ],
   "exclude": [
