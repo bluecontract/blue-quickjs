@@ -1,9 +1,15 @@
+import { existsSync, mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { HOST_V1_HASH, HOST_V2_HASH } from '@blue-quickjs/abi-manifest';
 import {
   buildConsensusReportArgs,
   buildNativeArchiveArgs,
   buildNativeParityArgs,
   extractStackLocations,
   parseArgMap,
+  resolveBuildAbiOptions,
+  runCli,
 } from './cli.js';
 
 describe('blue-quickjs-cli argument parsing', () => {
@@ -107,5 +113,119 @@ describe('blue-quickjs-cli argument parsing', () => {
       '--include-gas-trace',
       '--include-gas-charge-tape',
     ]);
+  });
+
+  it('resolves Host.v1@1 to the Host.v1 manifest hash', () => {
+    const { options } = parseArgMap(['build', '--entry', 'src/main.ts']);
+
+    expect(resolveBuildAbiOptions(options)).toEqual({
+      abiId: 'Host.v1',
+      abiVersion: 1,
+      abiManifestHash: HOST_V1_HASH,
+    });
+  });
+
+  it('resolves Host.v2@2 to the Host.v2 manifest hash', () => {
+    const { options } = parseArgMap([
+      'build',
+      '--entry',
+      'src/main.ts',
+      '--abi-id',
+      'Host.v2',
+    ]);
+
+    expect(resolveBuildAbiOptions(options)).toEqual({
+      abiId: 'Host.v2',
+      abiVersion: 2,
+      abiManifestHash: HOST_V2_HASH,
+    });
+  });
+
+  it('rejects unsupported ABI id/version pairs', () => {
+    const cases = [
+      [
+        'build',
+        '--entry',
+        'src/main.ts',
+        '--abi-id',
+        'Host.v2',
+        '--abi-version',
+        '1',
+      ],
+      [
+        'build',
+        '--entry',
+        'src/main.ts',
+        '--abi-id',
+        'Host.v1',
+        '--abi-version',
+        '2',
+      ],
+      [
+        'build',
+        '--entry',
+        'src/main.ts',
+        '--abi-id',
+        'Host.v3',
+        '--abi-version',
+        '3',
+      ],
+      ['build', '--entry', 'src/main.ts', '--abi-id', 'Host.v22'],
+    ];
+
+    for (const args of cases) {
+      const { options } = parseArgMap(args);
+      expect(() => resolveBuildAbiOptions(options)).toThrow(/unsupported ABI/i);
+    }
+  });
+
+  it('rejects explicit ABI manifest hashes that do not match the selected ABI pair', () => {
+    const { options } = parseArgMap([
+      'build',
+      '--entry',
+      'src/main.ts',
+      '--abi-id',
+      'Host.v2',
+      '--abi-version',
+      '2',
+      '--abi-manifest-hash',
+      HOST_V1_HASH,
+    ]);
+
+    expect(() => resolveBuildAbiOptions(options)).toThrow(
+      /abi manifest hash mismatch/i,
+    );
+  });
+
+  it('fails unsupported ABI builds before writing an artifact', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {
+      // Suppress expected CLI error output for this negative-path test.
+    });
+    const tempDir = mkdtempSync(path.join(tmpdir(), 'blue-qjs-cli-'));
+    const outPath = path.join(tempDir, 'unsupported-abi.program.json');
+    expect(existsSync(outPath)).toBe(false);
+
+    try {
+      const exitCode = await runCli([
+        'build',
+        '--entry',
+        'missing-entry.ts',
+        '--abi-id',
+        'Host.v3',
+        '--abi-version',
+        '3',
+        '--out',
+        outPath,
+      ]);
+
+      expect(exitCode).toBe(1);
+      expect(errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('unsupported ABI Host.v3@3'),
+      );
+      expect(existsSync(outPath)).toBe(false);
+    } finally {
+      errorSpy.mockRestore();
+      rmSync(tempDir, { recursive: true, force: true });
+    }
   });
 });

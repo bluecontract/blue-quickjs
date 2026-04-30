@@ -33,6 +33,11 @@ type StackLocation = {
   line: number;
   column: number;
 };
+type SupportedAbiOptions = {
+  abiId: 'Host.v1' | 'Host.v2';
+  abiVersion: 1 | 2;
+  abiManifestHash: string;
+};
 
 export function parseArgMap(args: string[]): {
   command: string | null;
@@ -109,14 +114,8 @@ async function runBuild(options: ArgMap): Promise<number> {
     'baseline-v1') as DeterministicExecutionProfile;
   const cwd = getOptionalString(options, 'cwd') ?? process.cwd();
   const allowIncompatible = options.has('allow-incompatible');
-  const abiId = getOptionalString(options, 'abi-id') ?? 'Host.v1';
-  const abiVersion = Number(
-    getOptionalString(options, 'abi-version') ??
-      (abiId === 'Host.v2' ? '2' : '1'),
-  );
-  const abiManifestHash =
-    getOptionalString(options, 'abi-manifest-hash') ??
-    (abiId === 'Host.v2' ? HOST_V2_HASH : HOST_V1_HASH);
+  const { abiId, abiVersion, abiManifestHash } =
+    resolveBuildAbiOptions(options);
   const gasVersionRaw = getOptionalString(options, 'gas-version');
   const gasVersion =
     gasVersionRaw !== undefined
@@ -445,6 +444,70 @@ export function extractStackLocations(message: string): StackLocation[] {
   }
 
   return locations;
+}
+
+export function resolveBuildAbiOptions(options: ArgMap): SupportedAbiOptions {
+  const abiId = getOptionalString(options, 'abi-id') ?? 'Host.v1';
+  const rawAbiVersion = getOptionalString(options, 'abi-version');
+  const abiVersion =
+    rawAbiVersion === undefined
+      ? defaultAbiVersionForId(abiId)
+      : parseAbiVersion(rawAbiVersion);
+  const supportedAbi = resolveSupportedAbi({ id: abiId, version: abiVersion });
+  const expectedManifestHash = supportedAbi.abiManifestHash;
+  const abiManifestHash =
+    getOptionalString(options, 'abi-manifest-hash') ?? expectedManifestHash;
+
+  if (abiManifestHash !== expectedManifestHash) {
+    throw new Error(
+      `abi manifest hash mismatch for ${abiId}@${abiVersion}: expected ${expectedManifestHash}`,
+    );
+  }
+
+  return {
+    abiId: supportedAbi.abiId,
+    abiVersion: supportedAbi.abiVersion,
+    abiManifestHash,
+  };
+}
+
+function defaultAbiVersionForId(abiId: string): 1 | 2 {
+  if (abiId === 'Host.v1') {
+    return 1;
+  }
+  if (abiId === 'Host.v2') {
+    return 2;
+  }
+  throw new Error(`unsupported ABI ${abiId}`);
+}
+
+function parseAbiVersion(rawAbiVersion: string): number {
+  const abiVersion = Number.parseInt(rawAbiVersion, 10);
+  if (!/^\d+$/.test(rawAbiVersion) || !Number.isSafeInteger(abiVersion)) {
+    throw new Error('--abi-version must be a non-negative integer');
+  }
+  return abiVersion;
+}
+
+function resolveSupportedAbi(abi: {
+  id: string;
+  version: number;
+}): SupportedAbiOptions {
+  if (abi.id === 'Host.v1' && abi.version === 1) {
+    return {
+      abiId: 'Host.v1',
+      abiVersion: 1,
+      abiManifestHash: HOST_V1_HASH,
+    };
+  }
+  if (abi.id === 'Host.v2' && abi.version === 2) {
+    return {
+      abiId: 'Host.v2',
+      abiVersion: 2,
+      abiManifestHash: HOST_V2_HASH,
+    };
+  }
+  throw new Error(`unsupported ABI ${abi.id}@${abi.version}`);
 }
 
 function defaultManifestForProgram(
