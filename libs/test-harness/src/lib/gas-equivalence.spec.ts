@@ -4,7 +4,6 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { describe, expect, test, beforeAll } from 'vitest';
 import { decodeDv, encodeDv } from '@blue-quickjs/dv';
-import { getQuickjsWasmArtifacts } from '@blue-quickjs/quickjs-wasm-build';
 import type {
   QuickjsWasmBuildType,
   QuickjsWasmVariant,
@@ -54,6 +53,13 @@ interface ExpectedTrace {
   hostCallPreGas: bigint;
   hostCallPostCount: bigint;
   hostCallPostGas: bigint;
+}
+
+interface QuickjsWasmBuildModule {
+  getQuickjsWasmArtifacts: (
+    variant: QuickjsWasmVariant,
+    buildType: QuickjsWasmBuildType,
+  ) => { loaderPath: string };
 }
 
 const repoRoot = path.resolve(
@@ -557,6 +563,13 @@ let wasmReadTrace: (() => WasmPtr) | null = null;
 let wasmModule: any = null;
 
 beforeAll(async () => {
+  // Keep this non-literal so no-emit spec typechecks do not require prebuilt declarations.
+  const quickjsWasmBuildPackage = ['@blue-quickjs', 'quickjs-wasm-build'].join(
+    '/',
+  );
+  const { getQuickjsWasmArtifacts } = (await import(
+    quickjsWasmBuildPackage
+  )) as QuickjsWasmBuildModule;
   const { loaderPath } = getQuickjsWasmArtifacts(wasmVariant, wasmBuildType);
   if (!existsSync(loaderPath)) {
     throw new Error(

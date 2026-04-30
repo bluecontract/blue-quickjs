@@ -14,10 +14,7 @@ export interface BuildFixtureDefinition {
   title: string;
   kind: FixtureKind;
   entryPath: string;
-  profile:
-    | 'baseline-v1'
-    | 'compat-general-v1'
-    | 'compat-binary-v1';
+  profile: 'baseline-v1' | 'compat-general-v1' | 'compat-binary-v1';
   abiId: 'Host.v1' | 'Host.v2';
   abiVersion: 1 | 2;
   abiManifestHash: string;

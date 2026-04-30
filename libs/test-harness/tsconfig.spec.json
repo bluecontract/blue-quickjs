@@ -35,9 +35,6 @@
     },
     {
       "path": "../quickjs-wasm-constants/tsconfig.lib.json"
-    },
-    {
-      "path": "../quickjs-wasm-build/tsconfig.lib.json"
     }
   ]
 }
