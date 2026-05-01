@@ -13,7 +13,13 @@ Scope: steps to publish deterministic engine + ABI packages.
 - Run strict parity gating for consensus executors (`wasm-node` vs
   `wasm-browser`) with raw gas equality (no gas-delta baseline normalization).
 - Verify gas schedule docs are synchronized with the canonical spec source:
+  - `pnpm gas-spec:test`
   - `node tools/gas-spec/render-gas-artifacts.mjs --check`
+- Enforce critical package coverage thresholds. The current accepted minimum is
+  40% for lines, branches, functions, and statements across
+  `quickjs-runtime`, `deterministic-bundler`, `deterministic-builder`,
+  `abi-manifest`, `blue-quickjs-cli`, and `ecosystem-certifier`.
+  - `pnpm test:coverage:critical`
 - Verify OOG boundary parity checks are green for the consensus fixture corpus.
   - `pnpm nx test test-harness` (includes wasm/native boundary search fixtures in
     `libs/test-harness/src/lib/gas-equivalence.spec.ts`).

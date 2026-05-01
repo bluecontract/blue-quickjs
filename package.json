@@ -28,6 +28,8 @@
     "workload:compat-delta": "node apps/ecosystem-certifier/scripts/generate-compatibility-delta-report.mjs",
     "typecheck:project-references": "node tools/scripts/check-ts-project-references.mjs",
     "quickjs-source:test": "node --test tools/scripts/quickjs-source-prep.test.mjs",
+    "gas-spec:test": "node --test tools/gas-spec/*.test.mjs",
+    "test:coverage:critical": "nx run-many -t test --coverage --projects=quickjs-runtime,deterministic-bundler,deterministic-builder,abi-manifest,blue-quickjs-cli,ecosystem-certifier",
     "publish-rehearsal:verdaccio": "node tools/workload-certification/run-verdaccio-publish-rehearsal.mjs",
     "setup": "bash tools/scripts/setup-dev.sh",
     "verify": "bash tools/scripts/verify-dev.sh",

@@ -68,7 +68,9 @@ jobs:
           bash tools/scripts/check-quickjs-source-prep.sh
 
       - name: Verify generated gas schedule docs are in sync
-        run: node tools/gas-spec/render-gas-artifacts.mjs --check
+        run: |
+          pnpm gas-spec:test
+          node tools/gas-spec/render-gas-artifacts.mjs --check
 
       - name: Reset Nx state (just in case)
         run: pnpm exec nx reset
@@ -83,6 +85,23 @@ jobs:
       # Prepend any command with "nx-cloud record --" to record its logs to Nx Cloud
       # - run: pnpm exec nx-cloud record -- echo Hello World
       - run: NX_DAEMON=false NX_NO_CLOUD=true pnpm exec nx affected -t lint test build typecheck --skip-nx-cache --output-style=stream
+
+      - name: Run critical coverage threshold gate
+        run: NX_DAEMON=false NX_NO_CLOUD=true pnpm test:coverage:critical --skip-nx-cache --output-style=stream
+
+      - name: Upload critical coverage artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: critical-vitest-coverage
+          path: |
+            libs/quickjs-runtime/test-output/vitest/coverage
+            libs/deterministic-bundler/test-output/vitest/coverage
+            libs/deterministic-builder/test-output/vitest/coverage
+            libs/abi-manifest/test-output/vitest/coverage
+            tools/blue-quickjs-cli/test-output/vitest/coverage
+            apps/ecosystem-certifier/test-output/vitest/coverage
+          if-no-files-found: ignore
 
       - name: Run native harness suites
         run: |

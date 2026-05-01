@@ -11,7 +11,7 @@ const gasScheduleDocPath = path.join(repoRoot, 'docs', 'gas-schedule.md');
 
 const CHECK_MODE = process.argv.includes('--check');
 
-function renderGasSchedule(spec) {
+export function renderGasSchedule(spec) {
   return `# Gas Schedule (Baseline #1)
 
 > This file is generated from \`tools/gas-spec/gas-spec.v3.json\`.
@@ -186,10 +186,14 @@ Overflow during charge throws \`${spec.hostCall.overflowError}\`. OOG on pre-cha
 `;
 }
 
-async function main() {
+export function renderGasScheduleDocument(spec) {
+  return `${renderGasSchedule(spec).trimEnd()}\n`;
+}
+
+export async function main() {
   const specRaw = await readFile(specPath, 'utf8');
   const spec = JSON.parse(specRaw);
-  const renderedSchedule = `${renderGasSchedule(spec)}\n`;
+  const renderedSchedule = renderGasScheduleDocument(spec);
 
   if (CHECK_MODE) {
     const current = await readFile(gasScheduleDocPath, 'utf8');
@@ -204,4 +208,6 @@ async function main() {
   await writeFile(gasScheduleDocPath, renderedSchedule, 'utf8');
 }
 
-await main();
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  await main();
+}
