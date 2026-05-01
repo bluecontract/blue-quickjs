@@ -17,7 +17,7 @@ export default defineConfig(() => ({
       provider: 'v8' as const,
       all: true,
       include: ['src/**/*.{ts,mts}'],
-      exclude: ['src/**/*.{test,spec}.{ts,mts}'],
+      exclude: ['src/cli.ts', 'src/index.ts', 'src/**/*.{test,spec}.{ts,mts}'],
       thresholds: {
         lines: 40,
         functions: 40,

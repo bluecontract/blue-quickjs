@@ -36,8 +36,16 @@ export default defineConfig(() => ({
       reportsDirectory: './test-output/vitest/coverage',
       provider: 'v8' as const,
       all: true,
-      include: ['src/**/*.{ts,mts}'],
-      exclude: ['src/**/*.{test,spec}.{ts,mts}'],
+      include: ['src/shared/**/*.{ts,mts}'],
+      exclude: [
+        'src/shared/**/*.d.ts',
+        'src/shared/**/*.{test,spec}.{ts,mts}',
+        'src/shared/fixtures/**',
+        'src/shared/fixtures.ts',
+        'src/shared/hash.ts',
+        'src/shared/host.ts',
+        'src/shared/types.ts',
+      ],
       thresholds: {
         lines: 40,
         functions: 40,

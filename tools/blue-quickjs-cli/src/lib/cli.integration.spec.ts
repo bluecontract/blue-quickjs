@@ -8,6 +8,7 @@ import {
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { HOST_V2_HASH } from '@blue-quickjs/abi-manifest';
+import { describe, expect, it, vi } from 'vitest';
 import { runCli } from './cli.js';
 
 describe('blue-quickjs-cli integration behavior', () => {
@@ -140,6 +141,43 @@ describe('blue-quickjs-cli integration behavior', () => {
       expect(output.mappedLocations).toEqual([
         { source: './entry.js', line: 3, column: 1 },
       ]);
+    } finally {
+      logSpy.mockRestore();
+    }
+  });
+
+  it.each([
+    ['OutOfGas', 'out-of-gas', 'OUT_OF_GAS'],
+    ['HostError: document.get failed', 'host', 'HOST_ERROR'],
+    [
+      'ModuleExportMissing: missing default export',
+      'module-pack',
+      'MODULE_EXPORT_MISSING',
+    ],
+    [
+      'ModuleResolutionError: unsupported specifier',
+      'module-pack',
+      'MODULE_RESOLUTION_ERROR',
+    ],
+    [
+      'ModuleEvaluationError: thrown from entry',
+      'module-pack',
+      'MODULE_EVALUATION_ERROR',
+    ],
+    ['ReferenceError: value is not defined', 'js-exception', 'JS_EXCEPTION'],
+  ])('maps %s VM payloads through explain-error', async (raw, kind, code) => {
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {
+      // Suppress expected CLI JSON output.
+    });
+
+    try {
+      await expect(runCli(['explain-error', '--payload', raw])).resolves.toBe(
+        0,
+      );
+
+      const output = JSON.parse(String(logSpy.mock.calls.at(-1)?.[0]));
+      expect(output.kind).toBe(kind);
+      expect(output.code).toBe(code);
     } finally {
       logSpy.mockRestore();
     }

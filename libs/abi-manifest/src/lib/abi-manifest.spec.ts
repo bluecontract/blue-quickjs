@@ -20,8 +20,29 @@ import {
   HOST_V2_HASH,
   HOST_V2_MANIFEST,
 } from './host-v2-manifest.js';
+import * as publicApi from '../index.js';
+
+const expectAbiCode = (
+  fn: () => unknown,
+  code: AbiManifestError['code'],
+): void => {
+  try {
+    fn();
+    throw new Error('expected function to throw');
+  } catch (err) {
+    expect(err).toBeInstanceOf(AbiManifestError);
+    expect((err as AbiManifestError).code).toBe(code);
+  }
+};
 
 describe('abi-manifest', () => {
+  it('exposes the documented public API from the package index', () => {
+    expect(publicApi.HOST_V1_HASH).toBe(HOST_V1_HASH);
+    expect(publicApi.HOST_V2_HASH).toBe(HOST_V2_HASH);
+    expect(publicApi.validateAbiManifest).toBe(validateAbiManifest);
+    expect(publicApi.hashAbiManifestBytes).toBe(hashAbiManifestBytes);
+  });
+
   it('produces canonical bytes and hash for the Host.v1 manifest', () => {
     const { bytes, hash, manifest } = hashAbiManifest(HOST_V1_MANIFEST);
     expect(manifest).toEqual(validateAbiManifest(HOST_V1_MANIFEST));
@@ -85,7 +106,19 @@ describe('abi-manifest', () => {
       ...HOST_V1_MANIFEST,
       functions: [...HOST_V1_MANIFEST.functions].reverse(),
     };
-    expect(() => validateAbiManifest(badManifest)).toThrow(AbiManifestError);
+    expectAbiCode(() => validateAbiManifest(badManifest), 'UNSORTED');
+  });
+
+  it('rejects duplicate function ids before canonical encoding', () => {
+    const manifest: AbiManifest = {
+      ...HOST_V1_MANIFEST,
+      functions: [
+        HOST_V1_MANIFEST.functions[0],
+        { ...HOST_V1_MANIFEST.functions[1], fn_id: 1 },
+      ],
+    };
+
+    expectAbiCode(() => validateAbiManifest(manifest), 'DUPLICATE');
   });
 
   it('rejects js_path collisions', () => {
@@ -106,7 +139,7 @@ describe('abi-manifest', () => {
       ],
     };
 
-    expect(() => validateAbiManifest(manifest)).toThrow(AbiManifestError);
+    expectAbiCode(() => validateAbiManifest(manifest), 'PATH_CONFLICT');
   });
 
   it('requires arg_utf8_max only on string args', () => {
@@ -139,7 +172,26 @@ describe('abi-manifest', () => {
       ],
     };
 
-    expect(() => encodeAbiManifest(manifest)).toThrow(AbiManifestError);
+    expectAbiCode(() => encodeAbiManifest(manifest), 'INVALID_VALUE');
+  });
+
+  it('requires arg_utf8_max to match arity', () => {
+    const manifest: AbiManifest = {
+      ...HOST_V1_MANIFEST,
+      functions: [
+        {
+          ...HOST_V1_MANIFEST.functions[0],
+          arity: 1,
+          arg_schema: [{ type: 'string' }],
+          limits: {
+            ...HOST_V1_MANIFEST.functions[0].limits,
+            arg_utf8_max: [8, 16],
+          },
+        },
+      ],
+    };
+
+    expectAbiCode(() => validateAbiManifest(manifest), 'INVALID_VALUE');
   });
 
   it('rejects unsorted error_codes', () => {
@@ -156,7 +208,24 @@ describe('abi-manifest', () => {
       ],
     };
 
-    expect(() => validateAbiManifest(manifest)).toThrow(AbiManifestError);
+    expectAbiCode(() => validateAbiManifest(manifest), 'UNSORTED');
+  });
+
+  it('rejects duplicate error_codes', () => {
+    const manifest: AbiManifest = {
+      ...HOST_V1_MANIFEST,
+      functions: [
+        {
+          ...HOST_V1_MANIFEST.functions[0],
+          error_codes: [
+            { code: 'INVALID_PATH', tag: 'host/invalid_path' },
+            { code: 'INVALID_PATH', tag: 'host/invalid_path_again' },
+          ],
+        },
+      ],
+    };
+
+    expectAbiCode(() => validateAbiManifest(manifest), 'DUPLICATE');
   });
 
   it('rejects reserved host error codes', () => {
@@ -172,7 +241,7 @@ describe('abi-manifest', () => {
       ],
     };
 
-    expect(() => validateAbiManifest(manifest)).toThrow(AbiManifestError);
+    expectAbiCode(() => validateAbiManifest(manifest), 'INVALID_VALUE');
   });
 
   it('rejects forbidden js_path segments', () => {
@@ -186,17 +255,66 @@ describe('abi-manifest', () => {
       ],
     };
 
-    expect(() => validateAbiManifest(manifest)).toThrow(AbiManifestError);
+    expectAbiCode(() => validateAbiManifest(manifest), 'INVALID_VALUE');
+  });
+
+  it('rejects malformed js_path segments', () => {
+    const manifest: AbiManifest = {
+      ...HOST_V1_MANIFEST,
+      functions: [
+        {
+          ...HOST_V1_MANIFEST.functions[0],
+          js_path: ['emit.value'],
+        },
+      ],
+    };
+
+    expectAbiCode(() => validateAbiManifest(manifest), 'INVALID_VALUE');
   });
 
   it('rejects unknown fields in function entries', () => {
     const manifest: AbiManifest = {
       ...HOST_V1_MANIFEST,
-      // @ts-expect-error extra field for validation test
-      functions: [{ ...HOST_V1_MANIFEST.functions[0], extra: true }],
+      functions: [
+        {
+          ...HOST_V1_MANIFEST.functions[0],
+          extra: true,
+        } as unknown as AbiManifest['functions'][number],
+      ],
     };
 
-    expect(() => validateAbiManifest(manifest)).toThrow(AbiManifestError);
+    expectAbiCode(() => validateAbiManifest(manifest), 'UNKNOWN_FIELD');
+  });
+
+  it('rejects missing manifest fields and non-plain manifest roots', () => {
+    expectAbiCode(
+      () =>
+        validateAbiManifest({
+          abi_id: 'Host.v1',
+          abi_version: 1,
+        } as AbiManifest),
+      'MISSING_FIELD',
+    );
+    expectAbiCode(
+      () => validateAbiManifest([] as unknown as AbiManifest),
+      'INVALID_TYPE',
+    );
+    expectAbiCode(
+      () =>
+        validateAbiManifest({
+          ...HOST_V1_MANIFEST,
+          abi_id: '',
+        }),
+      'INVALID_VALUE',
+    );
+    expectAbiCode(
+      () =>
+        validateAbiManifest({
+          ...HOST_V1_MANIFEST,
+          abi_id: 1,
+        } as unknown as AbiManifest),
+      'INVALID_TYPE',
+    );
   });
 
   it('rejects -0 in uint32 fields', () => {
@@ -204,7 +322,78 @@ describe('abi-manifest', () => {
       ...HOST_V1_MANIFEST,
       abi_version: -0,
     };
-    expect(() => validateAbiManifest(manifest)).toThrow(AbiManifestError);
+    expectAbiCode(() => validateAbiManifest(manifest), 'INVALID_VALUE');
+  });
+
+  it('rejects invalid function values with precise validation codes', () => {
+    expectAbiCode(
+      () =>
+        validateAbiManifest({
+          ...HOST_V1_MANIFEST,
+          functions: [
+            {
+              ...HOST_V1_MANIFEST.functions[0],
+              effect: 'WRITE',
+            },
+          ],
+        } as unknown as AbiManifest),
+      'INVALID_VALUE',
+    );
+    expectAbiCode(
+      () =>
+        validateAbiManifest({
+          ...HOST_V1_MANIFEST,
+          functions: [
+            {
+              ...HOST_V1_MANIFEST.functions[0],
+              arity: 2,
+            },
+          ],
+        }),
+      'INVALID_VALUE',
+    );
+    expectAbiCode(
+      () =>
+        validateAbiManifest({
+          ...HOST_V1_MANIFEST,
+          functions: [
+            {
+              ...HOST_V1_MANIFEST.functions[0],
+              return_schema: { type: 'bytes' },
+            },
+          ],
+        } as unknown as AbiManifest),
+      'INVALID_VALUE',
+    );
+    expectAbiCode(
+      () =>
+        validateAbiManifest({
+          ...HOST_V1_MANIFEST,
+          functions: [
+            {
+              ...HOST_V1_MANIFEST.functions[0],
+              limits: {
+                ...HOST_V1_MANIFEST.functions[0].limits,
+                max_request_bytes: DV_LIMIT_DEFAULTS.maxEncodedBytes + 1,
+              },
+            },
+          ],
+        }),
+      'OUT_OF_RANGE',
+    );
+    expectAbiCode(
+      () =>
+        validateAbiManifest({
+          ...HOST_V1_MANIFEST,
+          functions: [
+            {
+              ...HOST_V1_MANIFEST.functions[0],
+              fn_id: 1.5,
+            },
+          ],
+        }),
+      'INVALID_TYPE',
+    );
   });
 
   it('rejects manifests whose gas charges overflow uint64 bounds', () => {
@@ -236,7 +425,7 @@ describe('abi-manifest', () => {
       ],
     };
 
-    expect(() => validateAbiManifest(manifest)).toThrow(AbiManifestError);
+    expectAbiCode(() => validateAbiManifest(manifest), 'OUT_OF_RANGE');
   });
 
   it('hashes existing bytes directly', () => {
@@ -245,5 +434,11 @@ describe('abi-manifest', () => {
     const bytes = encodeAbiManifest(HOST_V1_MANIFEST);
     expect(new Uint8Array(bytes)).toEqual(HOST_V1_BYTES);
     expect(hashAbiManifestBytes(bytes)).toEqual(HOST_V1_HASH);
+
+    const padded = Uint8Array.from([0xff, ...HOST_V1_BYTES, 0xff]);
+    const view = new DataView(padded.buffer, 1, HOST_V1_BYTES.length);
+    expect(hashAbiManifestBytes(view)).toEqual(HOST_V1_HASH);
+    const buffer = HOST_V1_BYTES.buffer.slice(0) as ArrayBuffer;
+    expect(hashAbiManifestBytes(buffer)).toEqual(HOST_V1_HASH);
   });
 });

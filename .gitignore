@@ -62,3 +62,4 @@ e2e/consumer-proof-app/package-lock.json
 artifacts/
 vendor/.quickjs-cache/
 vendor/quickjs/
+test-output/
