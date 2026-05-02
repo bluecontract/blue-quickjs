@@ -5,6 +5,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { spawn } from 'node:child_process';
 import { PUBLIC_PACKAGES } from './public-packages.mjs';
+import { validatePackedPackageHygiene } from './pack-hygiene.mjs';
 
 const args = parseArgs(process.argv.slice(2));
 const repoRoot = process.cwd();
@@ -30,13 +31,15 @@ for (const pkg of PUBLIC_PACKAGES) {
   );
   await run(pnpmCommand, ['pack', '--pack-destination', outDir], packageDir);
   const filename = `${pkg.replace('@', '').replaceAll('/', '-')}-${packageJson.version}.tgz`;
+  const tarballPath = path.join(outDir, filename);
+  await validatePackedPackageHygiene(pkg, tarballPath);
   records.push({
     package: pkg,
     entries: [
       {
         name: packageJson.name,
         version: packageJson.version,
-        filename: path.join(outDir, filename),
+        filename: tarballPath,
       },
     ],
   });

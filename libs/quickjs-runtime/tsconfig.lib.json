@@ -22,15 +22,11 @@
     },
     {
       "path": "../abi-manifest/tsconfig.lib.json"
-    },
-    {
-      "path": "../test-harness/tsconfig.lib.json"
-    },
-    {
-      "path": "../deterministic-bundler/tsconfig.lib.json"
     }
   ],
   "exclude": [
+    "tests/**",
+    "src/test/**",
     "vite.config.ts",
     "vite.config.mts",
     "vitest.config.ts",

@@ -8,6 +8,7 @@ import { pathToFileURL } from 'node:url';
 const BLUE_PACKAGE_PREFIX = '@blue-quickjs/';
 const SOURCE_FILE_EXTENSIONS = new Set(['.ts', '.tsx', '.mts']);
 const TEST_FILE_PATTERN = /\.(spec|test)\.[cm]?[tj]sx?$/;
+const TEST_DIRECTORY_NAMES = new Set(['test', 'tests']);
 const IMPORT_PATTERN =
   /(?:import|export)\s+(?:type\s+)?(?:[^'"]*?\s+from\s+)?['"](@blue-quickjs\/[^'"]+)['"]|import\(\s*['"](@blue-quickjs\/[^'"]+)['"]\s*\)/g;
 
@@ -151,6 +152,9 @@ async function walkSourceFiles(rootDir) {
   for (const entry of await readDirIfExists(rootDir)) {
     const fullPath = path.join(rootDir, entry.name);
     if (entry.isDirectory()) {
+      if (TEST_DIRECTORY_NAMES.has(entry.name)) {
+        continue;
+      }
       files.push(...(await walkSourceFiles(fullPath)));
       continue;
     }
