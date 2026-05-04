@@ -208,9 +208,11 @@ export async function bundleDeterministicProgram(
     result.metafile?.inputs ?? {},
     absWorkingDir,
   );
-  const sourceByPath = loadSourceByPath(modulePaths);
+  const normalizedBundleText = normalizeLineEndings(jsOutput.text).trimEnd();
   const compatibility = scanCompatibility({
-    sourceByPath,
+    sourceByPath: {
+      [normalizePath(jsOutput.path)]: normalizedBundleText,
+    },
     profile,
   });
 
@@ -221,7 +223,6 @@ export async function bundleDeterministicProgram(
     );
   }
 
-  const normalizedBundleText = normalizeLineEndings(jsOutput.text).trimEnd();
   const code = `${normalizedBundleText}\n;${globalName}.default;\n`;
 
   return {
@@ -1101,17 +1102,6 @@ function compareUtf8ByteOrder(left: string, right: string): number {
   }
 
   return leftBytes.length - rightBytes.length;
-}
-
-function loadSourceByPath(modulePaths: string[]): Record<string, string> {
-  const sourceByPath: Record<string, string> = {};
-  for (const modulePath of modulePaths) {
-    if (!fs.existsSync(modulePath)) {
-      continue;
-    }
-    sourceByPath[modulePath] = fs.readFileSync(modulePath, 'utf8');
-  }
-  return sourceByPath;
 }
 
 function addDiagnostic(

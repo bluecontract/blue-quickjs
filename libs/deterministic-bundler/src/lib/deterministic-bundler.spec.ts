@@ -80,6 +80,28 @@ describe('bundleDeterministicProgram', () => {
     expect(bundled.meta.profile).toBe('compat-general-v1');
   });
 
+  it('scans tree-shaken bundle output for compatibility', async () => {
+    const fixtureDir = createFixtureDir();
+    writeFixture(
+      fixtureDir,
+      'util.ts',
+      'export const value = 7; export function unusedClock() { return Date.now(); }',
+    );
+    writeFixture(
+      fixtureDir,
+      'entry.ts',
+      "import { value } from './util'; export default value;",
+    );
+
+    const bundled = await bundleDeterministicProgram({
+      absWorkingDir: fixtureDir,
+      entryPath: 'entry.ts',
+    });
+
+    expect(bundled.meta.compatibility.ok).toBe(true);
+    expect(bundled.code).not.toContain('Date.now');
+  });
+
   it('bundles chess.js fixture only under compat-general profile', async () => {
     const workspaceRoot = path.resolve(process.cwd(), '../..');
 
