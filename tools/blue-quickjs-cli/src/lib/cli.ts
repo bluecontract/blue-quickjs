@@ -119,11 +119,8 @@ async function runBuild(options: ArgMap): Promise<number> {
   const gasVersionRaw = getOptionalString(options, 'gas-version');
   const gasVersion =
     gasVersionRaw !== undefined
-      ? Number.parseInt(gasVersionRaw, 10)
+      ? parseU32Option('gas-version', gasVersionRaw)
       : undefined;
-  if (gasVersion !== undefined && !Number.isInteger(gasVersion)) {
-    throw new Error('--gas-version must be an integer');
-  }
   const outPath =
     getOptionalString(options, 'out') ??
     path.resolve(cwd, `${path.basename(entryPath)}.program.json`);
@@ -546,6 +543,17 @@ function getRequiredString(options: ArgMap, key: string): string {
 function getOptionalString(options: ArgMap, key: string): string | undefined {
   const value = options.get(key);
   return typeof value === 'string' ? value : undefined;
+}
+
+function parseU32Option(key: string, value: string): number {
+  if (!/^\d+$/.test(value)) {
+    throw new Error(`--${key} must be a u32 integer`);
+  }
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed > 0xffffffff) {
+    throw new Error(`--${key} must be a u32 integer`);
+  }
+  return parsed;
 }
 
 function resolveCliRepoRoot(cwdOverride?: string): string {

@@ -228,4 +228,34 @@ describe('blue-quickjs-cli argument parsing', () => {
       rmSync(tempDir, { recursive: true, force: true });
     }
   });
+
+  it('rejects malformed gas versions before writing an artifact', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {
+      // Suppress expected CLI error output for this negative-path test.
+    });
+    const tempDir = mkdtempSync(path.join(tmpdir(), 'blue-qjs-cli-'));
+    const outPath = path.join(tempDir, 'bad-gas.program.json');
+    expect(existsSync(outPath)).toBe(false);
+
+    try {
+      const exitCode = await runCli([
+        'build',
+        '--entry',
+        'missing-entry.ts',
+        '--gas-version',
+        '3foo',
+        '--out',
+        outPath,
+      ]);
+
+      expect(exitCode).toBe(1);
+      expect(errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('--gas-version must be a u32 integer'),
+      );
+      expect(existsSync(outPath)).toBe(false);
+    } finally {
+      errorSpy.mockRestore();
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
 });
