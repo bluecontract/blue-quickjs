@@ -126,6 +126,23 @@ describe('scanCompatibility', () => {
     ]);
   });
 
+  it('detects node builtin named re-exports', () => {
+    const scan = scanCompatibility({
+      sourceByPath: {
+        '/tmp/sample.ts': "export { readFileSync } from 'node:fs';",
+      },
+    });
+
+    expect(scan.ok).toBe(false);
+    expect(scan.diagnostics).toEqual([
+      {
+        filePath: '/tmp/sample.ts',
+        ruleId: 'node_builtin_import',
+        message: 'node builtin import is disabled: node:fs',
+      },
+    ]);
+  });
+
   it('allows regexp and console usage under compat-general profile', () => {
     const scan = scanCompatibility({
       profile: 'compat-general-v1',

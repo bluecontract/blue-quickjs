@@ -430,7 +430,8 @@ function scanNode(
 
   if (
     node.type === 'ImportDeclaration' ||
-    node.type === 'ExportAllDeclaration'
+    node.type === 'ExportAllDeclaration' ||
+    node.type === 'ExportNamedDeclaration'
   ) {
     const source = asString(
       (node as { source?: { value?: unknown } }).source?.value,
