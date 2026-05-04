@@ -158,6 +158,33 @@ describe('evaluate common-v1', () => {
     expect(result.error.code).toBe('MODULE_EXPORT_MISSING');
   });
 
+  it('does not classify a present undefined module export as missing', async () => {
+    const modulePack = createModulePack({
+      entrySpecifier: './entry.js',
+      modules: [
+        { specifier: './entry.js', source: 'export default undefined;\n' },
+      ],
+    });
+    const result = await evaluate({
+      program: createModulePackProgram(modulePack),
+      input: BASE_INPUT,
+      gasLimit: TEST_GAS_LIMIT,
+      manifest: HOST_V1_MANIFEST,
+      handlers: createHandlers(),
+    });
+
+    if (result.ok) {
+      expect(result.value).toBeUndefined();
+      return;
+    }
+
+    expect(
+      result.type === 'vm-error' &&
+        result.error.kind === 'module-pack' &&
+        result.error.code === 'MODULE_EXPORT_MISSING',
+    ).toBe(false);
+  });
+
   it('rejects module-pack artifacts with graph hash mismatch', async () => {
     const modulePack = createModulePack({
       entrySpecifier: './entry.js',

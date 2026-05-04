@@ -650,7 +650,7 @@ char *qjs_det_eval_module_pack(const char *module_pack_json,
 
   wrapper_source = dup_printf(
       "import * as __blue_entry_ns from %s;\n"
-      "if (typeof __blue_entry_ns[%s] === 'undefined') {\n"
+      "if (!Object.prototype.hasOwnProperty.call(__blue_entry_ns, %s)) {\n"
       "  throw new Error('ModuleExportMissing: export not found');\n"
       "}\n"
       "globalThis.%s = __blue_entry_ns[%s];\n",
@@ -691,13 +691,6 @@ char *qjs_det_eval_module_pack(const char *module_pack_json,
     out = format_prefixed_exception(det_ctx, det_gas_limit,
                                     "ModuleEvaluationError",
                                     "<module export>", NULL);
-    goto cleanup;
-  }
-
-  if (JS_IsUndefined(export_value)) {
-    uint64_t remaining = JS_GetGasRemaining(det_ctx);
-    out = format_with_gas("ERROR", "ModuleExportMissing: export not found",
-                          det_gas_limit, remaining, NULL);
     goto cleanup;
   }
 

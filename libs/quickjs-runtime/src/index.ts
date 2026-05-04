@@ -3,3 +3,5 @@ export * from './lib/host-dispatcher.js';
 export * from './lib/runtime.js';
 export * from './lib/deterministic-init.js';
 export * from './lib/evaluate.js';
+export * from './lib/module-pack-graph-hash.js';
+export * from './lib/module-pack-builder.js';

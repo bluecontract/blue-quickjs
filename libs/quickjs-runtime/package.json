@@ -27,6 +27,7 @@
     "@blue-quickjs/execution-profiles": "workspace:*",
     "@blue-quickjs/quickjs-wasm": "workspace:*",
     "@jridgewell/trace-mapping": "^0.3.31",
+    "acorn": "^8.15.0",
     "tslib": "^2.3.0"
   },
   "devDependencies": {

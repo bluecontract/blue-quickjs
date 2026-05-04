@@ -186,6 +186,10 @@ export function validateProgramArtifact(
   };
 }
 
+export function validateModulePack(value: unknown): ModulePackV1 {
+  return validateModulePackV1(value, 'modulePack');
+}
+
 export function validateProgramArtifactV2(
   value: unknown,
   options?: ProgramValidationOptions,

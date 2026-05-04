@@ -34,6 +34,7 @@ import {
 } from './evaluate-errors.js';
 import { parseHexToBytes } from './hex-utils.js';
 import { remapModulePackErrorPayload } from './source-map-remap.js';
+import { computeModulePackGraphHash } from './module-pack-graph-hash.js';
 
 export interface EvaluateOptions
   extends RuntimeArtifactSelection, HostDispatcherOptions {
@@ -834,33 +835,6 @@ async function assertModulePackHash(modulePack: ModulePackV1): Promise<void> {
   }
 }
 
-async function computeModulePackGraphHash(
-  modulePack: ModulePackV1,
-): Promise<string> {
-  const canonical = {
-    version: modulePack.version,
-    entrySpecifier: modulePack.entrySpecifier,
-    entryExport: modulePack.entryExport ?? 'default',
-    modules: [...modulePack.modules]
-      .sort((left, right) =>
-        compareUtf8ByteOrder(left.specifier, right.specifier),
-      )
-      .map((module) => ({
-        specifier: module.specifier,
-        source: module.source,
-        ...(module.sourceMap ? { sourceMap: module.sourceMap } : {}),
-      })),
-    builderVersion: modulePack.builderVersion,
-    dependencyIntegrity: modulePack.dependencyIntegrity,
-  };
-  const payload = new TextEncoder().encode(stableStringify(canonical));
-  const subtle = getSubtleCrypto();
-  const digest = await subtle.digest('SHA-256', payload);
-  return [...new Uint8Array(digest)]
-    .map((byte) => byte.toString(16).padStart(2, '0'))
-    .join('');
-}
-
 function serializeModulePackModules(modulePack: ModulePackV1): string {
   return JSON.stringify(
     modulePack.modules.map((module) => ({
@@ -868,62 +842,6 @@ function serializeModulePackModules(modulePack: ModulePackV1): string {
       source: module.source,
     })),
   );
-}
-
-function stableStringify(value: unknown): string {
-  if (value === null || typeof value !== 'object') {
-    return JSON.stringify(value);
-  }
-  if (Array.isArray(value)) {
-    return `[${value.map((item) => stableStringify(item)).join(',')}]`;
-  }
-
-  const entries = Object.entries(value as Record<string, unknown>)
-    .filter(([, item]) => item !== undefined)
-    .sort(([left], [right]) => compareUtf8ByteOrder(left, right))
-    .map(([key, item]) => `${JSON.stringify(key)}:${stableStringify(item)}`);
-  return `{${entries.join(',')}}`;
-}
-
-const UTF8_ENCODER = new TextEncoder();
-
-function compareUtf8ByteOrder(left: string, right: string): number {
-  if (left === right) {
-    return 0;
-  }
-
-  const leftBytes = UTF8_ENCODER.encode(left);
-  const rightBytes = UTF8_ENCODER.encode(right);
-  const limit = Math.min(leftBytes.length, rightBytes.length);
-
-  for (let index = 0; index < limit; index += 1) {
-    const delta = leftBytes[index] - rightBytes[index];
-    if (delta !== 0) {
-      return delta;
-    }
-  }
-
-  return leftBytes.length - rightBytes.length;
-}
-
-type SubtleDigestApi = {
-  digest(
-    algorithm: string,
-    data: ArrayBuffer | ArrayBufferView,
-  ): Promise<ArrayBuffer>;
-};
-
-function getSubtleCrypto(): SubtleDigestApi {
-  const subtle =
-    globalThis.crypto && 'subtle' in globalThis.crypto
-      ? globalThis.crypto.subtle
-      : null;
-  if (!subtle) {
-    throw new Error(
-      'MODULE_PACK_HASH_MISMATCH: crypto.subtle is unavailable for graph hash verification',
-    );
-  }
-  return subtle;
 }
 
 function isProgramArtifactV2(value: unknown): value is ProgramArtifactV2 {

@@ -357,6 +357,9 @@ importers:
       '@jridgewell/trace-mapping':
         specifier: ^0.3.31
         version: 0.3.31
+      acorn:
+        specifier: ^8.15.0
+        version: 8.15.0
       tslib:
         specifier: ^2.3.0
         version: 2.8.1
