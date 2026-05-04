@@ -106,6 +106,35 @@ describe('initializeDeterministicVm', () => {
     ).toThrow(/manifest hash/i);
   });
 
+  it('rejects numeric gas limits above the uint64 range', async () => {
+    const runtime = await createRuntime({
+      manifest: HOST_V1_MANIFEST,
+      handlers: createHandlers(),
+    });
+    const tooLargeGasLimit = 2 ** 64;
+
+    expect(() =>
+      initializeDeterministicVm(
+        runtime,
+        BASE_PROGRAM,
+        BASE_INPUT,
+        tooLargeGasLimit,
+      ),
+    ).toThrow(/uint64 range/i);
+
+    const vm = initializeDeterministicVm(
+      runtime,
+      BASE_PROGRAM,
+      BASE_INPUT,
+      TEST_GAS_LIMIT,
+    );
+    try {
+      expect(() => vm.setGasLimit(tooLargeGasLimit)).toThrow(/uint64 range/i);
+    } finally {
+      vm.dispose();
+    }
+  });
+
   it('resets gas trace counts when gas tracing is re-enabled on the same VM', async () => {
     const runtime = await createRuntime({
       manifest: HOST_V1_MANIFEST,

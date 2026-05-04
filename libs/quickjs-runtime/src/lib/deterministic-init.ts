@@ -291,7 +291,11 @@ function normalizeGasLimit(value: bigint | number): bigint {
     if (value < 0) {
       throw new Error('gasLimit must be non-negative');
     }
-    return BigInt(value);
+    const normalized = BigInt(value);
+    if (normalized > UINT64_MAX) {
+      throw new Error(`gasLimit exceeds uint64 range (${value})`);
+    }
+    return normalized;
   }
 
   if (typeof value !== 'bigint') {
