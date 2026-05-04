@@ -468,15 +468,6 @@ function scanNode(
         }
       }
 
-      if (identifier && FORBIDDEN_IDENTIFIER_RULES.has(identifier)) {
-        addDiagnostic(
-          diagnostics,
-          filePath,
-          FORBIDDEN_IDENTIFIER_RULES.get(identifier) ?? 'forbidden_identifier',
-          `forbidden API used: ${identifier}`,
-        );
-      }
-
       if (
         identifier &&
         identifier === 'queueMicrotask' &&
@@ -489,17 +480,42 @@ function scanNode(
           `forbidden API used: ${identifier}`,
         );
       }
+    }
 
+    const targetIdentifier = getCallTargetRootIdentifier(callee);
+    if (targetIdentifier) {
       if (
-        identifier &&
-        BINARY_IDENTIFIER_RULES.has(identifier) &&
+        FORBIDDEN_TYPED_ARRAYS.has(targetIdentifier) &&
         !executionProfileHasCapability(profile, 'typedArrays')
       ) {
         addDiagnostic(
           diagnostics,
           filePath,
-          BINARY_IDENTIFIER_RULES.get(identifier) ?? 'binary_api_disabled',
-          `forbidden API used: ${identifier}`,
+          'typed_array_disabled',
+          `typed array API is disabled: ${targetIdentifier}`,
+        );
+      }
+
+      if (FORBIDDEN_IDENTIFIER_RULES.has(targetIdentifier)) {
+        addDiagnostic(
+          diagnostics,
+          filePath,
+          FORBIDDEN_IDENTIFIER_RULES.get(targetIdentifier) ??
+            'forbidden_identifier',
+          `forbidden API used: ${targetIdentifier}`,
+        );
+      }
+
+      if (
+        BINARY_IDENTIFIER_RULES.has(targetIdentifier) &&
+        !executionProfileHasCapability(profile, 'typedArrays')
+      ) {
+        addDiagnostic(
+          diagnostics,
+          filePath,
+          BINARY_IDENTIFIER_RULES.get(targetIdentifier) ??
+            'binary_api_disabled',
+          `forbidden API used: ${targetIdentifier}`,
         );
       }
     }
@@ -1118,6 +1134,30 @@ function isMathRandomCall(node: AstNode | null): boolean {
     property.type === 'Identifier' &&
     asString((property as { name?: unknown }).name) === 'random'
   );
+}
+
+function getCallTargetRootIdentifier(node: AstNode | null): string | null {
+  if (!node) {
+    return null;
+  }
+
+  if (node.type === 'Identifier') {
+    return asString((node as { name?: unknown }).name);
+  }
+
+  if (node.type === 'MemberExpression') {
+    return getCallTargetRootIdentifier(
+      asNode((node as { object?: unknown }).object),
+    );
+  }
+
+  if (node.type === 'ChainExpression') {
+    return getCallTargetRootIdentifier(
+      asNode((node as { expression?: unknown }).expression),
+    );
+  }
+
+  return null;
 }
 
 function isConsoleCall(node: AstNode | null): boolean {

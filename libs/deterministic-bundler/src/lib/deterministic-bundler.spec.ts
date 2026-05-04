@@ -164,6 +164,29 @@ describe('scanCompatibility', () => {
 
     expect(scan.ok).toBe(true);
   });
+
+  it('detects forbidden member-call APIs under the baseline profile', () => {
+    const scan = scanCompatibility({
+      sourceByPath: {
+        '/tmp/sample.ts': `
+          Date.now();
+          WebAssembly.instantiate(bytes);
+          Atomics.add(view, 0, 1);
+          Uint8Array.from([1, 2, 3]);
+          ArrayBuffer.isView(view);
+        `,
+      },
+    });
+
+    expect(scan.ok).toBe(false);
+    expect(scan.diagnostics.map((diagnostic) => diagnostic.ruleId)).toEqual([
+      'arraybuffer_disabled',
+      'atomics_disabled',
+      'date_disabled',
+      'typed_array_disabled',
+      'webassembly_disabled',
+    ]);
+  });
 });
 
 describe('buildDeterministicModulePack', () => {
