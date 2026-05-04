@@ -103,6 +103,17 @@ describe('bundleDeterministicProgram', () => {
 });
 
 describe('scanCompatibility', () => {
+  it('rejects unknown execution profiles', () => {
+    expect(() =>
+      scanCompatibility({
+        profile: 'baseline-typo-v1' as unknown as never,
+        sourceByPath: {
+          '/tmp/sample.ts': 'export default 1;',
+        },
+      }),
+    ).toThrow(/profile must be one of/i);
+  });
+
   it('detects dynamic import and node builtins deterministically', () => {
     const scan = scanCompatibility({
       sourceByPath: {
@@ -190,6 +201,17 @@ describe('scanCompatibility', () => {
 });
 
 describe('buildDeterministicModulePack', () => {
+  it('rejects unknown execution profiles before building artifacts', async () => {
+    await expect(
+      buildDeterministicModulePack({
+        absWorkingDir: createFixtureDir(),
+        entryPath: 'missing.ts',
+        profile: 'compat-typo-v1' as unknown as never,
+        emitProgramArtifact: true,
+      }),
+    ).rejects.toThrow(/profile must be one of/i);
+  });
+
   it('builds deterministic module-pack output for workspace TS fixture', async () => {
     const fixtureDir = createFixtureDir();
     writeFixture(fixtureDir, 'lib/util.ts', 'export const value = 11;');

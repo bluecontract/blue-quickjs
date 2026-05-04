@@ -6,6 +6,8 @@ import path from 'node:path';
 import { createHash } from 'node:crypto';
 import {
   executionProfileHasCapability,
+  isKnownExecutionProfile,
+  listExecutionProfiles,
   type PublicExecutionProfile,
 } from '@blue-quickjs/execution-profiles';
 
@@ -174,7 +176,7 @@ export async function bundleDeterministicProgram(
 ): Promise<BundleDeterministicProgramResult> {
   const absWorkingDir = path.resolve(options.absWorkingDir ?? process.cwd());
   const absEntryPath = path.resolve(absWorkingDir, options.entryPath);
-  const profile = options.profile ?? DEFAULT_PROFILE;
+  const profile = expectExecutionProfile(options.profile ?? DEFAULT_PROFILE);
   const globalName = options.globalName ?? DEFAULT_GLOBAL_NAME;
   const rejectIncompatible = options.rejectIncompatible ?? true;
 
@@ -239,7 +241,7 @@ export async function buildDeterministicModulePack(
 ): Promise<BuildDeterministicModulePackResult> {
   const absWorkingDir = path.resolve(options.absWorkingDir ?? process.cwd());
   const absEntryPath = path.resolve(absWorkingDir, options.entryPath);
-  const profile = options.profile ?? DEFAULT_PROFILE;
+  const profile = expectExecutionProfile(options.profile ?? DEFAULT_PROFILE);
   const rejectIncompatible = options.rejectIncompatible ?? true;
   const entryExport = options.entryExport ?? DEFAULT_ENTRY_EXPORT;
   const builderVersion = options.builderVersion ?? DEFAULT_BUILDER_VERSION;
@@ -372,7 +374,7 @@ export interface ScanCompatibilityOptions {
 export function scanCompatibility(
   options: ScanCompatibilityOptions,
 ): CompatibilityScanResult {
-  const profile = options.profile ?? DEFAULT_PROFILE;
+  const profile = expectExecutionProfile(options.profile ?? DEFAULT_PROFILE);
   const diagnostics = new Map<string, CompatibilityDiagnostic>();
 
   const paths = Object.keys(options.sourceByPath).sort();
@@ -1043,6 +1045,17 @@ function expectHexStringOption(
   }
   if (!/^[0-9a-f]{64}$/.test(value)) {
     throw new Error(`${fieldName} must be a lowercase 64-char hex string`);
+  }
+  return value;
+}
+
+function expectExecutionProfile(
+  value: unknown,
+): DeterministicExecutionProfile {
+  if (!isKnownExecutionProfile(value)) {
+    throw new Error(
+      `profile must be one of ${listExecutionProfiles().join(', ')}`,
+    );
   }
   return value;
 }
