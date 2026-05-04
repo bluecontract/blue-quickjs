@@ -15,16 +15,18 @@
       "path": "../quickjs-wasm/tsconfig.lib.json"
     },
     {
+      "path": "../execution-profiles/tsconfig.lib.json"
+    },
+    {
       "path": "../dv/tsconfig.lib.json"
     },
     {
       "path": "../abi-manifest/tsconfig.lib.json"
-    },
-    {
-      "path": "../test-harness/tsconfig.lib.json"
     }
   ],
   "exclude": [
+    "tests/**",
+    "src/test/**",
     "vite.config.ts",
     "vite.config.mts",
     "vitest.config.ts",

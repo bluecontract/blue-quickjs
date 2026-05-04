@@ -29,6 +29,24 @@
     },
     {
       "path": "./libs/quickjs-wasm-constants"
+    },
+    {
+      "path": "./libs/deterministic-bundler"
+    },
+    {
+      "path": "./libs/deterministic-builder"
+    },
+    {
+      "path": "./libs/execution-profiles"
+    },
+    {
+      "path": "./tools/blue-quickjs-cli"
+    },
+    {
+      "path": "./apps/ecosystem-certifier"
+    },
+    {
+      "path": "./apps/bluequickjs-playground"
     }
   ]
 }

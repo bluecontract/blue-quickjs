@@ -8,10 +8,10 @@
     "build": {
       "executor": "nx:run-commands",
       "cache": true,
-      "dependsOn": ["^build"],
+      "dependsOn": ["^build", "typecheck"],
       "inputs": [
         "default",
-        "quickjsSubmodule",
+        "quickjsSource",
         "{workspaceRoot}/tools/scripts/emsdk-version.txt",
         {
           "env": "WASM_VARIANTS"

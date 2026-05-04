@@ -1,0 +1,37 @@
+From eded35d8be88b7bfe1f1e2e94adf89424915a58f Mon Sep 17 00:00:00 2001
+From: Cursor Agent <cursoragent@cursor.com>
+Date: Mon, 16 Mar 2026 05:01:53 +0000
+Subject: [PATCH 39/51] Retune deterministic allocation scaling for parity
+
+---
+ quickjs.c | 9 ++++-----
+ 1 file changed, 4 insertions(+), 5 deletions(-)
+
+diff --git a/quickjs.c b/quickjs.c
+index 9f1263d..047f8ec 100644
+--- a/quickjs.c
++++ b/quickjs.c
+@@ -1572,7 +1572,7 @@ static void js_trigger_gc(JSRuntime *rt, size_t size)
+     }
+ }
+ 
+-#define JS_GAS_ALLOC_BASE 3
++#define JS_GAS_ALLOC_BASE 0
+ #define JS_GAS_ALLOC_PER_BYTE_SHIFT 4
+ #define JS_DET_GC_THRESHOLD_BYTES (512 * 1024)
+ 
+@@ -1603,11 +1603,10 @@ static size_t js_det_normalize_allocation_size(JSRuntime *rt, size_t size)
+     {
+         size_t scaled_size;
+ 
+-        if (size > (SIZE_MAX - 3) / 3)
++        if (size > (SIZE_MAX - 30) / 26)
+             return SIZE_MAX;
+-
+-        scaled_size = size * 3 + 3;
+-        return scaled_size / 4;
++        scaled_size = size * 26 + 30;
++        return scaled_size / 31;
+     }
+ #else
+     return size;

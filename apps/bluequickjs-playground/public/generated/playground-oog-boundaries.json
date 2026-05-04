@@ -1,0 +1,109 @@
+{
+  "generatedAt": "current-worktree",
+  "metadata": {
+    "engineBuildHash": "f91091cb7feb788df340305a877a9cadb0c6f4d13aea8a7da4040b6367d178ea",
+    "gasVersion": 8
+  },
+  "boundaries": {
+    "example-basic-script": {
+      "firstSuccessGas": "74",
+      "lastFailureGas": "73",
+      "successGasUsed": "74",
+      "successGasRemaining": "0",
+      "failureGasUsed": "73",
+      "failureGasRemaining": "0",
+      "failureCode": "OOG",
+      "failureTag": "vm/out_of_gas"
+    },
+    "example-module-pack": {
+      "firstSuccessGas": "145",
+      "lastFailureGas": "144",
+      "successGasUsed": "145",
+      "successGasRemaining": "0",
+      "failureGasUsed": "144",
+      "failureGasRemaining": "0",
+      "failureCode": "MODULE_EXPORT_MISSING",
+      "failureTag": "vm/module_pack"
+    },
+    "example-library-reuse": {
+      "firstSuccessGas": "2070503",
+      "lastFailureGas": "2070502",
+      "successGasUsed": "2070503",
+      "successGasRemaining": "0",
+      "failureGasUsed": "2070502",
+      "failureGasRemaining": "0",
+      "failureCode": "MODULE_EXPORT_MISSING",
+      "failureTag": "vm/module_pack"
+    },
+    "example-promises-async": {
+      "firstSuccessGas": "128",
+      "lastFailureGas": "127",
+      "successGasUsed": "128",
+      "successGasRemaining": "0",
+      "failureGasUsed": "127",
+      "failureGasRemaining": "0",
+      "failureCode": "OOG",
+      "failureTag": "vm/out_of_gas"
+    },
+    "example-promises-library-host": {
+      "firstSuccessGas": "290",
+      "lastFailureGas": "289",
+      "successGasUsed": "290",
+      "successGasRemaining": "0",
+      "failureGasUsed": "289",
+      "failureGasRemaining": "0",
+      "failureCode": "MODULE_EVALUATION_ERROR",
+      "failureTag": "vm/module_pack"
+    },
+    "example-binary-host-v2": {
+      "firstSuccessGas": "253",
+      "lastFailureGas": "252",
+      "successGasUsed": "253",
+      "successGasRemaining": "0",
+      "failureGasUsed": "252",
+      "failureGasRemaining": "0",
+      "failureCode": "OOG",
+      "failureTag": "vm/out_of_gas"
+    },
+    "example-console-shim": {
+      "firstSuccessGas": "139",
+      "lastFailureGas": "138",
+      "successGasUsed": "139",
+      "successGasRemaining": "0",
+      "failureGasUsed": "138",
+      "failureGasRemaining": "0",
+      "failureCode": "OOG",
+      "failureTag": "vm/out_of_gas"
+    },
+    "example-stable-sort": {
+      "firstSuccessGas": "1020",
+      "lastFailureGas": "1019",
+      "successGasUsed": "1020",
+      "successGasRemaining": "0",
+      "failureGasUsed": "1019",
+      "failureGasRemaining": "0",
+      "failureCode": "OOG",
+      "failureTag": "vm/out_of_gas"
+    },
+    "example-kitchen-sink": {
+      "firstSuccessGas": "1390",
+      "lastFailureGas": "1389",
+      "successGasUsed": "1390",
+      "successGasRemaining": "0",
+      "failureGasUsed": "1389",
+      "failureGasRemaining": "0",
+      "failureCode": "MODULE_EVALUATION_ERROR",
+      "failureTag": "vm/module_pack"
+    },
+    "example-max-gas-policy": {
+      "firstSuccessGas": "170099",
+      "lastFailureGas": "170098",
+      "successGasUsed": "170099",
+      "successGasRemaining": "0",
+      "failureGasUsed": "170098",
+      "failureGasRemaining": "0",
+      "failureCode": "OOG",
+      "failureTag": "vm/out_of_gas"
+    }
+  }
+}

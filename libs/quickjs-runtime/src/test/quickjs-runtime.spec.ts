@@ -1,0 +1,272 @@
+import { DvError } from '@blue-quickjs/dv';
+import {
+  InputEnvelope,
+  PROGRAM_LIMIT_DEFAULTS,
+  ProgramArtifact,
+  ProgramArtifactV2,
+  RuntimeValidationError,
+  validateInputEnvelope,
+  validateProgramArtifact,
+  validateProgramArtifactV2,
+} from '../lib/quickjs-runtime.js';
+
+const SAMPLE_HASH =
+  '8d50b2a3f4c5d6e7f8c9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1';
+
+describe('validateProgramArtifact', () => {
+  const baseProgram: ProgramArtifact = {
+    code: 'export const x = 1;',
+    abiId: 'Host.v1',
+    abiVersion: 1,
+    abiManifestHash: SAMPLE_HASH,
+    engineBuildHash: SAMPLE_HASH,
+  };
+
+  it('accepts a well-formed program artifact', () => {
+    expect(validateProgramArtifact(baseProgram)).toEqual(baseProgram);
+  });
+
+  it('rejects invalid manifest hashes', () => {
+    expect(() =>
+      validateProgramArtifact({
+        ...baseProgram,
+        abiManifestHash: 'abc',
+      }),
+    ).toThrow(RuntimeValidationError);
+  });
+
+  it('rejects code that exceeds the configured limit', () => {
+    const bigCode = 'a'.repeat(PROGRAM_LIMIT_DEFAULTS.maxCodeUnits + 1);
+    expect(() =>
+      validateProgramArtifact({
+        ...baseProgram,
+        code: bigCode,
+      }),
+    ).toThrow(RuntimeValidationError);
+  });
+
+  it('rejects null or empty engineBuildHash values', () => {
+    expect(() =>
+      validateProgramArtifact({
+        ...baseProgram,
+        engineBuildHash: null as unknown as string,
+      }),
+    ).toThrow(RuntimeValidationError);
+
+    expect(() =>
+      validateProgramArtifact({
+        ...baseProgram,
+        engineBuildHash: '',
+      }),
+    ).toThrow(RuntimeValidationError);
+  });
+
+  it('accepts supported execution profiles', () => {
+    expect(
+      validateProgramArtifact({
+        ...baseProgram,
+        executionProfile: 'baseline-v1',
+      }),
+    ).toMatchObject({ executionProfile: 'baseline-v1' });
+
+    expect(
+      validateProgramArtifact({
+        ...baseProgram,
+        executionProfile: 'compat-general-v1',
+      }),
+    ).toMatchObject({ executionProfile: 'compat-general-v1' });
+
+    expect(
+      validateProgramArtifact({
+        ...baseProgram,
+        executionProfile: 'compat-binary-v1',
+      }),
+    ).toMatchObject({ executionProfile: 'compat-binary-v1' });
+  });
+
+  it('rejects unsupported execution profiles', () => {
+    expect(() =>
+      validateProgramArtifact({
+        ...baseProgram,
+        executionProfile:
+          'compat-unknown' as unknown as ProgramArtifact['executionProfile'],
+      }),
+    ).toThrow(RuntimeValidationError);
+  });
+
+  it('accepts uint32 gasVersion values', () => {
+    expect(
+      validateProgramArtifact({
+        ...baseProgram,
+        gasVersion: 3,
+      }),
+    ).toMatchObject({ gasVersion: 3 });
+  });
+
+  it('rejects invalid gasVersion values', () => {
+    expect(() =>
+      validateProgramArtifact({
+        ...baseProgram,
+        gasVersion: -1,
+      }),
+    ).toThrow(RuntimeValidationError);
+
+    expect(() =>
+      validateProgramArtifact({
+        ...baseProgram,
+        gasVersion: 1.5,
+      }),
+    ).toThrow(RuntimeValidationError);
+  });
+});
+
+describe('validateProgramArtifactV2', () => {
+  const baseProgramV2: ProgramArtifactV2 = {
+    version: 2,
+    abiId: 'Host.v1',
+    abiVersion: 1,
+    abiManifestHash: SAMPLE_HASH,
+    executionProfile: 'baseline-v1',
+    sourceKind: 'script',
+    source: {
+      code: '42',
+    },
+  };
+
+  it('accepts script source artifacts', () => {
+    expect(validateProgramArtifactV2(baseProgramV2)).toEqual(baseProgramV2);
+  });
+
+  it('accepts module-pack source artifacts', () => {
+    const modulePack = validateProgramArtifactV2({
+      ...baseProgramV2,
+      sourceKind: 'module-pack',
+      source: {
+        modulePack: {
+          version: 1,
+          entrySpecifier: './entry.js',
+          modules: [
+            {
+              specifier: './entry.js',
+              source: 'export default 42;\n',
+            },
+          ],
+          graphHash: SAMPLE_HASH,
+          builderVersion: 'deterministic-builder-v1',
+          dependencyIntegrity: SAMPLE_HASH,
+        },
+      },
+    });
+
+    expect(modulePack.sourceKind).toBe('module-pack');
+  });
+
+  it('rejects source kind/source shape mismatch', () => {
+    expect(() =>
+      validateProgramArtifactV2({
+        ...baseProgramV2,
+        sourceKind: 'script',
+        source: {
+          modulePack: {},
+        },
+      }),
+    ).toThrow(RuntimeValidationError);
+  });
+
+  it('accepts uint32 gasVersion values', () => {
+    expect(
+      validateProgramArtifactV2({
+        ...baseProgramV2,
+        gasVersion: 3,
+      }),
+    ).toMatchObject({ gasVersion: 3 });
+  });
+
+  it('rejects invalid gasVersion values', () => {
+    expect(() =>
+      validateProgramArtifactV2({
+        ...baseProgramV2,
+        gasVersion: -1,
+      }),
+    ).toThrow(RuntimeValidationError);
+  });
+});
+
+describe('validateInputEnvelope', () => {
+  const baseInput: InputEnvelope = {
+    event: { type: 'create', payload: { id: 1 } },
+    eventCanonical: { type: 'create', payload: { id: 1 } },
+    steps: [],
+    currentContract: { id: 'contract-1' },
+    currentContractCanonical: { id: { value: 'contract-1' } },
+  };
+
+  it('accepts a well-formed input envelope', () => {
+    expect(validateInputEnvelope(baseInput)).toEqual(baseInput);
+  });
+
+  it('rejects invalid DV fields with a wrapped error', () => {
+    expect(() =>
+      validateInputEnvelope({
+        ...baseInput,
+        event: Symbol('x') as unknown as InputEnvelope['event'],
+      }),
+    ).toThrow(RuntimeValidationError);
+  });
+
+  it('applies DV limits to all DV fields', () => {
+    const dvLimits = { maxEncodedBytes: 8 };
+    expect(() =>
+      validateInputEnvelope(
+        {
+          ...baseInput,
+          event: 'abcdefghijk',
+        },
+        { dvLimits },
+      ),
+    ).toThrow(RuntimeValidationError);
+  });
+
+  it('rejects unknown fields', () => {
+    expect(() =>
+      validateInputEnvelope({
+        ...baseInput,
+        extra: 123 as unknown as InputEnvelope['steps'],
+      }),
+    ).toThrow(RuntimeValidationError);
+  });
+
+  it('defaults currentContractCanonical to currentContract when missing', () => {
+    const result = validateInputEnvelope({
+      ...baseInput,
+      currentContractCanonical: undefined,
+    });
+
+    expect(result.currentContractCanonical).toEqual(result.currentContract);
+  });
+
+  it('defaults missing contract fields to null', () => {
+    const result = validateInputEnvelope({
+      event: baseInput.event,
+      eventCanonical: baseInput.eventCanonical,
+      steps: baseInput.steps,
+    });
+
+    expect(result.currentContract).toBeNull();
+    expect(result.currentContractCanonical).toBeNull();
+  });
+
+  it('provides DvError as the cause for DV failures', () => {
+    try {
+      validateInputEnvelope({
+        ...baseInput,
+        eventCanonical: BigInt(1) as unknown as InputEnvelope['eventCanonical'],
+      });
+    } catch (err) {
+      expect(err).toBeInstanceOf(RuntimeValidationError);
+      expect((err as RuntimeValidationError).cause).toBeInstanceOf(DvError);
+      return;
+    }
+    throw new Error('expected RuntimeValidationError');
+  });
+});

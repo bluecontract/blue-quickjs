@@ -7,6 +7,8 @@ PROJECT_ROOT="${REPO_ROOT}/libs/quickjs-wasm-build"
 QJS_DIR="${REPO_ROOT}/vendor/quickjs"
 OUT_DIR="${PROJECT_ROOT}/dist"
 METADATA_BASENAME="quickjs-wasm-build.metadata.json"
+
+bash "${REPO_ROOT}/tools/scripts/prepare-quickjs-source.sh"
 VARIANTS_RAW="${WASM_VARIANTS:-wasm32}"
 BUILD_TYPES_RAW="${WASM_BUILD_TYPES:-release,debug}"
 WASM_INITIAL_MEMORY_BYTES=$((32 * 1024 * 1024))
@@ -16,7 +18,12 @@ SOURCE_DATE_EPOCH_DEFAULT=1704067200
 
 ENV_SCRIPT="${REPO_ROOT}/tools/emsdk/emsdk_env.sh"
 if [[ ! -f "${ENV_SCRIPT}" ]]; then
-  echo "Emscripten env not found at ${ENV_SCRIPT}. Run tools/scripts/setup-emsdk.sh first." >&2
+  echo "Emscripten env not found at ${ENV_SCRIPT}; bootstrapping pinned emsdk." >&2
+  bash "${REPO_ROOT}/tools/scripts/setup-emsdk.sh"
+fi
+
+if [[ ! -f "${ENV_SCRIPT}" ]]; then
+  echo "Emscripten env not found at ${ENV_SCRIPT} after setup." >&2
   exit 1
 fi
 
@@ -89,7 +96,7 @@ BASE_EMCC_FLAGS=(
   -sERROR_ON_UNDEFINED_SYMBOLS=0
   -sEXPORT_NAME=QuickJSGasWasm
   -sWASM_BIGINT=1
-  "-sEXPORTED_FUNCTIONS=['_qjs_det_init','_qjs_det_eval','_qjs_det_set_gas_limit','_qjs_det_free','_qjs_det_enable_tape','_qjs_det_read_tape','_qjs_det_enable_trace','_qjs_det_read_trace','_malloc','_free']"
+  "-sEXPORTED_FUNCTIONS=['_qjs_det_init','_qjs_det_eval','_qjs_det_eval_module_pack','_qjs_det_set_gas_limit','_qjs_det_free','_qjs_det_enable_tape','_qjs_det_read_tape','_qjs_det_enable_charge_tape','_qjs_det_read_charge_tape','_qjs_det_enable_trace','_qjs_det_read_trace','_malloc','_free']"
 "-sEXPORTED_RUNTIME_METHODS=['cwrap','ccall','UTF8ToString','lengthBytesUTF8']"
 )
 
@@ -213,13 +220,31 @@ if [[ ${#BUILT_VARIANTS[@]} -eq 0 ]]; then
   exit 1
 fi
 
-node - "${OUT_DIR}" "${QJS_DIR}" "${REPO_ROOT}/tools/scripts/emsdk-version.txt" "${METADATA_BASENAME}" "${BUILT_VARIANTS[@]}" <<'NODE'
+node - "${OUT_DIR}" "${QJS_DIR}" "${REPO_ROOT}/tools/scripts/emsdk-version.txt" "${REPO_ROOT}/tools/gas-spec/gas-spec.v3.json" "${METADATA_BASENAME}" "${BUILT_VARIANTS[@]}" <<'NODE'
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
 
-const [outDir, qjsDir, emsdkVersionFile, metadataBasename, ...variantArgs] = process.argv.slice(2);
+const normalizeCliPath = (filePath) => {
+  if (process.platform !== 'win32') {
+    return filePath;
+  }
+  const msysDrivePath = /^\/([a-zA-Z])\/(.*)$/;
+  const match = msysDrivePath.exec(filePath);
+  if (!match) {
+    return filePath;
+  }
+  const [, driveLetter, rest] = match;
+  return path.win32.normalize(`${driveLetter.toUpperCase()}:\\${rest.replaceAll('/', '\\')}`);
+};
+
+const [rawOutDir, rawQjsDir, rawEmsdkVersionFile, rawGasSpecPath, metadataBasename, ...variantArgs] =
+  process.argv.slice(2);
+const outDir = normalizeCliPath(rawOutDir);
+const qjsDir = normalizeCliPath(rawQjsDir);
+const emsdkVersionFile = normalizeCliPath(rawEmsdkVersionFile);
+const gasSpecPath = normalizeCliPath(rawGasSpecPath);
 if (variantArgs.length === 0) {
   throw new Error('No variant arguments passed to metadata writer.');
 }
@@ -243,6 +268,11 @@ const sha256File = (filePath) =>
 
 const statSize = (filePath) => fs.statSync(filePath).size;
 const quickjsVersion = readTrim(path.join(qjsDir, 'VERSION'));
+const gasSpec = JSON.parse(fs.readFileSync(gasSpecPath, 'utf8'));
+const gasVersion =
+  Number.isInteger(gasSpec?.gasVersion) && gasSpec.gasVersion >= 0
+    ? gasSpec.gasVersion
+    : null;
 let quickjsCommit = null;
 try {
   quickjsCommit = execFileSync('git', ['-C', qjsDir, 'rev-parse', 'HEAD'], {
@@ -271,7 +301,14 @@ const variants = variantArgs
     const buildTypeFlags = buildTypeFlagsRaw
       ? buildTypeFlagsRaw.split(',').map((flag) => flag.trim()).filter(Boolean)
       : [];
-    return { variant, buildType, wasmPath, loaderPath, variantFlags, buildTypeFlags };
+    return {
+      variant,
+      buildType,
+      wasmPath: normalizeCliPath(wasmPath),
+      loaderPath: normalizeCliPath(loaderPath),
+      variantFlags,
+      buildTypeFlags,
+    };
   })
   .sort((a, b) => {
     if (a.variant === b.variant) {
@@ -337,6 +374,7 @@ const metadata = {
   quickjsCommit,
   emscriptenVersion: readTrim(emsdkVersionFile),
   engineBuildHash,
+  gasVersion,
   build: {
     memory: buildMemory,
     determinism,

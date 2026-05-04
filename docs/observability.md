@@ -126,17 +126,31 @@ Or (lower-level):
 
 See: [SDK usage](./sdk.md).
 
-### What it does *not* include
+### Host-call trace coverage
 
-The trace does **not** include host-call gas. Host calls are billed against the VM gas counter, but they are accounted separately.
+The trace includes dedicated host-call counters:
 
-If you want to estimate host-call gas from an `EvaluateResult` that includes a trace:
+- `hostCallPreCount` / `hostCallPreGas`
+- `hostCallPostCount` / `hostCallPostGas`
 
-```
-hostCallGas ≈ gasUsed - (opcodeGas + arrayCbGas + allocationGas + jsonParseGas + jsonStringifyGas + gcCheckpointGas)
-```
+So host-call charging can be attributed directly without deriving a residual from
+total gas usage.
 
-The exact accounting and the checkpoint behavior are described in [Gas schedule](./gas-schedule.md).
+Allocation trace now reports both `requestedBytes` and charged `bytes` so
+allocator-model drift can be separated from canonical gas charging.
+
+### Charge-event tape (debug mode)
+
+For first-divergence debugging, deterministic runtimes can enable a fixed-size
+gas charge-event tape:
+
+- preallocated ring buffer (`JS_EnableGasChargeTape(ctx, capacity)`),
+- no dynamic allocation while appending events,
+- event fields include `siteId`, `kind`, `flags`, `amount`, optional
+  `logicalUnits`, and `gasBefore` / `gasAfter`.
+
+This tape is diagnostic-only and should not be treated as a release API
+stability guarantee.
 
 ### Interpreting trace output
 
@@ -170,5 +184,4 @@ They are safe to include in golden tests and reproducibility baselines (see fixt
 - [SDK usage](./sdk.md) (how to turn these on)
 - [Host call ABI](./host-call-abi.md) (tape details and ABI mechanics)
 - [Gas schedule](./gas-schedule.md) (what is metered and trace semantics)
-- [Implementation summary](./implementation-summary.md) (how it all fits together)
-
+- [Core concepts](./concepts.md) (how it all fits together)

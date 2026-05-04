@@ -13,7 +13,7 @@ import {
   loadQuickjsWasmMetadata,
 } from '@blue-quickjs/quickjs-wasm';
 
-const metadata = await loadQuickjsWasmMetadata(); // includes engineBuildHash + flags
+const metadata = await loadQuickjsWasmMetadata(); // includes engineBuildHash, gasVersion, and build flags
 const artifact = await getQuickjsWasmArtifact(); // defaults to wasm32 release
 const wasmBytes = await loadQuickjsWasmBinary(
   artifact.variant,

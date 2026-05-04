@@ -19,6 +19,9 @@
     },
     {
       "path": "../../libs/dv/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/deterministic-bundler/tsconfig.lib.json"
     }
   ],
   "exclude": [

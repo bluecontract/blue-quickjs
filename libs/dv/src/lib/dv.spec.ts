@@ -7,8 +7,13 @@ import {
   DvError,
   DvErrorCode,
   decodeDv,
+  decodeDv2,
   encodeDv,
+  encodeDv2,
   isDv,
+  isDv2,
+  validateDv,
+  validateDv2,
 } from './dv.js';
 
 const hex = (bytes: Uint8Array): string =>
@@ -61,10 +66,52 @@ describe('encodeDv / decodeDv', () => {
       () => encodeDv('abcd', { limits: { maxEncodedBytes: 3 } }),
       'ENCODED_TOO_LARGE',
     );
+    expectCode(
+      () => encodeDv([1, 2], { limits: { maxArrayLength: 1 } }),
+      'ARRAY_TOO_LONG',
+    );
+    expectCode(
+      () => encodeDv({ a: 1, b: 2 }, { limits: { maxMapLength: 1 } }),
+      'MAP_TOO_LONG',
+    );
+    expectCode(
+      () =>
+        decodeDv(Uint8Array.from([0x82, 0x01, 0x02]), {
+          limits: { maxArrayLength: 1 },
+        }),
+      'ARRAY_TOO_LONG',
+    );
+    expectCode(
+      () =>
+        decodeDv(Uint8Array.from([0xa2, 0x61, 0x61, 0x01, 0x61, 0x62, 0x02]), {
+          limits: { maxMapLength: 1 },
+        }),
+      'MAP_TOO_LONG',
+    );
+    expectCode(
+      () =>
+        decodeDv(Uint8Array.from([0x64, 0x61, 0x62, 0x63, 0x64]), {
+          limits: { maxStringBytes: 3 },
+        }),
+      'STRING_TOO_LONG',
+    );
+    expectCode(
+      () =>
+        decodeDv(Uint8Array.from([0x81, 0x80]), { limits: { maxDepth: 1 } }),
+      'DEPTH_EXCEEDED',
+    );
+    expectCode(
+      () =>
+        decodeDv(Uint8Array.from([0xa1, 0x61, 0x61, 0xa0]), {
+          limits: { maxDepth: 1 },
+        }),
+      'DEPTH_EXCEEDED',
+    );
   });
 
   it('rejects invalid UTF-8 and malformed strings', () => {
     expectCode(() => encodeDv('a\uD800'), 'INVALID_STRING');
+    expectCode(() => encodeDv('a\uDC00'), 'INVALID_STRING');
     expectCode(() => decodeDv(Uint8Array.from([0x61])), 'TRUNCATED');
     const invalidBytes = Uint8Array.from([0x62, 0xc3, 0x28]);
     expect(() => decodeDv(invalidBytes)).toThrowError(
@@ -130,6 +177,185 @@ describe('encodeDv / decodeDv', () => {
         decodeDv(Uint8Array.from([0xa2, 0x61, 0x61, 0x01, 0x61, 0x61, 0x02])),
       'DUPLICATE_KEY',
     );
+    expectCode(() => decodeDv(Uint8Array.from([0x9f])), 'NON_CANONICAL_LENGTH');
+    expectCode(() => decodeDv(Uint8Array.from([0xe0])), 'UNSUPPORTED_CBOR');
+    expectCode(() => decodeDv(Uint8Array.from([0xf0])), 'UNSUPPORTED_CBOR');
+    expectCode(
+      () => decodeDv(Uint8Array.from([0xf8, 0x00])),
+      'NON_CANONICAL_FLOAT',
+    );
+    expectCode(
+      () =>
+        decodeDv(
+          Uint8Array.from([
+            0xfb, 0x7f, 0xf8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+          ]),
+        ),
+      'NAN_OR_INF',
+    );
+    expectCode(() => decodeDv(Uint8Array.from([0xfb, 0x3f])), 'TRUNCATED');
+    expectCode(() => decodeDv(Uint8Array.from([0xff])), 'NON_CANONICAL_LENGTH');
+    expectCode(() => decodeDv(Uint8Array.from([0xc0])), 'UNSUPPORTED_CBOR');
+    expectCode(
+      () => decodeDv(Uint8Array.from([0x19, 0x00, 0xff])),
+      'NON_CANONICAL_LENGTH',
+    );
+    expectCode(() => decodeDv(Uint8Array.from([0x19, 0x01])), 'TRUNCATED');
+    expectCode(
+      () => decodeDv(Uint8Array.from([0x1a, 0x00, 0x00, 0xff, 0xff])),
+      'NON_CANONICAL_LENGTH',
+    );
+    expectCode(
+      () => decodeDv(Uint8Array.from([0x1a, 0x00, 0x01])),
+      'TRUNCATED',
+    );
+    expectCode(
+      () =>
+        decodeDv(
+          Uint8Array.from([
+            0x1b, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff,
+          ]),
+        ),
+      'NON_CANONICAL_LENGTH',
+    );
+    expectCode(() => decodeDv(Uint8Array.from([0x1c])), 'UNSUPPORTED_CBOR');
+    expectCode(
+      () =>
+        decodeDv(
+          Uint8Array.from([
+            0x7b, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+          ]),
+        ),
+      'NON_CANONICAL_LENGTH',
+    );
+    expectCode(
+      () => decodeDv(Uint8Array.from([0x1b, 0x00, 0x00, 0x00, 0x00, 0x00])),
+      'TRUNCATED',
+    );
+    expectCode(
+      () =>
+        decodeDv(
+          Uint8Array.from([
+            0x3b, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+          ]),
+        ),
+      'INTEGER_OUT_OF_RANGE',
+    );
+    expectCode(
+      () =>
+        decodeDv(
+          Uint8Array.from([
+            0x1b, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+          ]),
+        ),
+      'INTEGER_OUT_OF_RANGE',
+    );
+    expectCode(
+      () => decodeDv(Uint8Array.from([0xa1, 0x01, 0x02])),
+      'UNSUPPORTED_CBOR',
+    );
+  });
+
+  it('supports all canonical CBOR integer and length widths', () => {
+    expect(hex(encodeDv(23))).toBe('17');
+    expect(hex(encodeDv(24))).toBe('1818');
+    expect(hex(encodeDv(256))).toBe('190100');
+    expect(hex(encodeDv(65_536))).toBe('1a00010000');
+    expect(hex(encodeDv(4_294_967_296))).toBe('1b0000000100000000');
+    expect(hex(encodeDv(-24))).toBe('37');
+    expect(hex(encodeDv(-25))).toBe('3818');
+
+    expect(decodeDv(Uint8Array.from([0x18, 0x18]))).toBe(24);
+    expect(decodeDv(Uint8Array.from([0x19, 0x01, 0x00]))).toBe(256);
+    expect(decodeDv(Uint8Array.from([0x1a, 0x00, 0x01, 0x00, 0x00]))).toBe(
+      65_536,
+    );
+    expect(
+      decodeDv(
+        Uint8Array.from([0x1b, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00]),
+      ),
+    ).toBe(4_294_967_296);
+    expect(decodeDv(Uint8Array.from([0x38, 0x18]))).toBe(-25);
+  });
+
+  it('accepts ArrayBuffer and offset ArrayBufferView inputs', () => {
+    const encoded = encodeDv({ ok: true });
+    const buffer = encoded.buffer.slice(0) as ArrayBuffer;
+    expect(decodeDv(buffer)).toEqual({ ok: true });
+
+    const padded = Uint8Array.from([0xff, ...encoded, 0xff]);
+    const view = new DataView(padded.buffer, 1, encoded.length);
+    expect(decodeDv(view)).toEqual({ ok: true });
+  });
+
+  it('rejects encoded payloads above maxEncodedBytes before parsing', () => {
+    expectCode(
+      () =>
+        decodeDv(Uint8Array.from([0x01, 0x02]), {
+          limits: { maxEncodedBytes: 1 },
+        }),
+      'ENCODED_TOO_LARGE',
+    );
+    expectCode(
+      () =>
+        decodeDv2(Uint8Array.from([0x41, 0x00]), {
+          limits: { maxEncodedBytes: 1 },
+        }),
+      'ENCODED_TOO_LARGE',
+    );
+  });
+
+  it('validates and narrows DV and DV2 values', () => {
+    const dvValue: unknown = { nested: [null, true, 1.25, 'ok'] };
+    expect(() => validateDv(dvValue)).not.toThrow();
+    expect(isDv(dvValue)).toBe(true);
+    expect(isDv({ payload: Uint8Array.from([1]) })).toBe(false);
+
+    const dv2Value: unknown = { payload: Uint8Array.from([1, 2, 3]) };
+    expect(() => validateDv2(dv2Value)).not.toThrow();
+    expect(isDv2(dv2Value)).toBe(true);
+    expect(isDv2({ bad: () => undefined })).toBe(false);
+  });
+
+  it('supports byte-string values in DV2 mode', () => {
+    const bytes = Uint8Array.from([0xde, 0xad, 0xbe, 0xef]);
+    expect(hex(encodeDv2(bytes))).toBe('44deadbeef');
+
+    const decoded = decodeDv2(Uint8Array.from([0x44, 0xde, 0xad, 0xbe, 0xef]));
+    expect(decoded).toBeInstanceOf(Uint8Array);
+    expect(Array.from(decoded as Uint8Array)).toEqual([0xde, 0xad, 0xbe, 0xef]);
+
+    const nested = decodeDv2(
+      Uint8Array.from([
+        0xa1, 0x65, 0x62, 0x79, 0x74, 0x65, 0x73, 0x44, 0x00, 0x01, 0x02, 0x03,
+      ]),
+    ) as { bytes: Uint8Array };
+    expect(Array.from(nested.bytes)).toEqual([0, 1, 2, 3]);
+
+    expect(isDv2({ payload: bytes })).toBe(true);
+    expect(isDv({ payload: bytes })).toBe(false);
+  });
+
+  it('keeps DV1 byte strings unsupported and enforces DV2 byte limits', () => {
+    expectCode(() => encodeDv(Uint8Array.from([1, 2, 3])), 'UNSUPPORTED_TYPE');
+    expectCode(
+      () => decodeDv(Uint8Array.from([0x41, 0x01])),
+      'UNSUPPORTED_CBOR',
+    );
+    expectCode(
+      () =>
+        encodeDv2(Uint8Array.from([1, 2, 3]), {
+          limits: { maxByteStringBytes: 2 },
+        }),
+      'BYTE_STRING_TOO_LONG',
+    );
+    expectCode(
+      () =>
+        decodeDv2(Uint8Array.from([0x43, 0x01, 0x02, 0x03]), {
+          limits: { maxByteStringBytes: 2 },
+        }),
+      'BYTE_STRING_TOO_LONG',
+    );
   });
 
   it('roundtrips and canonicalizes under property-based generation', () => {
@@ -177,5 +403,25 @@ describe('encodeDv / decodeDv', () => {
       }),
       { numRuns: 150 },
     );
+  });
+
+  it('roundtrips DV2 values containing byte strings', () => {
+    const value = {
+      kind: 'bytes',
+      payload: Uint8Array.from([1, 2, 3, 4]),
+      nested: [Uint8Array.from([9, 8]), { ok: true }],
+    };
+    const encoded = encodeDv2(value);
+    const decoded = decodeDv2(encoded) as {
+      kind: string;
+      payload: Uint8Array;
+      nested: [Uint8Array, { ok: boolean }];
+    };
+
+    expect(decoded.kind).toBe('bytes');
+    expect(Array.from(decoded.payload)).toEqual([1, 2, 3, 4]);
+    expect(Array.from(decoded.nested[0])).toEqual([9, 8]);
+    expect(decoded.nested[1]).toEqual({ ok: true });
+    expect(hex(encodeDv2(decoded))).toBe(hex(encoded));
   });
 });

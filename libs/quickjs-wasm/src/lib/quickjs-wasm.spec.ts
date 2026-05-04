@@ -154,6 +154,7 @@ describe('quickjs wasm artifacts', () => {
           contextPtr,
           CONTEXT_BLOB.length,
           500n,
+          0,
         );
         if (errorPtr !== 0) {
           const message = readCString(errorPtr);
@@ -198,6 +199,7 @@ function createDeterministicFns(module: WasmModuleWithCwrap, variant: string) {
     ptrType,
     'number',
     'bigint',
+    'number',
   ]) as (
     manifestPtr: WasmPtr,
     manifestSize: number,
@@ -205,6 +207,7 @@ function createDeterministicFns(module: WasmModuleWithCwrap, variant: string) {
     contextPtr: WasmPtr,
     contextSize: number,
     gasLimit: bigint,
+    featureFlags: number,
   ) => WasmPtr;
   const evalFn = module.cwrap('qjs_det_eval', ptrType, ['string']) as (
     code: string,

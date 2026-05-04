@@ -6,6 +6,7 @@ const MIN_SAFE_INT = Number.MIN_SAFE_INTEGER;
 
 const CBOR_MAJOR_UINT = 0;
 const CBOR_MAJOR_NINT = 1;
+const CBOR_MAJOR_BYTES = 2;
 const CBOR_MAJOR_TEXT = 3;
 const CBOR_MAJOR_ARRAY = 4;
 const CBOR_MAJOR_MAP = 5;
@@ -15,11 +16,17 @@ export type DV = DVPrimitive | DVArray | DVObject;
 export type DVPrimitive = null | boolean | number | string;
 export type DVArray = DV[];
 export type DVObject = { [key: string]: DV };
+export type DV2 = DV2Primitive | DV2Bytes | DV2Array | DV2Object;
+export type DV2Primitive = null | boolean | number | string;
+export type DV2Bytes = Uint8Array;
+export type DV2Array = DV2[];
+export type DV2Object = { [key: string]: DV2 };
 
 export interface DvLimits {
   maxDepth: number;
   maxEncodedBytes: number;
   maxStringBytes: number;
+  maxByteStringBytes: number;
   maxArrayLength: number;
   maxMapLength: number;
 }
@@ -28,6 +35,7 @@ export const DV_LIMIT_DEFAULTS: Readonly<DvLimits> = {
   maxDepth: 64,
   maxEncodedBytes: 5_242_880,
   maxStringBytes: 262_144,
+  maxByteStringBytes: 262_144,
   maxArrayLength: 65_535,
   maxMapLength: 65_535,
 };
@@ -47,6 +55,7 @@ export type DvErrorCode =
   | 'INTEGER_OUT_OF_RANGE'
   | 'INVALID_STRING'
   | 'STRING_TOO_LONG'
+  | 'BYTE_STRING_TOO_LONG'
   | 'ARRAY_TOO_LONG'
   | 'MAP_TOO_LONG'
   | 'DEPTH_EXCEEDED'
@@ -77,7 +86,17 @@ export function encodeDv(
 ): Uint8Array {
   const limits = normalizeLimits(options?.limits);
   const builder = new ByteBuilder(limits.maxEncodedBytes);
-  encodeValue(value, builder, limits, 0);
+  encodeValue(value, builder, limits, 0, false);
+  return builder.toUint8Array();
+}
+
+export function encodeDv2(
+  value: unknown,
+  options?: DvEncodeOptions,
+): Uint8Array {
+  const limits = normalizeLimits(options?.limits);
+  const builder = new ByteBuilder(limits.maxEncodedBytes);
+  encodeValue(value, builder, limits, 0, true);
   return builder.toUint8Array();
 }
 
@@ -101,7 +120,36 @@ export function decodeDv(
   }
 
   const reader = new CborReader(bytes);
-  const value = readValue(reader, limits, 0);
+  const value = readValue(reader, limits, 0, false) as DV;
+
+  if (!reader.isEOF()) {
+    throw dvError('TRAILING_BYTES', 'unexpected trailing bytes after DV value');
+  }
+
+  return value;
+}
+
+export function decodeDv2(
+  input: ArrayBufferView | ArrayBuffer | Uint8Array,
+  options?: DvDecodeOptions,
+): DV2 {
+  const limits = normalizeLimits(options?.limits);
+  const bytes =
+    input instanceof Uint8Array
+      ? input
+      : input instanceof ArrayBuffer
+        ? new Uint8Array(input)
+        : new Uint8Array(input.buffer, input.byteOffset, input.byteLength);
+
+  if (bytes.length > limits.maxEncodedBytes) {
+    throw dvError(
+      'ENCODED_TOO_LARGE',
+      `encoded DV exceeds maxEncodedBytes (${bytes.length} > ${limits.maxEncodedBytes})`,
+    );
+  }
+
+  const reader = new CborReader(bytes);
+  const value = readValue(reader, limits, 0, true);
 
   if (!reader.isEOF()) {
     throw dvError('TRAILING_BYTES', 'unexpected trailing bytes after DV value');
@@ -127,12 +175,33 @@ export function isDv(value: unknown, options?: DvValidateOptions): value is DV {
   }
 }
 
+export function validateDv2(
+  value: unknown,
+  options?: DvValidateOptions,
+): asserts value is DV2 {
+  encodeDv2(value, options);
+}
+
+export function isDv2(
+  value: unknown,
+  options?: DvValidateOptions,
+): value is DV2 {
+  try {
+    validateDv2(value, options);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function normalizeLimits(limits?: PartialLimits): DvLimits {
   return {
     maxDepth: limits?.maxDepth ?? DV_LIMIT_DEFAULTS.maxDepth,
     maxEncodedBytes:
       limits?.maxEncodedBytes ?? DV_LIMIT_DEFAULTS.maxEncodedBytes,
     maxStringBytes: limits?.maxStringBytes ?? DV_LIMIT_DEFAULTS.maxStringBytes,
+    maxByteStringBytes:
+      limits?.maxByteStringBytes ?? DV_LIMIT_DEFAULTS.maxByteStringBytes,
     maxArrayLength: limits?.maxArrayLength ?? DV_LIMIT_DEFAULTS.maxArrayLength,
     maxMapLength: limits?.maxMapLength ?? DV_LIMIT_DEFAULTS.maxMapLength,
   };
@@ -216,9 +285,15 @@ function encodeValue(
   builder: ByteBuilder,
   limits: DvLimits,
   depth: number,
+  allowBytes: boolean,
 ): void {
   if (value === null) {
     builder.pushByte(0xf6);
+    return;
+  }
+
+  if (allowBytes && value instanceof Uint8Array) {
+    encodeByteString(value, builder, limits);
     return;
   }
 
@@ -239,12 +314,18 @@ function encodeValue(
   }
 
   if (Array.isArray(value)) {
-    encodeArray(value as DVArray, builder, limits, depth);
+    encodeArray(value as unknown[], builder, limits, depth, allowBytes);
     return;
   }
 
   if (isPlainObject(value)) {
-    encodeMap(value as Record<string, unknown>, builder, limits, depth);
+    encodeMap(
+      value as Record<string, unknown>,
+      builder,
+      limits,
+      depth,
+      allowBytes,
+    );
     return;
   }
 
@@ -305,11 +386,27 @@ function encodeString(
   builder.pushBytes(bytes);
 }
 
+function encodeByteString(
+  value: Uint8Array,
+  builder: ByteBuilder,
+  limits: DvLimits,
+): void {
+  if (value.length > limits.maxByteStringBytes) {
+    throw dvError(
+      'BYTE_STRING_TOO_LONG',
+      `byte string exceeds maxByteStringBytes (${value.length} > ${limits.maxByteStringBytes})`,
+    );
+  }
+  encodeTypeAndLength(builder, CBOR_MAJOR_BYTES, value.length);
+  builder.pushBytes(value);
+}
+
 function encodeArray(
-  value: DVArray,
+  value: unknown[],
   builder: ByteBuilder,
   limits: DvLimits,
   depth: number,
+  allowBytes: boolean,
 ): void {
   const nextDepth = depth + 1;
   if (nextDepth > limits.maxDepth) {
@@ -324,7 +421,7 @@ function encodeArray(
 
   encodeTypeAndLength(builder, CBOR_MAJOR_ARRAY, value.length);
   for (const element of value) {
-    encodeValue(element, builder, limits, nextDepth);
+    encodeValue(element, builder, limits, nextDepth, allowBytes);
   }
 }
 
@@ -333,6 +430,7 @@ function encodeMap(
   builder: ByteBuilder,
   limits: DvLimits,
   depth: number,
+  allowBytes: boolean,
 ): void {
   const keys = Object.keys(value);
   const nextDepth = depth + 1;
@@ -373,7 +471,7 @@ function encodeMap(
   encodeTypeAndLength(builder, CBOR_MAJOR_MAP, encodedKeys.length);
   for (const entry of encodedKeys) {
     builder.pushBytes(entry.encoded);
-    encodeValue(value[entry.key], builder, limits, nextDepth);
+    encodeValue(value[entry.key], builder, limits, nextDepth, allowBytes);
   }
 }
 
@@ -547,7 +645,12 @@ class CborReader {
   }
 }
 
-function readValue(reader: CborReader, limits: DvLimits, depth: number): DV {
+function readValue(
+  reader: CborReader,
+  limits: DvLimits,
+  depth: number,
+  allowBytes: boolean,
+): DV2 {
   const initial = reader.readByte();
   const major = initial >> 5;
   const additional = initial & 0x1f;
@@ -557,17 +660,44 @@ function readValue(reader: CborReader, limits: DvLimits, depth: number): DV {
       return readUnsigned(additional, reader);
     case CBOR_MAJOR_NINT:
       return readNegative(additional, reader);
+    case CBOR_MAJOR_BYTES:
+      if (!allowBytes) {
+        throw dvError(
+          'UNSUPPORTED_CBOR',
+          `unsupported CBOR major type ${major}`,
+        );
+      }
+      return readByteString(additional, reader, limits);
     case CBOR_MAJOR_TEXT:
       return readText(additional, reader, limits);
     case CBOR_MAJOR_ARRAY:
-      return readArray(additional, reader, limits, depth);
+      return readArray(additional, reader, limits, depth, allowBytes);
     case CBOR_MAJOR_MAP:
-      return readMap(additional, reader, limits, depth);
+      return readMap(additional, reader, limits, depth, allowBytes);
     case CBOR_MAJOR_SIMPLE:
       return readSimpleOrFloat(additional, reader);
     default:
       throw dvError('UNSUPPORTED_CBOR', `unsupported CBOR major type ${major}`);
   }
+}
+
+function readByteString(
+  additional: number,
+  reader: CborReader,
+  limits: DvLimits,
+): Uint8Array {
+  const length = readLength(additional, reader);
+  if (length > limits.maxByteStringBytes) {
+    throw dvError(
+      'BYTE_STRING_TOO_LONG',
+      `byte string exceeds maxByteStringBytes (${length} > ${limits.maxByteStringBytes})`,
+    );
+  }
+  const start = reader.position();
+  for (let i = 0; i < length; i += 1) {
+    reader.readByte();
+  }
+  return reader.takeSlice(start, start + length);
 }
 
 function readUnsigned(additional: number, reader: CborReader): number {
@@ -627,7 +757,8 @@ function readArray(
   reader: CborReader,
   limits: DvLimits,
   depth: number,
-): DVArray {
+  allowBytes: boolean,
+): DV2Array {
   const length = readLength(additional, reader);
   const nextDepth = depth + 1;
   if (nextDepth > limits.maxDepth) {
@@ -639,9 +770,9 @@ function readArray(
       `array length exceeds maxArrayLength (${length} > ${limits.maxArrayLength})`,
     );
   }
-  const result: DVArray = [];
+  const result: DV2Array = [];
   for (let i = 0; i < length; i += 1) {
-    result.push(readValue(reader, limits, nextDepth));
+    result.push(readValue(reader, limits, nextDepth, allowBytes));
   }
   return result;
 }
@@ -651,7 +782,8 @@ function readMap(
   reader: CborReader,
   limits: DvLimits,
   depth: number,
-): DVObject {
+  allowBytes: boolean,
+): DV2Object {
   const length = readLength(additional, reader);
   const nextDepth = depth + 1;
 
@@ -665,7 +797,7 @@ function readMap(
     );
   }
 
-  const result: DVObject = Object.create(null);
+  const result: DV2Object = Object.create(null);
   let previousKey: Uint8Array | undefined;
 
   for (let i = 0; i < length; i += 1) {
@@ -690,7 +822,7 @@ function readMap(
     }
 
     previousKey = encodedKey;
-    result[key] = readValue(reader, limits, nextDepth);
+    result[key] = readValue(reader, limits, nextDepth, allowBytes);
   }
 
   return result;

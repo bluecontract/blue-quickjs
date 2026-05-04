@@ -1,0 +1,33 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "tsBuildInfoFile": "dist/tsconfig.lib.tsbuildinfo",
+    "declaration": true,
+    "declarationMap": true,
+    "emitDeclarationOnly": false,
+    "types": ["node"]
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": [
+    "vite.config.ts",
+    "eslint.config.mjs",
+    "src/**/*.spec.ts",
+    "src/**/*.test.ts"
+  ],
+  "references": [
+    {
+      "path": "../../libs/test-harness/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/quickjs-runtime/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/deterministic-builder/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/abi-manifest/tsconfig.lib.json"
+    }
+  ]
+}

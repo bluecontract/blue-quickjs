@@ -1,0 +1,11 @@
+{
+  "name": "blue-quickjs-patch-series",
+  "sourceRepoPath": "vendor/quickjs",
+  "baseCommit": "e5fd3918c1c4a2ee39016e71b66a9eeda85ce716",
+  "baseArchive": "vendor/quickjs-patches/upstream/quickjs-base-e5fd3918c1c4a2ee39016e71b66a9eeda85ce716.tar.gz",
+  "baseArchiveSha256": "a2ff2baaa328275baa490596f4751b85f1e39419b9f7f44c3e83e9fac9dc9217",
+  "headCommit": "8b3253bddf6a5a792dd098b1a8a154f534b88586",
+  "upstreamUrl": "https://github.com/bellard/quickjs.git",
+  "patchDirectory": "vendor/quickjs-patches/series",
+  "patchCount": 51
+}

@@ -1,3 +1,29 @@
+## 0.5.0-rc.0 (2026-03-19)
+
+### 🚀 Features
+
+- **release-policy:** promote strict gas/OOG parity to release-critical
+  consensus contract for `wasm-node` vs `wasm-browser`.
+- **ecosystem-certifier:** add flagship workload certification, deterministic
+  green/red compatibility matrix, builder determinism evidence, and downstream
+  consumer-proof integration.
+- **ecosystem-certifier:** expand green corpus to 25 fixtures, add
+  compatibility delta reporting, and raise repeatability/seeded workload
+  intensity for release/nightly runs.
+- **release-workflow:** run strict consensus parity gates and archive workload +
+  consumer evidence artifacts in release workflow.
+- **playground:** add an in-repo BlueQuickjs playground backed by generated
+  certified examples, red fixtures, and OOG boundary data.
+
+### 📚 Documentation
+
+- Promote README into a product/release landing page with consensus-safe scope,
+  execution profiles, and quickstart.
+- Add architecture overview, guided learning path, glossary/FAQ/support pages,
+  and playground docs.
+- Refresh docs index, head verification note, and release-facing checklists for
+  release-readiness and verification-oriented navigation.
+
 ## 0.4.1 (2026-03-13)
 
 ### 🚀 Features

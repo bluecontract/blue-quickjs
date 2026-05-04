@@ -1,7 +1,9 @@
 import { encodeAbiManifest } from '@blue-quickjs/abi-manifest';
 import { encodeDv } from '@blue-quickjs/dv';
+import { executionProfileHasCapability } from '@blue-quickjs/execution-profiles';
 import type { QuickjsWasmModule } from './runtime.js';
 import {
+  type ExecutionProfile,
   type InputEnvelope,
   type ProgramArtifact,
   validateInputEnvelope,
@@ -19,35 +21,59 @@ type DetInitFn = (
   contextPtr: number,
   contextLength: number,
   gasLimit: bigint,
+  featureFlags: number,
 ) => number;
 
 type DetEvalFn = (code: string) => number;
+type DetEvalModulePackFn = (
+  modulePackJson: string,
+  entrySpecifier: string,
+  entryExport: string,
+) => number;
 type DetSetGasLimitFn = (gasLimit: bigint) => number;
 type EnableTapeFn = (capacity: number) => number;
 type ReadTapeFn = () => number;
+type EnableChargeTapeFn = (capacity: number) => number;
+type ReadChargeTapeFn = () => number;
 type EnableTraceFn = (enabled: number) => number;
 type ReadTraceFn = () => number;
 
 interface DeterministicExports {
   init: DetInitFn;
   eval: DetEvalFn;
+  evalModulePack: DetEvalModulePackFn;
   setGasLimit: DetSetGasLimitFn;
   freeRuntime: () => void;
   enableTape: EnableTapeFn;
   readTape: ReadTapeFn;
+  enableChargeTape: EnableChargeTapeFn;
+  readChargeTape: ReadChargeTapeFn;
   enableTrace: EnableTraceFn;
   readTrace: ReadTraceFn;
 }
 
 export interface DeterministicVm {
   eval(code: string): string;
+  evalModulePack(
+    modulePackJson: string,
+    entrySpecifier: string,
+    entryExport: string,
+  ): string;
   setGasLimit(limit: bigint | number): void;
   enableTape(capacity: number): void;
   readTape(): string;
+  enableGasChargeTape(capacity: number): void;
+  readGasChargeTape(): string;
   enableGasTrace(enabled: boolean): void;
   readGasTrace(): string;
   dispose(): void;
 }
+
+const DETERMINISTIC_FEATURE_REGEXP = 1 << 0;
+const DETERMINISTIC_FEATURE_PROMISE_JOBS = 1 << 1;
+const DETERMINISTIC_FEATURE_CONSOLE_SHIM = 1 << 2;
+const DETERMINISTIC_FEATURE_STABLE_SORT = 1 << 3;
+const DETERMINISTIC_FEATURE_TYPED_ARRAYS = 1 << 4;
 
 export function initializeDeterministicVm(
   runtime: RuntimeInstance,
@@ -85,6 +111,7 @@ export function initializeDeterministicVm(
       contextPtr,
       contextBlob.length,
       normalizedGasLimit,
+      executionProfileToFeatureFlags(validatedProgram.executionProfile),
     );
     if (errorPtr !== 0) {
       const message = readAndFreeCString(runtime.module, errorPtr);
@@ -104,6 +131,21 @@ export function initializeDeterministicVm(
       const ptr = ffi.eval(code);
       if (ptr === 0) {
         throw new Error('qjs_det_eval returned a null pointer');
+      }
+      return readAndFreeCString(runtime.module, ptr);
+    },
+    evalModulePack(
+      modulePackJson: string,
+      entrySpecifier: string,
+      entryExport: string,
+    ): string {
+      const ptr = ffi.evalModulePack(
+        modulePackJson,
+        entrySpecifier,
+        entryExport,
+      );
+      if (ptr === 0) {
+        throw new Error('qjs_det_eval_module_pack returned a null pointer');
       }
       return readAndFreeCString(runtime.module, ptr);
     },
@@ -129,6 +171,24 @@ export function initializeDeterministicVm(
       const ptr = ffi.readTape();
       if (ptr === 0) {
         throw new Error('qjs_det_read_tape returned a null pointer');
+      }
+      return readAndFreeCString(runtime.module, ptr);
+    },
+    enableGasChargeTape(capacity: number): void {
+      if (!Number.isInteger(capacity) || capacity < 0) {
+        throw new Error(
+          `charge tape capacity must be a non-negative integer (received ${capacity})`,
+        );
+      }
+      const rc = ffi.enableChargeTape(capacity >>> 0);
+      if (rc !== 0) {
+        throw new Error('failed to enable gas charge tape');
+      }
+    },
+    readGasChargeTape(): string {
+      const ptr = ffi.readChargeTape();
+      if (ptr === 0) {
+        throw new Error('qjs_det_read_charge_tape returned a null pointer');
       }
       return readAndFreeCString(runtime.module, ptr);
     },
@@ -161,11 +221,17 @@ function createDeterministicExports(
     'number',
     'number',
     'bigint',
+    'number',
   ]) as unknown as DetInitFn;
 
   const evalFn = module.cwrap('qjs_det_eval', 'number', [
     'string',
   ]) as unknown as DetEvalFn;
+  const evalModulePack = module.cwrap('qjs_det_eval_module_pack', 'number', [
+    'string',
+    'string',
+    'string',
+  ]) as unknown as DetEvalModulePackFn;
   const setGasLimit = module.cwrap('qjs_det_set_gas_limit', 'number', [
     'bigint',
   ]) as unknown as DetSetGasLimitFn;
@@ -183,6 +249,16 @@ function createDeterministicExports(
     'number',
     [],
   ) as unknown as ReadTapeFn;
+  const enableChargeTape = module.cwrap(
+    'qjs_det_enable_charge_tape',
+    'number',
+    ['number'],
+  ) as unknown as EnableChargeTapeFn;
+  const readChargeTape = module.cwrap(
+    'qjs_det_read_charge_tape',
+    'number',
+    [],
+  ) as unknown as ReadChargeTapeFn;
   const enableTrace = module.cwrap('qjs_det_enable_trace', 'number', [
     'number',
   ]) as unknown as EnableTraceFn;
@@ -195,10 +271,13 @@ function createDeterministicExports(
   return {
     init,
     eval: evalFn,
+    evalModulePack,
     setGasLimit,
     freeRuntime,
     enableTape,
     readTape,
+    enableChargeTape,
+    readChargeTape,
     enableTrace,
     readTrace,
   };
@@ -212,7 +291,11 @@ function normalizeGasLimit(value: bigint | number): bigint {
     if (value < 0) {
       throw new Error('gasLimit must be non-negative');
     }
-    return BigInt(value);
+    const normalized = BigInt(value);
+    if (normalized > UINT64_MAX) {
+      throw new Error(`gasLimit exceeds uint64 range (${value})`);
+    }
+    return normalized;
   }
 
   if (typeof value !== 'bigint') {
@@ -228,6 +311,32 @@ function normalizeGasLimit(value: bigint | number): bigint {
   }
 
   return value;
+}
+
+function executionProfileToFeatureFlags(profile?: ExecutionProfile): number {
+  if (!profile) {
+    return 0;
+  }
+  let flags = 0;
+  if (executionProfileHasCapability(profile, 'regexp')) {
+    flags |= DETERMINISTIC_FEATURE_REGEXP;
+  }
+  if (
+    executionProfileHasCapability(profile, 'promiseJobs') ||
+    executionProfileHasCapability(profile, 'queueMicrotask')
+  ) {
+    flags |= DETERMINISTIC_FEATURE_PROMISE_JOBS;
+  }
+  if (executionProfileHasCapability(profile, 'consoleShim')) {
+    flags |= DETERMINISTIC_FEATURE_CONSOLE_SHIM;
+  }
+  if (executionProfileHasCapability(profile, 'stableSort')) {
+    flags |= DETERMINISTIC_FEATURE_STABLE_SORT;
+  }
+  if (executionProfileHasCapability(profile, 'typedArrays')) {
+    flags |= DETERMINISTIC_FEATURE_TYPED_ARRAYS;
+  }
+  return flags;
 }
 
 function writeBytes(module: QuickjsWasmModule, data: Uint8Array): number {

@@ -9,7 +9,7 @@ TypeScript runtime SDK for **deterministic QuickJS-in-Wasm** evaluation with:
 
 If you are looking for the conceptual architecture and contracts, start with:
 - `docs/README.md`
-- `docs/implementation-summary.md`
+- `docs/concepts.md`
 
 ---
 
@@ -46,6 +46,10 @@ const result = await evaluate({
   // Optional observability:
   tape: { capacity: 32 },
   gasTrace: true,
+
+  // Release-mode pin validation:
+  releaseMode: true,
+  expectedExecutionProfile: 'baseline-v1',
 });
 
 if (!result.ok) {
@@ -60,7 +64,7 @@ console.log(result.value, result.gasUsed, result.gasRemaining);
 ## Docs
 
 - SDK guide: `docs/sdk.md`
-- Implementation overview: `docs/implementation-summary.md`
+- Implementation overview: `docs/concepts.md`
 - ABI + DV reference:
   - `docs/baseline-2.md`
   - `docs/abi-manifest.md`

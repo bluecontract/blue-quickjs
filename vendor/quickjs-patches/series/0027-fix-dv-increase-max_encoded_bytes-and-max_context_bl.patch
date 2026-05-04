@@ -1,0 +1,39 @@
+From a4cdb804e812b27055e4ef5fd51cf18ea84655ed Mon Sep 17 00:00:00 2001
+From: Mateusz Jonak <mateusz@web.blue>
+Date: Mon, 16 Feb 2026 13:20:52 +0100
+Subject: [PATCH 27/51] fix(dv): increase max_encoded_bytes and
+ max_context_blob_bytes limits
+
+- Updated JS_DV_LIMIT_DEFAULTS to raise max_encoded_bytes from 1MB to 5MB.
+- Adjusted JS_DETERMINISTIC_MAX_CONTEXT_BLOB_BYTES from 1MB to 5MB for improved performance and capacity.
+---
+ quickjs-dv.c | 2 +-
+ quickjs.h    | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/quickjs-dv.c b/quickjs-dv.c
+index 8314329..660e8fb 100644
+--- a/quickjs-dv.c
++++ b/quickjs-dv.c
+@@ -1110,7 +1110,7 @@ void JS_FreeDVBuffer(JSContext *ctx, JSDvBuffer *buffer) {
+ 
+ const JSDvLimits JS_DV_LIMIT_DEFAULTS = {
+     .max_depth = 64,
+-    .max_encoded_bytes = 1048576,
++    .max_encoded_bytes = 5242880,
+     .max_string_bytes = 262144,
+     .max_array_length = 65535,
+     .max_map_length = 65535,
+diff --git a/quickjs.h b/quickjs.h
+index 5c817d8..e933a6f 100644
+--- a/quickjs.h
++++ b/quickjs.h
+@@ -344,7 +344,7 @@ static inline JSValue __JS_NewShortBigInt(JSContext *ctx, int64_t d)
+ #define JS_EVAL_FLAG_ASYNC (1 << 7)
+ 
+ #define JS_DETERMINISTIC_MAX_MANIFEST_BYTES 1048576
+-#define JS_DETERMINISTIC_MAX_CONTEXT_BLOB_BYTES 1048576
++#define JS_DETERMINISTIC_MAX_CONTEXT_BLOB_BYTES 5242880
+ 
+ typedef JSValue JSCFunction(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv);
+ typedef JSValue JSCFunctionMagic(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv, int magic);

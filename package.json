@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "license": "MIT",
   "engines": {
-    "node": ">=20.17.0"
+    "node": ">=22.0.0"
   },
   "scripts": {
     "nx": "nx",
@@ -11,7 +11,32 @@
     "test": "nx run-many -t test",
     "build": "nx run-many -t build",
     "typecheck": "nx run-many -t typecheck",
-    "lint": "nx run-many -t lint --all"
+    "lint": "nx run-many -t lint --all",
+    "docs:check-freshness": "node tools/release-evidence/check-release-doc-freshness.mjs",
+    "playground:dev": "bash apps/bluequickjs-playground/scripts/dev.sh",
+    "playground:generate": "node apps/bluequickjs-playground/scripts/generate-playground-data.mjs",
+    "playground:check-generated": "node apps/bluequickjs-playground/scripts/generate-playground-data.mjs --check",
+    "release-evidence:synthesize": "node tools/release-evidence/synthesize-release-evidence.mjs",
+    "release-evidence:verify": "node tools/release-evidence/verify-release-evidence.mjs",
+    "release-evidence:test": "node --test tools/release-evidence/*.test.mjs",
+    "release-evidence:sbom": "node tools/release-evidence/generate-sbom.mjs",
+    "release-evidence:licenses": "node tools/release-evidence/generate-license-report.mjs",
+    "workload:check-public-package-versions": "node tools/workload-certification/check-public-package-versions.mjs",
+    "workload:check-public-package-coverage": "node tools/workload-certification/check-public-package-coverage.mjs",
+    "workload:test": "node --test tools/workload-certification/*.test.mjs",
+    "workload:check-pack-manifests": "node tools/workload-certification/check-pack-manifests.mjs",
+    "workload:compat-delta": "node apps/ecosystem-certifier/scripts/generate-compatibility-delta-report.mjs",
+    "typecheck:project-references": "node tools/scripts/check-ts-project-references.mjs",
+    "quickjs-source:test": "node --test tools/scripts/quickjs-source-prep.test.mjs",
+    "gas-spec:test": "node --test tools/gas-spec/*.test.mjs",
+    "test:coverage:critical": "nx run-many -t test --coverage --projects=quickjs-runtime,deterministic-bundler,deterministic-builder,abi-manifest,blue-quickjs-cli,ecosystem-certifier",
+    "publish-rehearsal:verdaccio": "node tools/workload-certification/run-verdaccio-publish-rehearsal.mjs",
+    "setup": "bash tools/scripts/setup-dev.sh",
+    "verify": "bash tools/scripts/verify-dev.sh",
+    "playground": "bash tools/scripts/playground.sh",
+    "evidence": "bash tools/scripts/evidence.sh",
+    "evidence:verify": "bash tools/scripts/evidence-verify.sh",
+    "doctor": "bash tools/scripts/doctor.sh"
   },
   "private": true,
   "devDependencies": {

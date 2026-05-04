@@ -2,13 +2,13 @@
 
 Baseline anchor: see `docs/baseline-2.md`.
 
-Scope: describe the single-dispatcher syscall (`host_call`) and generated `Host.v1` surface per Baseline #2 (e.g., §1.5, §2, §6.4, §9).
+Scope: describe the single-dispatcher syscall (`host_call`) and generated `Host.v*` surface (`Host.v1`, `Host.v2`) per Baseline #2 (e.g., §1.5, §2, §6.4, §9).
 
 ## Goals
 
 - Define the Wasm import shape for `host_call` and the memory ownership contract.
 - Describe request/response bytes (DV), limits, and deterministic error handling.
-- Explain how this import underpins the generated `Host.v1` surface and ergonomic globals.
+- Explain how this import underpins generated `Host.v*` surfaces and ergonomic globals.
 
 ## Wasm import surface (T-037)
 

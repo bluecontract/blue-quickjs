@@ -24,10 +24,13 @@
   "dependencies": {
     "@blue-quickjs/abi-manifest": "workspace:*",
     "@blue-quickjs/dv": "workspace:*",
+    "@blue-quickjs/execution-profiles": "workspace:*",
     "@blue-quickjs/quickjs-wasm": "workspace:*",
+    "@jridgewell/trace-mapping": "^0.3.31",
     "tslib": "^2.3.0"
   },
   "devDependencies": {
+    "@blue-quickjs/deterministic-bundler": "workspace:*",
     "@blue-quickjs/test-harness": "workspace:*"
   },
   "license": "MIT",

@@ -2,6 +2,39 @@
 
 Scope: define publishing and versioning policy so consumers can pin engine + ABI deterministically (Baseline #1 §1A; Baseline #2 §7).
 
+## Gas closure policy (release-critical)
+
+Gas is part of the deterministic consensus contract, not a benchmark hint.
+Release gating therefore requires:
+
+- exact result/error/tape parity,
+- exact gas used/remaining parity, and
+- exact out-of-gas boundary parity
+
+across all supported **consensus executors**.
+
+Consensus executor matrix:
+
+- mandatory: `wasm-node` vs `wasm-browser` using pinned canonical `wasm32`
+  artifacts.
+- required browser engines for release-candidate/release parity evidence:
+  - Chromium
+  - Firefox
+- WebKit runs as scheduled diagnostic evidence unless explicitly promoted to a
+  required gate.
+- native harness parity is required only when native is explicitly declared a
+  supported consensus executor for that release.
+
+`--gas-delta-baseline` style reconciliation artifacts are diagnostic tools only
+and are never an acceptable release gate.
+
+Release candidates must archive signed strict-parity reproducibility reports
+(parity report JSON signature + file checksum) for auditability.
+The repository command for the consensus wasm-node/wasm-browser report is:
+`node tools/consensus-parity/scripts/archive-consensus-reproducibility-report.mjs`.
+Native reproducibility reports remain diagnostic by default; use strict
+assertion mode only when native is explicitly promoted to a consensus executor.
+
 ## Published packages
 
 - `@blue-quickjs/dv`: DV encode/decode + validation (pure TS).
@@ -21,9 +54,27 @@ A deterministic program artifact `P` should pin:
 
 - `abiId`, `abiVersion`
 - `abiManifestHash` (sha256 of canonical manifest bytes)
-- `engineBuildHash` (optional but strongly recommended)
+- `executionProfile` (explicit, versioned profile name)
+- `gasVersion` (required for release-mode artifacts)
+- `engineBuildHash` (required for builder-produced release artifacts)
 
 `@blue-quickjs/quickjs-runtime` validates these fields and rejects mismatches when provided.
+In `releaseMode`, embedders must pass an expected execution profile pin
+(`expectedExecutionProfile`) so runtime execution fails on profile mismatches.
+
+For release-mode execution, `engineBuildHash`, `gasVersion`, and
+`executionProfile` are required pins.
+
+For `ProgramArtifact.v2` module-pack outputs, pinning should additionally include:
+
+- `sourceKind` (`script` vs `module-pack`)
+- `modulePack.graphHash` when `sourceKind = "module-pack"`
+
+See:
+
+- `docs/program-artifact-v2.md`
+- `docs/module-pack.md`
+- `docs/execution-profiles.md`
 
 ## engine_build_hash
 
@@ -32,9 +83,16 @@ Definition:
 - `engineBuildHash = sha256(wasm_bytes)` for a given variant + buildType.
 - Lowercase hex, 64 characters.
 
+`gasVersion` definition:
+
+- Monotonic integer identifying the canonical gas schedule semantics.
+- Any semantic gas-schedule change (including allocation charging model changes)
+  requires an explicit gasVersion bump.
+
 Exposure:
 
 - `quickjs-wasm-build.metadata.json` includes:
+  - top-level `gasVersion` for runtime/artifact gas pin validation.
   - `variants.<variant>.<buildType>.engineBuildHash` for every emitted artifact.
   - Top-level `engineBuildHash`, set to the canonical engine hash (`wasm32` + `release`) when present.
 - `@blue-quickjs/quickjs-wasm` exposes these values via `loadQuickjsWasmMetadata()` and
@@ -88,6 +146,13 @@ New `engineBuildHash` is required when:
 - Any change to the QuickJS fork, deterministic init/profile, gas schedule, host-call ABI,
   memory sizing, toolchain version, or build flags alters the wasm bytes.
 - Rebuilding with different Emscripten/flags also produces a new hash.
+
+New `gasVersion` is required when:
+
+- Any change can alter canonical gas used/remaining or OOG boundaries for the
+  same `(P, I, G)`.
+- This includes changes to opcode charges, builtin charges, host-call charging,
+  allocation charging model, or GC checkpoint charging semantics.
 
 New `abiManifestHash` is required when:
 

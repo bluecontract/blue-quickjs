@@ -1,0 +1,1 @@
+vendor/quickjs-patches/series/*.patch whitespace=-blank-at-eol,-blank-at-eof,-space-before-tab

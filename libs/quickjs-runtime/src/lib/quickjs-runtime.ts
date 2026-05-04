@@ -5,16 +5,68 @@ import {
   DvLimits,
   validateDv,
 } from '@blue-quickjs/dv';
+import {
+  isKnownExecutionProfile,
+  type PublicExecutionProfile,
+} from '@blue-quickjs/execution-profiles';
 
 const UINT32_MAX = 0xffffffff;
 const SHA256_HEX_LENGTH = 64;
 const HEX_RE = /^[0-9a-f]+$/;
+
+export type ExecutionProfile = PublicExecutionProfile;
+
+export interface ModulePackV1Module {
+  specifier: string;
+  source: string;
+  sourceMap?: string;
+  originMeta?: {
+    packageName?: string;
+    packageVersion?: string;
+    integrity?: string;
+    originalPath?: string;
+  };
+}
+
+export interface ModulePackV1 {
+  version: 1;
+  entrySpecifier: string;
+  entryExport?: string;
+  modules: ModulePackV1Module[];
+  graphHash: string;
+  builderVersion: string;
+  dependencyIntegrity: string;
+  diagnosticsMeta?: Record<string, unknown>;
+}
+
+export interface ProgramArtifactV2ScriptSource {
+  code: string;
+}
+
+export interface ProgramArtifactV2ModulePackSource {
+  modulePack: ModulePackV1;
+}
+
+export interface ProgramArtifactV2 {
+  version: 2;
+  abiId: string;
+  abiVersion: number;
+  abiManifestHash: string;
+  engineBuildHash?: string;
+  gasVersion?: number;
+  executionProfile: ExecutionProfile;
+  sourceKind: 'script' | 'module-pack';
+  source: ProgramArtifactV2ScriptSource | ProgramArtifactV2ModulePackSource;
+}
+
 export interface ProgramArtifact {
   code: string;
   abiId: string;
   abiVersion: number;
   abiManifestHash: string;
   engineBuildHash?: string;
+  gasVersion?: number;
+  executionProfile?: ExecutionProfile;
 }
 
 export interface ProgramArtifactLimits {
@@ -45,6 +97,7 @@ export interface InputValidationOptions {
 
 export type RuntimeValidationErrorCode =
   | 'INVALID_TYPE'
+  | 'INVALID_VALUE'
   | 'MISSING_FIELD'
   | 'UNKNOWN_FIELD'
   | 'EMPTY_STRING'
@@ -73,8 +126,17 @@ export function validateProgramArtifact(
   const program = expectPlainObject(value, 'program');
   enforceExactKeys(
     program,
-    ['code', 'abiId', 'abiVersion', 'abiManifestHash', 'engineBuildHash'],
+    [
+      'code',
+      'abiId',
+      'abiVersion',
+      'abiManifestHash',
+      'engineBuildHash',
+      'gasVersion',
+      'executionProfile',
+    ],
     'program',
+    ['engineBuildHash', 'gasVersion', 'executionProfile'],
   );
 
   const code = expectString(program.code, 'program.code', {
@@ -101,6 +163,17 @@ export function validateProgramArtifact(
           exactLength: SHA256_HEX_LENGTH,
         })
       : undefined;
+  const gasVersion =
+    program.gasVersion !== undefined
+      ? expectUint(program.gasVersion, 0, UINT32_MAX, 'program.gasVersion')
+      : undefined;
+  const executionProfile =
+    program.executionProfile !== undefined
+      ? expectExecutionProfile(
+          program.executionProfile,
+          'program.executionProfile',
+        )
+      : undefined;
 
   return {
     code,
@@ -108,6 +181,84 @@ export function validateProgramArtifact(
     abiVersion,
     abiManifestHash,
     engineBuildHash,
+    gasVersion,
+    executionProfile,
+  };
+}
+
+export function validateProgramArtifactV2(
+  value: unknown,
+  options?: ProgramValidationOptions,
+): ProgramArtifactV2 {
+  const limits = normalizeProgramLimits(options?.limits);
+  const artifact = expectPlainObject(value, 'program');
+  enforceExactKeys(
+    artifact,
+    [
+      'version',
+      'abiId',
+      'abiVersion',
+      'abiManifestHash',
+      'engineBuildHash',
+      'gasVersion',
+      'executionProfile',
+      'sourceKind',
+      'source',
+    ],
+    'program',
+    ['engineBuildHash', 'gasVersion'],
+  );
+
+  const version = expectUint(artifact.version, 2, 2, 'program.version') as 2;
+  const abiId = expectString(artifact.abiId, 'program.abiId', {
+    maxLength: limits.maxAbiIdLength,
+  });
+  const abiVersion = expectUint(
+    artifact.abiVersion,
+    1,
+    UINT32_MAX,
+    'program.abiVersion',
+  );
+  const abiManifestHash = expectHexString(
+    artifact.abiManifestHash,
+    'program.abiManifestHash',
+    { exactLength: SHA256_HEX_LENGTH },
+  );
+  const engineBuildHash =
+    artifact.engineBuildHash !== undefined
+      ? expectHexString(artifact.engineBuildHash, 'program.engineBuildHash', {
+          exactLength: SHA256_HEX_LENGTH,
+        })
+      : undefined;
+  const gasVersion =
+    artifact.gasVersion !== undefined
+      ? expectUint(artifact.gasVersion, 0, UINT32_MAX, 'program.gasVersion')
+      : undefined;
+  const executionProfile = expectExecutionProfile(
+    artifact.executionProfile,
+    'program.executionProfile',
+  );
+  const sourceKind = expectSourceKind(
+    artifact.sourceKind,
+    'program.sourceKind',
+  );
+  const source = validateProgramV2Source(
+    artifact.source,
+    sourceKind,
+    limits,
+    'program.source',
+  );
+
+  return {
+    version,
+    abiId,
+    abiVersion,
+    abiManifestHash,
+    ...(engineBuildHash ? { engineBuildHash } : {}),
+    ...(gasVersion !== undefined ? { gasVersion } : {}),
+    executionProfile,
+    sourceKind,
+    source,
   };
 }
 
@@ -127,6 +278,7 @@ export function validateInputEnvelope(
       'currentContractCanonical',
     ],
     'input',
+    ['currentContract', 'currentContractCanonical'],
   );
 
   const event = validateDvField(input.event, dvLimits, 'input.event');
@@ -198,7 +350,21 @@ function enforceExactKeys(
   value: Record<string, unknown>,
   allowed: string[],
   path: string,
+  optional: string[] = [],
 ): void {
+  for (const requiredKey of allowed) {
+    if (optional.includes(requiredKey)) {
+      continue;
+    }
+    if (!(requiredKey in value)) {
+      throw runtimeError(
+        'MISSING_FIELD',
+        `${path} is missing required field "${requiredKey}"`,
+        `${path}.${requiredKey}`,
+      );
+    }
+  }
+
   for (const key of Object.keys(value)) {
     if (!allowed.includes(key)) {
       throw runtimeError(
@@ -286,6 +452,192 @@ function expectUint(
   return value;
 }
 
+function expectExecutionProfile(
+  value: unknown,
+  path: string,
+): ExecutionProfile {
+  if (!isKnownExecutionProfile(value)) {
+    throw runtimeError(
+      'INVALID_VALUE',
+      `${path} must be one of baseline-v1, compat-general-v1, compat-binary-v1`,
+      path,
+    );
+  }
+  return value;
+}
+
+function expectSourceKind(
+  value: unknown,
+  path: string,
+): 'script' | 'module-pack' {
+  if (value !== 'script' && value !== 'module-pack') {
+    throw runtimeError(
+      'INVALID_VALUE',
+      `${path} must be "script" or "module-pack"`,
+      path,
+    );
+  }
+  return value;
+}
+
+function validateProgramV2Source(
+  value: unknown,
+  sourceKind: 'script' | 'module-pack',
+  limits: ProgramArtifactLimits,
+  path: string,
+): ProgramArtifactV2ScriptSource | ProgramArtifactV2ModulePackSource {
+  const source = expectPlainObject(value, path);
+  if (sourceKind === 'script') {
+    enforceExactKeys(source, ['code'], path);
+    return {
+      code: expectString(source.code, `${path}.code`, {
+        maxLength: limits.maxCodeUnits,
+        allowEmpty: true,
+      }),
+    };
+  }
+
+  enforceExactKeys(source, ['modulePack'], path);
+  return {
+    modulePack: validateModulePackV1(source.modulePack, `${path}.modulePack`),
+  };
+}
+
+function validateModulePackV1(value: unknown, path: string): ModulePackV1 {
+  const pack = expectPlainObject(value, path);
+  enforceExactKeys(
+    pack,
+    [
+      'version',
+      'entrySpecifier',
+      'entryExport',
+      'modules',
+      'graphHash',
+      'builderVersion',
+      'dependencyIntegrity',
+      'diagnosticsMeta',
+    ],
+    path,
+    ['entryExport', 'diagnosticsMeta'],
+  );
+
+  const version = expectUint(pack.version, 1, 1, `${path}.version`) as 1;
+  const entrySpecifier = expectString(
+    pack.entrySpecifier,
+    `${path}.entrySpecifier`,
+  );
+  const entryExport =
+    pack.entryExport !== undefined
+      ? expectString(pack.entryExport, `${path}.entryExport`)
+      : undefined;
+  const modules = expectArray(pack.modules, `${path}.modules`).map(
+    (moduleValue, index) =>
+      validateModulePackModule(moduleValue, `${path}.modules[${index}]`),
+  );
+  const graphHash = expectHexString(pack.graphHash, `${path}.graphHash`, {
+    exactLength: SHA256_HEX_LENGTH,
+  });
+  const builderVersion = expectString(
+    pack.builderVersion,
+    `${path}.builderVersion`,
+  );
+  const dependencyIntegrity = expectHexString(
+    pack.dependencyIntegrity,
+    `${path}.dependencyIntegrity`,
+    {
+      exactLength: SHA256_HEX_LENGTH,
+    },
+  );
+
+  return {
+    version,
+    entrySpecifier,
+    ...(entryExport ? { entryExport } : {}),
+    modules,
+    graphHash,
+    builderVersion,
+    dependencyIntegrity,
+    ...(pack.diagnosticsMeta !== undefined
+      ? {
+          diagnosticsMeta: expectRecord(
+            pack.diagnosticsMeta,
+            `${path}.diagnosticsMeta`,
+          ),
+        }
+      : {}),
+  };
+}
+
+function validateModulePackModule(
+  value: unknown,
+  path: string,
+): ModulePackV1Module {
+  const module = expectPlainObject(value, path);
+  enforceExactKeys(
+    module,
+    ['specifier', 'source', 'sourceMap', 'originMeta'],
+    path,
+    ['sourceMap', 'originMeta'],
+  );
+
+  const originMeta =
+    module.originMeta !== undefined
+      ? validateModulePackOriginMeta(module.originMeta, `${path}.originMeta`)
+      : undefined;
+
+  return {
+    specifier: expectString(module.specifier, `${path}.specifier`),
+    source: expectString(module.source, `${path}.source`, { allowEmpty: true }),
+    ...(module.sourceMap !== undefined
+      ? { sourceMap: expectString(module.sourceMap, `${path}.sourceMap`) }
+      : {}),
+    ...(originMeta ? { originMeta } : {}),
+  };
+}
+
+function validateModulePackOriginMeta(
+  value: unknown,
+  path: string,
+): NonNullable<ModulePackV1Module['originMeta']> {
+  const originMeta = expectPlainObject(value, path);
+  enforceExactKeys(
+    originMeta,
+    ['packageName', 'packageVersion', 'integrity', 'originalPath'],
+    path,
+    ['packageName', 'packageVersion', 'integrity', 'originalPath'],
+  );
+
+  return {
+    ...(originMeta.packageName !== undefined
+      ? {
+          packageName: expectString(
+            originMeta.packageName,
+            `${path}.packageName`,
+          ),
+        }
+      : {}),
+    ...(originMeta.packageVersion !== undefined
+      ? {
+          packageVersion: expectString(
+            originMeta.packageVersion,
+            `${path}.packageVersion`,
+          ),
+        }
+      : {}),
+    ...(originMeta.integrity !== undefined
+      ? { integrity: expectString(originMeta.integrity, `${path}.integrity`) }
+      : {}),
+    ...(originMeta.originalPath !== undefined
+      ? {
+          originalPath: expectString(
+            originMeta.originalPath,
+            `${path}.originalPath`,
+          ),
+        }
+      : {}),
+  };
+}
+
 function normalizeProgramLimits(
   overrides?: Partial<ProgramArtifactLimits>,
 ): ProgramArtifactLimits {
@@ -297,6 +649,20 @@ function normalizeProgramLimits(
   };
 }
 
+function expectArray(value: unknown, path: string): unknown[] {
+  if (!Array.isArray(value)) {
+    throw runtimeError('INVALID_TYPE', `${path} must be an array`, path);
+  }
+  return value;
+}
+
+function expectRecord(value: unknown, path: string): Record<string, unknown> {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    throw runtimeError('INVALID_TYPE', `${path} must be an object`, path);
+  }
+  return value as Record<string, unknown>;
+}
+
 function normalizeDvLimits(overrides?: Partial<DvLimits>): DvLimits {
   return {
     maxDepth: overrides?.maxDepth ?? DV_LIMIT_DEFAULTS.maxDepth,
@@ -304,6 +670,8 @@ function normalizeDvLimits(overrides?: Partial<DvLimits>): DvLimits {
       overrides?.maxEncodedBytes ?? DV_LIMIT_DEFAULTS.maxEncodedBytes,
     maxStringBytes:
       overrides?.maxStringBytes ?? DV_LIMIT_DEFAULTS.maxStringBytes,
+    maxByteStringBytes:
+      overrides?.maxByteStringBytes ?? DV_LIMIT_DEFAULTS.maxByteStringBytes,
     maxArrayLength:
       overrides?.maxArrayLength ?? DV_LIMIT_DEFAULTS.maxArrayLength,
     maxMapLength: overrides?.maxMapLength ?? DV_LIMIT_DEFAULTS.maxMapLength,

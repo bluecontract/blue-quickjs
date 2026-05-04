@@ -1,12 +1,18 @@
 import type { AbiManifest } from '@blue-quickjs/abi-manifest';
-import type { DV } from '@blue-quickjs/dv';
-import { HOST_V1_HASH, HOST_V1_MANIFEST } from './abi-manifest-fixtures.js';
+import type { DV, DV2 } from '@blue-quickjs/dv';
+import {
+  HOST_V1_HASH,
+  HOST_V1_MANIFEST,
+  HOST_V2_HASH,
+  HOST_V2_MANIFEST,
+} from './abi-manifest-fixtures.js';
 
 export interface DeterminismProgramArtifact {
   code: string;
   abiId: string;
   abiVersion: number;
   abiManifestHash: string;
+  executionProfile?: 'baseline-v1' | 'compat-general-v1' | 'compat-binary-v1';
   engineBuildHash?: string;
 }
 
@@ -39,19 +45,19 @@ export interface DeterminismHostHandlers {
   document: {
     get: (
       path: string,
-    ) => { ok: DV; units: number } | { err: HostError; units: number };
+    ) => { ok: DV2; units: number } | { err: HostError; units: number };
     getCanonical: (
       path: string,
-    ) => { ok: DV; units: number } | { err: HostError; units: number };
+    ) => { ok: DV2; units: number } | { err: HostError; units: number };
   };
   emit: (
-    value: DV,
+    value: DV2,
   ) => { ok: null; units: number } | { err: HostError; units: number };
 }
 
 export interface DeterminismHostEnvironment {
   handlers: DeterminismHostHandlers;
-  emitted: DV[];
+  emitted: DV2[];
 }
 
 export interface DeterminismFixtureBaseline {
@@ -92,7 +98,7 @@ const ERROR_PATHS = new Map<string, HostError>([
 ]);
 
 export function createDeterminismHost(): DeterminismHostEnvironment {
-  const emitted: DV[] = [];
+  const emitted: DV2[] = [];
   const documentHash = HOST_V1_HASH;
 
   const resolveError = (path: string): HostError | null =>
@@ -104,6 +110,9 @@ export function createDeterminismHost(): DeterminismHostEnvironment {
         const error = resolveError(path);
         if (error) {
           return { err: error, units: 2 };
+        }
+        if (path === 'bytes/payload') {
+          return { ok: Uint8Array.from([222, 173, 190, 239]), units: 11 };
         }
         return {
           ok: {
@@ -126,7 +135,7 @@ export function createDeterminismHost(): DeterminismHostEnvironment {
         };
       },
     },
-    emit: (value: DV) => {
+    emit: (value: DV2) => {
       emitted.push(value);
       return { ok: null, units: 1 };
     },
@@ -139,6 +148,12 @@ const BASE_PROGRAM = {
   abiId: 'Host.v1',
   abiVersion: 1,
   abiManifestHash: HOST_V1_HASH,
+} satisfies Omit<DeterminismProgramArtifact, 'code'>;
+
+const BASE_PROGRAM_V2 = {
+  abiId: 'Host.v2',
+  abiVersion: 2,
+  abiManifestHash: HOST_V2_HASH,
 } satisfies Omit<DeterminismProgramArtifact, 'code'>;
 
 export const DETERMINISM_FIXTURES: DeterminismFixture[] = [
@@ -167,8 +182,8 @@ export const DETERMINISM_FIXTURES: DeterminismFixture[] = [
         'b37ef077d8dbd7ca3b846595288f5f3c408f658b388aa27a09bca31ec260bd74',
       errorCode: null,
       errorTag: null,
-      gasUsed: 1094n,
-      gasRemaining: 48906n,
+      gasUsed: 175n,
+      gasRemaining: 49825n,
       tapeHash:
         '497d3a537f25c9892ff8b211e4d10b534a15f3c4baee242ed78b275e6f4fbe95',
       tapeLength: 1,
@@ -198,8 +213,8 @@ export const DETERMINISM_FIXTURES: DeterminismFixture[] = [
         'f92ef306595931cdecb1c5e448a6dd343b70ef6ed52508e7007f918086349ae1',
       errorCode: null,
       errorTag: null,
-      gasUsed: 1047n,
-      gasRemaining: 48953n,
+      gasUsed: 252n,
+      gasRemaining: 49748n,
       tapeHash:
         '92a9661491894b76b25edbdbfc5c50985edd19dcbce342b400053daf1ab77a28',
       tapeLength: 1,
@@ -233,8 +248,8 @@ export const DETERMINISM_FIXTURES: DeterminismFixture[] = [
         '55caac84e0b4ae1d4ba112253dffeeb3d380d18902846171b94c84533813842a',
       errorCode: null,
       errorTag: null,
-      gasUsed: 1803n,
-      gasRemaining: 48197n,
+      gasUsed: 478n,
+      gasRemaining: 49522n,
       tapeHash:
         '87ebafc74f16872c87953ac8856cc3403168b5040d7552cff6e0a74667da5e02',
       tapeLength: 4,
@@ -267,8 +282,8 @@ export const DETERMINISM_FIXTURES: DeterminismFixture[] = [
         '95e87a4f23c4cf45119e800b24933e7549ddc878de6dcd4a13097a4a2970258a',
       errorCode: null,
       errorTag: null,
-      gasUsed: 1582n,
-      gasRemaining: 48418n,
+      gasUsed: 431n,
+      gasRemaining: 49569n,
       tapeHash:
         'bbc6919589461f5ee17a240edaf824f71ecb0269958273ddd815cb783aeb10e6',
       tapeLength: 3,
@@ -303,10 +318,184 @@ export const DETERMINISM_FIXTURES: DeterminismFixture[] = [
         'b19cd2f9dc8d93cb259a85f365378dd4e5b97f0a93adff0ac7d3f0b89c10ac2f',
       errorCode: null,
       errorTag: null,
-      gasUsed: 1873n,
-      gasRemaining: 48127n,
+      gasUsed: 145n,
+      gasRemaining: 49855n,
       tapeHash: null,
       tapeLength: 0,
+    },
+  },
+  {
+    name: 'async-promise-chain',
+    program: {
+      ...BASE_PROGRAM,
+      executionProfile: 'compat-general-v1',
+      code: `
+        (() => Promise.resolve(40).then((value) => value + 2))()
+      `.trim(),
+    },
+    input: DETERMINISM_INPUT,
+    gasLimit: DETERMINISM_GAS_LIMIT,
+    manifest: HOST_V1_MANIFEST,
+    createHost: createDeterminismHost,
+    expected: {
+      resultHash:
+        '7f83f7bda2d63959d34767689f06d47576683d378d9eb8d09386c9a020395c53',
+      errorCode: null,
+      errorTag: null,
+      gasUsed: 128n,
+      gasRemaining: 49872n,
+      tapeHash: null,
+      tapeLength: 0,
+    },
+  },
+  {
+    name: 'async-queue-microtask-host',
+    program: {
+      ...BASE_PROGRAM,
+      executionProfile: 'compat-general-v1',
+      code: `
+        (() => {
+          queueMicrotask(() => Host.v1.emit({ phase: 'microtask' }));
+          return Promise.resolve({ ok: true });
+        })()
+      `.trim(),
+    },
+    input: DETERMINISM_INPUT,
+    gasLimit: DETERMINISM_GAS_LIMIT,
+    manifest: HOST_V1_MANIFEST,
+    createHost: createDeterminismHost,
+    expected: {
+      resultHash:
+        '20a934991093b3d9bfcb5f3c05871eb1db002d19469c29ea3ae1ff7e4a29cd02',
+      errorCode: null,
+      errorTag: null,
+      gasUsed: 169n,
+      gasRemaining: 49831n,
+      tapeHash:
+        '43c068fe25380b52c96b71cbc266343a90afc80c928ebde6a7d967c8c57b6e5c',
+      tapeLength: 1,
+    },
+  },
+  {
+    name: 'async-promise-rejection',
+    program: {
+      ...BASE_PROGRAM,
+      executionProfile: 'compat-general-v1',
+      code: `
+        (() => Promise.reject(new Error('async-failure')))()
+      `.trim(),
+    },
+    input: DETERMINISM_INPUT,
+    gasLimit: DETERMINISM_GAS_LIMIT,
+    manifest: HOST_V1_MANIFEST,
+    createHost: createDeterminismHost,
+    expected: {
+      resultHash: null,
+      errorCode: 'UNKNOWN',
+      errorTag: 'vm/unknown',
+      gasUsed: 87n,
+      gasRemaining: 49913n,
+      tapeHash: null,
+      tapeLength: 0,
+    },
+  },
+  {
+    name: 'compat-stable-sort',
+    program: {
+      ...BASE_PROGRAM,
+      executionProfile: 'compat-general-v1',
+      code: `
+        (() => {
+          const records = [
+            { id: 'a', group: 1 },
+            { id: 'b', group: 1 },
+            { id: 'c', group: 2 },
+            { id: 'd', group: 1 },
+          ];
+          records.sort((left, right) => left.group - right.group);
+          return records.map((record) => record.id);
+        })()
+      `.trim(),
+    },
+    input: DETERMINISM_INPUT,
+    gasLimit: DETERMINISM_GAS_LIMIT,
+    manifest: HOST_V1_MANIFEST,
+    createHost: createDeterminismHost,
+    expected: {
+      resultHash:
+        '950f57b0bb4280b09b5a63004acc9c50811ca16cea7c932494f47cb3cfb23c04',
+      errorCode: null,
+      errorTag: null,
+      gasUsed: 1020n,
+      gasRemaining: 48980n,
+      tapeHash: null,
+      tapeLength: 0,
+    },
+  },
+  {
+    name: 'compat-console-shim',
+    program: {
+      ...BASE_PROGRAM,
+      executionProfile: 'compat-general-v1',
+      code: `
+        (() => {
+          console.info('deterministic', 7);
+          return { ok: true };
+        })()
+      `.trim(),
+    },
+    input: DETERMINISM_INPUT,
+    gasLimit: DETERMINISM_GAS_LIMIT,
+    manifest: HOST_V1_MANIFEST,
+    createHost: createDeterminismHost,
+    expected: {
+      resultHash:
+        '20a934991093b3d9bfcb5f3c05871eb1db002d19469c29ea3ae1ff7e4a29cd02',
+      errorCode: null,
+      errorTag: null,
+      gasUsed: 139n,
+      gasRemaining: 49861n,
+      tapeHash:
+        'c481a1396ab5097cc8aa68fd11c1bb6e96d63259dba00b560bf49489fe5b2e3f',
+      tapeLength: 1,
+    },
+  },
+  {
+    name: 'compat-binary-host-v2-bytes-roundtrip',
+    program: {
+      ...BASE_PROGRAM_V2,
+      executionProfile: 'compat-binary-v1',
+      code: `
+        (() => {
+          const payload = Host.v2.document.get('bytes/payload');
+          Host.v2.emit(payload);
+          let sum = 0;
+          for (const byte of payload) {
+            sum += byte;
+          }
+          return {
+            length: payload.byteLength,
+            first: payload[0],
+            last: payload[payload.byteLength - 1],
+            sum,
+          };
+        })()
+      `.trim(),
+    },
+    input: DETERMINISM_INPUT,
+    gasLimit: DETERMINISM_GAS_LIMIT,
+    manifest: HOST_V2_MANIFEST,
+    createHost: createDeterminismHost,
+    expected: {
+      resultHash:
+        'a538717d219fa0484c601ef7b5b63704c90cb9ae0406495b9f0083989a9fb2f8',
+      errorCode: null,
+      errorTag: null,
+      gasUsed: 253n,
+      gasRemaining: 49747n,
+      tapeHash:
+        'b2d3a3b07a1be6b39cd854077910a2bc839c281281275c2c137f6a704723a734',
+      tapeLength: 2,
     },
   },
   {
@@ -328,8 +517,8 @@ export const DETERMINISM_FIXTURES: DeterminismFixture[] = [
         'd3cabc4fcb3aaddef313e841cd56fec5936b96a44a7d45eff624b81dd9e221d8',
       errorCode: null,
       errorTag: null,
-      gasUsed: 599n,
-      gasRemaining: 49401n,
+      gasUsed: 154n,
+      gasRemaining: 49846n,
       tapeHash: null,
       tapeLength: 0,
     },
@@ -353,8 +542,8 @@ export const DETERMINISM_FIXTURES: DeterminismFixture[] = [
       resultHash: null,
       errorCode: 'INVALID_PATH',
       errorTag: 'host/invalid_path',
-      gasUsed: 776n,
-      gasRemaining: 49224n,
+      gasUsed: 144n,
+      gasRemaining: 49856n,
       tapeHash:
         '79af1be3f347fffc766bbe0baef9a183f0d6ee206468954d8f2adb9c146b9ddc',
       tapeLength: 1,
@@ -379,8 +568,8 @@ export const DETERMINISM_FIXTURES: DeterminismFixture[] = [
       resultHash: null,
       errorCode: 'LIMIT_EXCEEDED',
       errorTag: 'host/limit',
-      gasUsed: 774n,
-      gasRemaining: 49226n,
+      gasUsed: 143n,
+      gasRemaining: 49857n,
       tapeHash:
         '4894237cf19c834c9bff793693a158be3443e56df132773f6c61c7aed456a088',
       tapeLength: 1,
@@ -405,8 +594,8 @@ export const DETERMINISM_FIXTURES: DeterminismFixture[] = [
       resultHash: null,
       errorCode: 'NOT_FOUND',
       errorTag: 'host/not_found',
-      gasUsed: 771n,
-      gasRemaining: 49229n,
+      gasUsed: 140n,
+      gasRemaining: 49860n,
       tapeHash:
         'a540c3ce0fd4043d8c3262e3c1ae2bc6bb50d3e17d0cc1dd2a8af8957eaca013',
       tapeLength: 1,

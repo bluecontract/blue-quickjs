@@ -29,6 +29,12 @@
   "references": [
     {
       "path": "./tsconfig.lib.json"
+    },
+    {
+      "path": "../dv/tsconfig.lib.json"
+    },
+    {
+      "path": "../test-harness/tsconfig.lib.json"
     }
   ]
 }

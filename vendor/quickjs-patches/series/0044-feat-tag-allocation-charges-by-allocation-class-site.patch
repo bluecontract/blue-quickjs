@@ -1,0 +1,30 @@
+From 8d2543c8aa2eb5c665714d523aac963920d88e8d Mon Sep 17 00:00:00 2001
+From: Cursor Agent <cursoragent@cursor.com>
+Date: Mon, 16 Mar 2026 12:29:06 +0000
+Subject: [PATCH 44/51] feat: tag allocation charges by allocation class site
+
+---
+ quickjs.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/quickjs.c b/quickjs.c
+index d86fc3d..325573f 100644
+--- a/quickjs.c
++++ b/quickjs.c
+@@ -1175,6 +1175,7 @@ typedef struct JSGasChargeTapeData {
+ #define JS_GAS_SITE_ALLOCATION UINT32_C(2)
+ #define JS_GAS_SITE_ARRAY_CALLBACK_BASE UINT32_C(3)
+ #define JS_GAS_SITE_ARRAY_CALLBACK_PER_ELEMENT UINT32_C(4)
++#define JS_GAS_SITE_ALLOCATION_CLASS_BASE UINT32_C(1000)
+ 
+ typedef enum JSGasAllocationClass {
+     JS_GAS_ALLOC_CLASS_UNKNOWN = 0,
+@@ -1784,7 +1785,7 @@ static int js_charge_gas_allocation_ctx_with_class(JSContext *ctx,
+     gas_cost = js_gas_allocation_cost(charged_size);
+     if (JS_UseGasAt(ctx,
+                     gas_cost,
+-                    JS_GAS_SITE_ALLOCATION,
++                    JS_GAS_SITE_ALLOCATION_CLASS_BASE + (uint32_t)alloc_class,
+                     JS_GAS_CHARGE_KIND_ALLOCATION,
+                     charged_size))
+         return -1;

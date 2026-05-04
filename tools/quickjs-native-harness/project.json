@@ -8,13 +8,22 @@
     "build": {
       "executor": "nx:run-commands",
       "cache": true,
-      "inputs": ["default", "quickjsSubmodule"],
+      "inputs": ["default", "quickjsSource"],
       "outputs": ["{workspaceRoot}/tools/quickjs-native-harness/dist"],
       "options": {
         "command": "bash tools/quickjs-native-harness/scripts/build.sh"
       }
     },
     "test": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build"],
+      "outputs": ["{projectRoot}/test-output/vitest/coverage"],
+      "options": {
+        "command": "vitest",
+        "cwd": "tools/quickjs-native-harness"
+      }
+    },
+    "test-legacy": {
       "executor": "nx:run-commands",
       "dependsOn": ["build"],
       "options": {

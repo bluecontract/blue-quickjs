@@ -17,7 +17,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          submodules: recursive
 
       - uses: pnpm/action-setup@v4
         name: Install pnpm
@@ -45,20 +44,88 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - name: Validate docs links
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: >
+            --root-dir .
+            --offline
+            --no-progress
+            README.md
+            'docs/**/*.md'
+            examples/README.md
+          fail: true
+
+      - name: Run release evidence unit tests
+        run: pnpm release-evidence:test
+
       - name: Install emsdk (pinned 3.1.56)
         run: bash tools/scripts/setup-emsdk.sh
 
+      - name: Verify QuickJS source reconstruction
+        run: |
+          pnpm quickjs-source:test
+          bash tools/scripts/check-quickjs-source-prep.sh
+
+      - name: Verify generated gas schedule docs are in sync
+        run: |
+          pnpm gas-spec:test
+          node tools/gas-spec/render-gas-artifacts.mjs --check
+
       - name: Reset Nx state (just in case)
         run: pnpm exec nx reset
+
+      - name: Clear TypeScript build state
+        run: |
+          find libs apps tools -name '*.tsbuildinfo' -delete
+          rm -rf libs/*/out-tsc apps/*/out-tsc tools/*/out-tsc
 
       - uses: nrwl/nx-set-shas@v4
 
       # Prepend any command with "nx-cloud record --" to record its logs to Nx Cloud
       # - run: pnpm exec nx-cloud record -- echo Hello World
-      - run: pnpm exec nx affected -t lint test build typecheck
+      - run: NX_DAEMON=false NX_NO_CLOUD=true pnpm exec nx affected -t lint test build typecheck --skip-nx-cache --output-style=stream
 
-      - name: Install Playwright browsers (Chromium)
-        run: pnpm exec playwright install --with-deps chromium
+      - name: Run critical coverage threshold gate
+        run: NX_DAEMON=false NX_NO_CLOUD=true pnpm test:coverage:critical --skip-nx-cache --output-style=stream
+
+      - name: Upload critical coverage artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: critical-vitest-coverage
+          path: |
+            libs/quickjs-runtime/test-output/vitest/coverage
+            libs/deterministic-bundler/test-output/vitest/coverage
+            libs/deterministic-builder/test-output/vitest/coverage
+            libs/abi-manifest/test-output/vitest/coverage
+            tools/blue-quickjs-cli/test-output/vitest/coverage
+            apps/ecosystem-certifier/test-output/vitest/coverage
+          if-no-files-found: ignore
+
+      - name: Run native harness suites
+        run: |
+          pnpm nx test quickjs-native-harness
+          pnpm nx run quickjs-native-harness:test-legacy
+
+      - name: Verify generated playground data is fresh
+        run: pnpm playground:check-generated
+
+      - name: Install Playwright browsers (Chromium + Firefox)
+        run: pnpm exec playwright install --with-deps chromium firefox
 
       - name: Run smoke-web e2e
         run: pnpm nx run smoke-web:e2e
+
+      - name: Run ecosystem certifier e2e
+        run: pnpm nx run ecosystem-certifier:e2e
+
+      - name: Run BlueQuickjs playground e2e
+        run: pnpm nx run bluequickjs-playground:e2e
+
+      - name: Generate workload certification sanity artifacts
+        run: |
+          node apps/ecosystem-certifier/scripts/check-builder-determinism.mjs --out-dir artifacts/workload-certification-ci
+          node apps/ecosystem-certifier/scripts/archive-workload-certification-report.mjs --out-dir artifacts/workload-certification-ci
+          node apps/ecosystem-certifier/scripts/run-oog-boundary-certification.mjs --out-dir artifacts/workload-certification-ci --fixtures green-semver,green-markdown-it
+          node apps/ecosystem-certifier/scripts/run-seeded-property-corpus.mjs --out-dir artifacts/workload-certification-ci --seed-count 12

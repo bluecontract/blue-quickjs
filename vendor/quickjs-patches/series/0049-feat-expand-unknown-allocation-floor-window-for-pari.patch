@@ -1,0 +1,23 @@
+From 17c0b4ab0a0e44f4fcd5dea0e8fa05567555c7a4 Mon Sep 17 00:00:00 2001
+From: Cursor Agent <cursoragent@cursor.com>
+Date: Mon, 16 Mar 2026 15:26:34 +0000
+Subject: [PATCH 49/51] feat: expand unknown allocation floor window for parity
+ closure
+
+---
+ quickjs.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/quickjs.c b/quickjs.c
+index f02d82b..a4f3c4e 100644
+--- a/quickjs.c
++++ b/quickjs.c
+@@ -1215,7 +1215,7 @@ typedef enum JSGasAllocationClass {
+ #define JS_GAS_CANON_VAR_REF_POINTER_BYTES UINT64_C(8)
+ #define JS_GAS_CANON_VAR_REF_RECORD_BYTES UINT64_C(32)
+ #define JS_GAS_CANON_GENERIC_ARRAY_UNIT_BYTES UINT64_C(16)
+-#define JS_GAS_CANON_UNKNOWN_SMALL_FLOOR_MAX_BYTES UINT64_C(256)
++#define JS_GAS_CANON_UNKNOWN_SMALL_FLOOR_MAX_BYTES UINT64_C(4096)
+ 
+ static void js_gas_trace_reset_counts(JSGasTraceData *trace)
+ {

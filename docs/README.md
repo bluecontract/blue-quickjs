@@ -1,65 +1,67 @@
-# Documentation index
+# BlueQuickjs Docs
 
-This repository is a deterministic JavaScript execution environment built on **QuickJS** compiled to **WebAssembly**, with a **manifest-locked Host ABI**, a canonical **Deterministic Value (DV)** wire format, and **deterministic gas metering**.
+Start with the root [README quickstart](../README.md), then jump to the
+reference you need.
 
-The docs are split between:
+## Start Here
 
-- **Baselines** (what must be true)
-- **Implementation plan** (how we intended to build it)
-- **Implementation summary + guides** (what was built, how to use it)
-- **Reference specs** (normative, detail-heavy)
+- [Core concepts](./concepts.md)
+- [Learning path](./learn/README.md)
+- [Architecture overview](./architecture-overview.md)
+- [FAQ](./faq.md)
+- [Glossary](./glossary.md)
 
-If you are new to determinism/gas (or coming from “normal” JS runtimes), follow the reading order below.
+## Build And Use
 
-## Recommended reading order
+- [TypeScript SDK usage](./sdk.md)
+- [Deterministic builder](./builder.md)
+- [ModulePack.v1](./module-pack.md)
+- [ProgramArtifact.v2](./program-artifact-v2.md)
+- [Examples guide](./examples.md)
+- [Playground](./playground.md)
+- [Playground recipes](./playground-recipes.md)
 
-1. **Baselines (requirements / contracts)**
-   - [Baseline #1 – Deterministic JS engine](./baseline-1.md)
-   - [Baseline #2 – Host ABI + DV contract](./baseline-2.md)
+## Reference
 
-2. **Plan (design log)**
-   - [Implementation plan](./implementation-plan.md)
+- [Consensus-safe vs diagnostic-only](./consensus-safe-vs-diagnostic-only.md)
+- [Execution profiles](./execution-profiles.md)
+- [Determinism profile](./determinism-profile.md)
+- [Gas schedule](./gas-schedule.md)
+- [DV wire format](./dv-wire-format.md)
+- [Value model v2 (DV2)](./value-model-v2.md)
+- [ABI manifest](./abi-manifest.md)
+- [Host call ABI](./host-call-abi.md)
+- [ABI limits](./abi-limits.md)
+- [Observability](./observability.md)
+- [Unsupported features and why](./unsupported-features-and-why.md)
 
-3. **What was built (narrative + repo map)**
-   - [Implementation summary](./implementation-summary.md)
+## Production
 
-4. **Reference specs (details, normative behavior)**
-   - [Determinism profile](./determinism-profile.md)
-   - [Gas schedule](./gas-schedule.md)
-   - [Deterministic Value wire format](./dv-wire-format.md)
-   - [ABI manifest schema + canonical encoding](./abi-manifest.md)
-   - [Host call ABI (the `host_call` syscall)](./host-call-abi.md)
-   - [Toolchain + build determinism](./toolchain.md)
-   - [Release + compatibility policy](./release-policy.md)
+- [Production embedder checklist](./production-embedder-checklist.md)
+- [Embedder integration guide](./embedders.md)
+- [Threat model](./threat-model.md)
+- [Toolchain](./toolchain.md)
 
-5. **Developer guides (practical usage)**
-   - [TypeScript SDK usage](./sdk.md)
-   - [ABI limits explained](./abi-limits.md)
-   - [Observability: host-call tape + gas trace](./observability.md)
+## Release And Audit
 
-## Quick “repo map”
+- [HEAD verification note](./head-verification-note.md)
+- [Release-readiness report](./release-readiness-report.md)
+- [Release checklist](./release-checklist.md)
+- [Release policy](./release-policy.md)
+- [Release provenance and trust model](./release-provenance.md)
+- [Signature rotation and rollback](./signature-rotation-and-rollback.md)
+- [Workload certification report](./workload-certification.md)
+- [Ecosystem compatibility report](./ecosystem-compatibility-report.md)
 
-Most people end up reading some docs and then jumping into these locations:
+## Quick Repo Map
 
-- **QuickJS fork + deterministic patches**: `vendor/quickjs/`
-  - Deterministic init + gas metering: `vendor/quickjs/quickjs.c`
-  - Host ABI + manifest parsing + Host.v1 wrappers: `vendor/quickjs/quickjs-host.c`
-  - DV codec: `vendor/quickjs/quickjs-dv.c`
-  - SHA-256 helper used for tape hashing: `vendor/quickjs/quickjs-sha256.c`
-  - Wasm entrypoints: `vendor/quickjs/quickjs-wasm-entry.c`
-
-- **TypeScript libraries**
-  - DV reference implementation: `libs/dv/`
-  - Manifest schema + canonical encoding/hashing: `libs/abi-manifest/`
-  - Wasm constants + metadata types: `libs/quickjs-wasm-constants/`
-  - Wasm build pipeline + metadata: `libs/quickjs-wasm-build/`
-  - Packaged wasm artifacts: `libs/quickjs-wasm/`
-  - Runtime SDK (evaluate / init / dispatcher): `libs/quickjs-runtime/`
-  - Shared fixtures + parsers: `libs/test-harness/`
-
-- **Executable examples**
-  - Node smoke runner: `apps/smoke-node/`
-  - Browser smoke runner: `apps/smoke-web/`
-
-- **Native harness (golden tests & debugging)**
-  - `tools/quickjs-native-harness/`
+- QuickJS fork and deterministic patches: `vendor/quickjs/`,
+  `vendor/quickjs-patches/`
+- Builder and runtime libraries: `libs/deterministic-builder/`,
+  `libs/deterministic-bundler/`, `libs/quickjs-runtime/`
+- Wasm build and package libraries: `libs/quickjs-wasm-build/`,
+  `libs/quickjs-wasm/`
+- ABI and value libraries: `libs/abi-manifest/`, `libs/dv/`
+- Smoke and certification apps: `apps/smoke-node/`, `apps/smoke-web/`,
+  `apps/ecosystem-certifier/`
+- Diagnostic native harness: `tools/quickjs-native-harness/`
