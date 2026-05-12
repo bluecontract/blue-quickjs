@@ -93,7 +93,10 @@ export async function evaluate(
   options: EvaluateOptions,
 ): Promise<EvaluateResult> {
   const program = validateProgramArtifact(options.program);
-  const input = validateInputEnvelope(options.input, options.inputValidation);
+  const input = validateInputEnvelope(options.input, {
+    ...options.inputValidation,
+    dvLimits: options.inputValidation?.dvLimits ?? options.dvLimits,
+  });
 
   const runtime = await createRuntime({
     manifest: options.manifest,
@@ -114,6 +117,7 @@ export async function evaluate(
     program,
     input,
     options.gasLimit,
+    options.inputValidation?.dvLimits ?? options.dvLimits,
   );
 
   if (options.tape) {

@@ -20,6 +20,14 @@ static JSRuntime *det_rt = NULL;
 static JSContext *det_ctx = NULL;
 static uint64_t det_gas_limit = JS_GAS_UNLIMITED;
 
+static const JSDvLimits JS_DET_WORKFLOW_DV_LIMITS = {
+    .max_depth = 64,
+    .max_encoded_bytes = 16 * 1024 * 1024,
+    .max_string_bytes = 262144,
+    .max_array_length = 65535,
+    .max_map_length = 65535,
+};
+
 static void free_det_runtime(void) {
   if (det_ctx) {
     JS_FreeContext(det_ctx);
@@ -229,7 +237,7 @@ char *qjs_det_eval(const char *code) {
   }
 
   JSDvBuffer dv = {0};
-  if (JS_EncodeDV(det_ctx, result, &JS_DV_LIMIT_DEFAULTS, &dv) != 0) {
+  if (JS_EncodeDV(det_ctx, result, &JS_DET_WORKFLOW_DV_LIMITS, &dv) != 0) {
     JS_FreeValue(det_ctx, result);
     char *out = format_exception(det_ctx, det_gas_limit, "<dv encode>", NULL);
     JS_FreeDVBuffer(det_ctx, &dv);
