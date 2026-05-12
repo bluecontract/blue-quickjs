@@ -181,6 +181,39 @@ describe('evaluate', () => {
     expect(result.value).toEqual({ chunkCount: 32 });
   });
 
+  it('keeps host-call DV limits independent from workflow input opt-ins', async () => {
+    const result = await evaluate({
+      program: BASE_PROGRAM,
+      input: BASE_INPUT,
+      gasLimit: 5_000_000n,
+      manifest: HOST_V1_MANIFEST,
+      handlers: createHandlers({
+        document: {
+          get: vi.fn(() => ({
+            ok: Array.from({ length: 65536 }, () => null),
+            units: 5,
+          })),
+        },
+      }),
+      dvLimits: {
+        maxEncodedBytes: WORKFLOW_DV_LIMIT_BYTES,
+        maxArrayLength: 65536,
+      },
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      throw new Error('expected host limit failure');
+    }
+    expect(result.type).toBe('vm-error');
+    expect(result.error.kind).toBe('host-error');
+    if (result.error.kind !== 'host-error') {
+      throw new Error('expected host-error');
+    }
+    expect(result.error.code).toBe('LIMIT_EXCEEDED');
+    expect(result.error.tag).toBe('host/limit');
+  });
+
   it('rejects workflow result payloads above the deterministic workflow cap', async () => {
     const result = await evaluate({
       program: {

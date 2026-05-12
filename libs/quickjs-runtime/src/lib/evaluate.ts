@@ -6,10 +6,7 @@ import {
   decodeDv,
 } from '@blue-quickjs/dv';
 import { initializeDeterministicVm } from './deterministic-init.js';
-import type {
-  HostDispatcherHandlers,
-  HostDispatcherOptions,
-} from './host-dispatcher.js';
+import type { HostDispatcherHandlers } from './host-dispatcher.js';
 import {
   type InputEnvelope,
   type InputValidationOptions,
@@ -30,18 +27,27 @@ import {
 } from './evaluate-errors.js';
 import { parseHexToBytes } from './hex-utils.js';
 
-export interface EvaluateOptions
-  extends RuntimeArtifactSelection, HostDispatcherOptions {
+export interface EvaluateOptions extends RuntimeArtifactSelection {
   program: ProgramArtifact;
   input: InputEnvelope;
   gasLimit: bigint | number;
   manifest: AbiManifest;
   handlers: HostDispatcherHandlers;
+  /**
+   * DV limits applied to workflow input validation and deterministic VM
+   * initialization.
+   */
+  dvLimits?: Partial<DvLimits>;
   inputValidation?: InputValidationOptions;
   /**
    * DV limits applied to the returned value.
    */
   outputDvLimits?: Partial<DvLimits>;
+  /**
+   * DV limits applied to host-call request decoding and response encoding.
+   * These are intentionally separate from workflow input/output limits.
+   */
+  hostDvLimits?: Partial<DvLimits>;
   /**
    * Enable host-call tape recording (capacity defaults to 128; max 1024).
    */
@@ -105,7 +111,7 @@ export async function evaluate(
     buildType: options.buildType,
     metadata: options.metadata,
     wasmBinary: options.wasmBinary,
-    dvLimits: options.dvLimits,
+    dvLimits: options.hostDvLimits,
     expectedAbiId: program.abiId,
     expectedAbiVersion: program.abiVersion,
   });
