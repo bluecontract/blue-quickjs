@@ -5,12 +5,6 @@ on:
     tags:
       - v*.*.*
       - '!v*.*.*-rc.*'
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: 'Tag to publish (example: v1.2.3)'
-        required: true
-        type: string
 
 jobs:
   publish:
@@ -21,16 +15,7 @@ jobs:
       id-token: write # needed for provenance data generation
     timeout-minutes: 10
     steps:
-      - name: 'Checkout repository (manual: tag)'
-        if: ${{ github.event_name == 'workflow_dispatch' }}
-        uses: actions/checkout@v4
-        with:
-          ref: refs/tags/${{ inputs.tag }}
-          fetch-depth: 0
-          submodules: recursive
-
-      - name: 'Checkout repository (push: current ref)'
-        if: ${{ github.event_name != 'workflow_dispatch' }}
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
