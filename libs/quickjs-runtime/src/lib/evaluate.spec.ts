@@ -135,7 +135,7 @@ describe('evaluate', () => {
       throw new Error(result.message);
     }
     expect((result.value as { changeset: unknown[] }).changeset).toHaveLength(
-      32
+      32,
     );
   });
 
