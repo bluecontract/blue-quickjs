@@ -21,6 +21,8 @@ const BASE_INPUT: InputEnvelope = {
   currentContractCanonical: { id: { value: 'contract-1' } },
 };
 
+const WORKFLOW_DV_LIMIT_BYTES = 16 * 1024 * 1024;
+
 describe('evaluate', () => {
   it('returns DV results with gas accounting', async () => {
     const handlers = createHandlers();
@@ -103,6 +105,173 @@ describe('evaluate', () => {
     expect(result.type).toBe('invalid-output');
     expect(result.error.code).toBe('INVALID_OUTPUT');
     expect(result.message).toMatch(/payload exceeds/i);
+  });
+
+  it('allows large workflow result payloads when output limits opt in', async () => {
+    const result = await evaluate({
+      program: {
+        ...BASE_PROGRAM,
+        code: `
+          const chunk = 'x'.repeat(200000);
+          ({
+            changeset: Array.from({ length: 32 }, (_, index) => ({
+              op: 'replace',
+              path: '/snapshots/' + index,
+              val: { chunk }
+            })),
+            events: []
+          })
+        `,
+      },
+      input: BASE_INPUT,
+      gasLimit: 5_000_000n,
+      manifest: HOST_V1_MANIFEST,
+      handlers: createHandlers(),
+      outputDvLimits: { maxEncodedBytes: WORKFLOW_DV_LIMIT_BYTES },
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error(result.message);
+    }
+    expect((result.value as { changeset: unknown[] }).changeset).toHaveLength(
+      32,
+    );
+  });
+
+  it('allows large workflow input payloads when DV limits opt in', async () => {
+    const largeInput: InputEnvelope = {
+      ...BASE_INPUT,
+      event: {
+        type: 'Document Initial Snapshot Resolved',
+        document: {
+          chunks: Array.from({ length: 32 }, (_, index) => ({
+            index,
+            value: 'x'.repeat(200000),
+          })),
+        },
+      },
+      eventCanonical: {
+        type: 'Document Initial Snapshot Resolved',
+        document: {
+          chunks: Array.from({ length: 32 }, (_, index) => ({
+            index,
+            value: 'x'.repeat(200000),
+          })),
+        },
+      },
+    };
+
+    const result = await evaluate({
+      program: {
+        ...BASE_PROGRAM,
+        code: '({ chunkCount: event.document.chunks.length })',
+      },
+      input: largeInput,
+      gasLimit: 5_000_000n,
+      manifest: HOST_V1_MANIFEST,
+      handlers: createHandlers(),
+      dvLimits: { maxEncodedBytes: WORKFLOW_DV_LIMIT_BYTES },
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error(result.message);
+    }
+    expect(result.value).toEqual({ chunkCount: 32 });
+  });
+
+  it('keeps host-call DV limits independent from workflow input opt-ins', async () => {
+    const result = await evaluate({
+      program: BASE_PROGRAM,
+      input: BASE_INPUT,
+      gasLimit: 5_000_000n,
+      manifest: HOST_V1_MANIFEST,
+      handlers: createHandlers({
+        document: {
+          get: vi.fn(() => ({
+            ok: Array.from({ length: 65536 }, () => null),
+            units: 5,
+          })),
+        },
+      }),
+      dvLimits: {
+        maxEncodedBytes: WORKFLOW_DV_LIMIT_BYTES,
+        maxArrayLength: 65536,
+      },
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      throw new Error('expected host limit failure');
+    }
+    expect(result.type).toBe('vm-error');
+    expect(result.error.kind).toBe('host-error');
+    if (result.error.kind !== 'host-error') {
+      throw new Error('expected host-error');
+    }
+    expect(result.error.code).toBe('LIMIT_EXCEEDED');
+    expect(result.error.tag).toBe('host/limit');
+  });
+
+  it('rejects workflow result payloads above the deterministic workflow cap', async () => {
+    const result = await evaluate({
+      program: {
+        ...BASE_PROGRAM,
+        code: `
+          const chunk = 'x'.repeat(200000);
+          ({
+            changeset: Array.from({ length: 96 }, (_, index) => ({
+              op: 'replace',
+              path: '/snapshots/' + index,
+              val: { chunk }
+            })),
+            events: []
+          })
+        `,
+      },
+      input: BASE_INPUT,
+      gasLimit: 5_000_000n,
+      manifest: HOST_V1_MANIFEST,
+      handlers: createHandlers(),
+      outputDvLimits: { maxEncodedBytes: 32 * 1024 * 1024 },
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      throw new Error('expected workflow cap failure');
+    }
+    expect(result.type).toBe('vm-error');
+    expect(result.message).toMatch(/encoded DV exceeds maxEncodedBytes/i);
+  });
+
+  it('rejects workflow input payloads above the configured workflow cap', async () => {
+    const oversizedInput: InputEnvelope = {
+      ...BASE_INPUT,
+      event: {
+        type: 'Document Initial Snapshot Resolved',
+        document: {
+          chunks: Array.from({ length: 96 }, (_, index) => ({
+            index,
+            value: 'x'.repeat(200000),
+          })),
+        },
+      },
+    };
+
+    await expect(
+      evaluate({
+        program: {
+          ...BASE_PROGRAM,
+          code: '({ chunkCount: event.document.chunks.length })',
+        },
+        input: oversizedInput,
+        gasLimit: 5_000_000n,
+        manifest: HOST_V1_MANIFEST,
+        handlers: createHandlers(),
+        dvLimits: { maxEncodedBytes: WORKFLOW_DV_LIMIT_BYTES },
+      }),
+    ).rejects.toThrow(/encoded DV exceeds maxEncodedBytes/i);
   });
 
   it('maps HostError failures to code/tag using the manifest', async () => {

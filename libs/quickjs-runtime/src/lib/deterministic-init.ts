@@ -1,5 +1,5 @@
 import { encodeAbiManifest } from '@blue-quickjs/abi-manifest';
-import { encodeDv } from '@blue-quickjs/dv';
+import { type DvLimits, encodeDv } from '@blue-quickjs/dv';
 import type { QuickjsWasmModule } from './runtime.js';
 import {
   type InputEnvelope,
@@ -54,19 +54,25 @@ export function initializeDeterministicVm(
   program: ProgramArtifact,
   input: InputEnvelope,
   gasLimit: bigint | number,
+  dvLimits?: Partial<DvLimits>,
 ): DeterministicVm {
   const normalizedGasLimit = normalizeGasLimit(gasLimit);
   const validatedProgram = validateProgramArtifact(program);
-  const validatedInput = validateInputEnvelope(input);
+  const validatedInput = validateInputEnvelope(input, { dvLimits });
 
   const manifestBytes = encodeAbiManifest(runtime.manifest);
-  const contextBlob = encodeDv({
-    event: validatedInput.event,
-    eventCanonical: validatedInput.eventCanonical,
-    steps: validatedInput.steps,
-    currentContract: validatedInput.currentContract ?? null,
-    currentContractCanonical: validatedInput.currentContractCanonical ?? null,
-  });
+  const contextBlob = encodeDv(
+    {
+      event: validatedInput.event,
+      eventCanonical: validatedInput.eventCanonical,
+      steps: validatedInput.steps,
+      currentContract: validatedInput.currentContract ?? null,
+      currentContractCanonical: validatedInput.currentContractCanonical ?? null,
+    },
+    {
+      limits: dvLimits,
+    },
+  );
 
   const ffi = createDeterministicExports(runtime.module);
   const manifestPtr = writeBytes(runtime.module, manifestBytes);
