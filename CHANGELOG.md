@@ -1,3 +1,9 @@
+## 0.4.2 (2026-05-14)
+
+### 🩹 Fixes
+
+- **runtime:** support larger deterministic workflow payloads ([f517834](https://github.com/bluecontract/blue-quickjs/commit/f517834))
+
 ## 0.4.1 (2026-03-13)
 
 ### 🚀 Features
