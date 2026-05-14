@@ -1,0 +1,104 @@
+name: RC Release
+
+on:
+  push:
+    branches:
+      - next
+
+env:
+  GITHUB_TOKEN: ${{ secrets.RELEASE_PAT }}
+
+jobs:
+  rc-release:
+    name: RC Release
+    if: "${{ !startsWith(github.event.head_commit.message, 'chore(release): publish ') }}"
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      id-token: write # needed for npm provenance data generation
+    timeout-minutes: 20
+    steps:
+      - name: Validate next branch
+        if: ${{ github.ref != 'refs/heads/next' }}
+        run: |
+          echo "RC releases can only run from refs/heads/next; received ${GITHUB_REF}" >&2
+          exit 1
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+          ref: ${{ github.ref }}
+          token: ${{ secrets.RELEASE_PAT }}
+
+      - uses: pnpm/action-setup@v4
+        name: Install pnpm
+        with:
+          version: 9.8.0
+          run_install: false
+
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+          registry-url: 'https://registry.npmjs.org'
+          always-auth: true
+
+      - name: Cache emsdk
+        uses: actions/cache@v4
+        with:
+          path: tools/emsdk
+          key: emsdk-${{ runner.os }}-${{ hashFiles('tools/scripts/emsdk-version.txt') }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install emsdk (pinned 3.1.56)
+        run: bash tools/scripts/setup-emsdk.sh
+
+      - name: Reset Nx state
+        run: pnpm exec nx reset
+
+      - uses: nrwl/nx-set-shas@v4
+
+      - name: Run affected quality gate
+        run: pnpm exec nx affected -t lint test build typecheck
+
+      - name: Install Playwright browsers (Chromium)
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run smoke-web e2e
+        run: pnpm nx run smoke-web:e2e
+
+      - name: Print Environment Info
+        run: pnpm exec nx report
+
+      - name: Configure Git
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+        shell: bash
+
+      - name: Configure npm auth
+        run: |
+          npm config set //registry.npmjs.org/:_authToken "${NODE_AUTH_TOKEN}"
+          npm whoami
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
+
+      - name: Create RC release
+        run: pnpm exec nx release prerelease --preid=rc --skip-publish --first-release
+        shell: bash
+
+      - name: Build versioned packages
+        run: pnpm exec nx run-many -t build
+
+      - name: Publish RC packages
+        run: pnpm exec nx release publish --tag rc
+        shell: bash
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
+          NPM_CONFIG_PROVENANCE: true
